@@ -74,13 +74,16 @@
     : matches;
 </script>
 
-<!-- BLOCCO FILTRO (ORIGINALE) -->
+<!-- BLOCCO FILTRO CORRETTO -->
 <div class="club-card p-5 mb-6 bg-[var(--giallo-club)]">
-  <label class="block font-black text-xl mb-3">
+  <!-- Aggiunto l'attributo for -->
+  <label for="player-filter" class="block font-black text-xl mb-3">
     Filtra per giocatore
   </label>
 
+  <!-- Aggiunto l'id "player-filter" -->
   <select
+    id="player-filter"
     bind:value={selectedPlayer}
     class="w-full border-2 border-black bg-white p-3 font-bold"
   >
@@ -97,14 +100,15 @@
   </p>
 </div>
 
-<!-- LISTA DEI MATCH (CON MATCHCARD) -->
+<!-- LISTA DEI MATCH CORRETTA -->
 {#if filteredMatches.length === 0}
   <div class="club-card p-5">
     <p class="font-black">Nessun match trovato.</p>
   </div>
 {:else}
   <div class="space-y-5">
-    {#each filteredMatches as match}
+    <!-- MODIFICATO QUI: da matches a filteredMatches -->
+    {#each filteredMatches as match (match.id)}
       <MatchCard {match} />
     {/each}
   </div>

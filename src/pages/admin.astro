@@ -23,47 +23,59 @@ if (Astro.url.searchParams.get('saved') === '1') {
 
 if (Astro.request.method === 'POST') {
   const body = await Astro.request.text();
-  console.log('BODY:', body);
+  console.log('BODY RICEVUTO:', body);
 
   const data = new URLSearchParams(body);
 
-  const a1 = data.get('a1') || '';
-  const a2 = data.get('a2') || '';
-  const b1 = data.get('b1') || '';
-  const b2 = data.get('b2') || '';
+  // 1. Recuperiamo i NOMI inseriti nei campi autocomplete
+  const a1Name = data.get('a1_name')?.trim() || '';
+  const a2Name = data.get('a2_name')?.trim() || '';
+  const b1Name = data.get('b1_name')?.trim() || '';
+  const b2Name = data.get('b2_name')?.trim() || '';
   const winner = (data.get('winner') || '') as 'A' | 'B';
   const score = data.get('score') || '';
 
-  if (!a1 || !a2 || !b1 || !b2 || !winner) {
-    throw new Error('Errore: alcuni campi del form non sono stati inviati.');
+  // Controllo iniziale sui dati del form
+  if (!a1Name || !a2Name || !b1Name || !b2Name || !winner) {
+    throw new Error('Errore: alcuni campi del form non sono stati inviati correttamente.');
   }
 
-  const ids = [a1, a2, b1, b2];
-
-  if (new Set(ids).size !== 4) {
-    throw new Error('Errore: hai selezionato due volte lo stesso giocatore.');
+  const inputNames = [a1Name, a2Name, b1Name, b2Name];
+  
+  // CORRETTO QUI: Rilevamento dei duplicati funzionante
+  if (new Set(inputNames).size !== 4) {
+    throw new Error('Errore: hai inserito lo stesso giocatore in più posizioni.');
   }
 
-  const { data: selectedPlayers, error } = await supabase
+  // 2. Cerchiamo i giocatori nel DB basandoci sulla lista dei nomi esatti
+  const { data: selectedPlayers, error: fetchError } = await supabase
     .from('players')
     .select('*')
-    .in('id', ids);
+    .in('name', inputNames);
 
-  if (error) {
-    throw new Error(error.message);
+  // Se non trova esattamente 4 giocatori, cerchiamo di capire perché
+  if (fetchError || !selectedPlayers || selectedPlayers.length !== 4) {
+    console.error("Giocatori trovati nel DB:", selectedPlayers, "Errore:", fetchError);
+    throw new Error('Errore: Uno o più nomi inseriti non sono registrati nel database. Assicurati di selezionarli dal menu o di scriverli identici (rispettando maiuscole/minuscole).');
   }
 
-  if (!selectedPlayers || selectedPlayers.length !== 4) {
-    throw new Error('Errore caricamento giocatori selezionati.');
-  }
+  // Associazioni degli ID basandoci sul confronto dei nomi
+  const a1 = selectedPlayers.find(p => p.name === a1Name)?.id || '';
+  const a2 = selectedPlayers.find(p => p.name === a2Name)?.id || '';
+  const b1 = selectedPlayers.find(p => p.name === b1Name)?.id || '';
+  const b2 = selectedPlayers.find(p => p.name === b2Name)?.id || '';
 
   const teamA = selectedPlayers.filter(p => p.id === a1 || p.id === a2);
   const teamB = selectedPlayers.filter(p => p.id === b1 || p.id === b2);
 
+  if (teamA.length !== 2 || teamB.length !== 2) {
+    throw new Error('Errore nella divisione delle squadre. Controlla i nomi inseriti.');
+  }
+
   const avgA = (teamA[0].current_elo + teamA[1].current_elo) / 2;
   const avgB = (teamB[0].current_elo + teamB[1].current_elo) / 2;
 
-  // Calcolo Elo standard (usato come fallback per i veterani)
+  // Calcolo Elo standard
   const elo = calculateEloChange(avgA, avgB, winner);
 
   const winners = winner === 'A' ? teamA : teamB;
@@ -78,8 +90,8 @@ if (Astro.request.method === 'POST') {
       team_a_avg_elo: avgA,
       team_b_avg_elo: avgB,
       match_type: elo.matchType,
-      elo_delta_winner: elo.winnerDelta, // <--- Ripristinato per il vincolo del DB
-      elo_delta_loser: elo.loserDelta,   // <--- Ripristinato per il vincolo del DB
+      elo_delta_winner: elo.winnerDelta,
+      elo_delta_loser: elo.loserDelta,
     })
     .select()
     .single();
@@ -91,7 +103,6 @@ if (Astro.request.method === 'POST') {
   // 2. AGGIORNAMENTO CLASSIFICA VINCITORI (TABELLA PLAYERS)
   for (const player of winners) {
     const playerDelta = player.matches_played < 3 ? 15 : elo.winnerDelta;
-
     await supabase
       .from('players')
       .update({
@@ -105,7 +116,6 @@ if (Astro.request.method === 'POST') {
   // 3. AGGIORNAMENTO CLASSIFICA PERDENTI (TABELLA PLAYERS)
   for (const player of losers) {
     const playerDelta = player.matches_played < 3 ? -15 : elo.loserDelta;
-
     await supabase
       .from('players')
       .update({
@@ -119,13 +129,12 @@ if (Astro.request.method === 'POST') {
   // 4. INSERIMENTO STORICO INDIVIDUALE VINCITORI (TABELLA MATCH_PLAYERS)
   for (const player of winners) {
     const playerDelta = player.matches_played < 3 ? 15 : elo.winnerDelta;
-
     await supabase
       .from('match_players')
       .insert({
         match_id: insertedMatch.id,
         player_id: player.id,
-        team: winner === 'A' ? (teamA.includes(player) ? 'A' : 'B') : (teamB.includes(player) ? 'B' : 'A'),
+        team: winner === 'A' ? (teamA.some(p => p.id === player.id) ? 'A' : 'B') : (teamB.some(p => p.id === player.id) ? 'B' : 'A'),
         elo_before: player.current_elo,
         elo_after: player.current_elo + playerDelta,
         delta: playerDelta,
@@ -136,13 +145,12 @@ if (Astro.request.method === 'POST') {
   // 5. INSERIMENTO STORICO INDIVIDUALE PERDENTI (TABELLA MATCH_PLAYERS)
   for (const player of losers) {
     const playerDelta = player.matches_played < 3 ? -15 : elo.loserDelta;
-
     await supabase
       .from('match_players')
       .insert({
         match_id: insertedMatch.id,
         player_id: player.id,
-        team: winner === 'A' ? (teamB.includes(player) ? 'B' : 'A') : (teamA.includes(player) ? 'A' : 'B'),
+        team: winner === 'A' ? (teamB.some(p => p.id === player.id) ? 'B' : 'A') : (teamA.some(p => p.id === player.id) ? 'A' : 'B'),
         elo_before: player.current_elo,
         elo_after: player.current_elo + playerDelta,
         delta: playerDelta,
@@ -155,22 +163,26 @@ if (Astro.request.method === 'POST') {
 ---
 
 <Layout title="Admin">
+  <datalist id="players-list">
+    {players?.map(player => (
+      <option value={player.name}></option>
+    ))}
+  </datalist>
+
   <section class="mb-8">
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">
       Area riservata
     </p>
-
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
       Admin
     </h1>
-
     <p class="mt-4 max-w-xl text-slate-700 font-medium">
       Inserisci un nuovo match ranking e aggiorna automaticamente la classifica ELO.
     </p>
   </section>
 
   {message && (
-    <div class="club-card bg-[var(--giallo-club)] p-4 mb-6 font-black">
+    <div id="success-banner" class="club-card bg-emerald-500 text-white p-4 mb-6 font-black">
       {message}
     </div>
   )}
@@ -178,68 +190,67 @@ if (Astro.request.method === 'POST') {
   <form method="POST" action="/admin" class="club-card p-5 md:p-6 max-w-2xl space-y-8">
     <div>
       <div class="flex items-center gap-3 mb-4">
-        <span class="bg-black text-white px-3 py-1 font-black text-sm">
-          A
-        </span>
-        <h2 class="text-2xl font-black text-black">
-          Team A
-        </h2>
+        <span class="bg-black text-white px-3 py-1 font-black text-sm">A</span>
+        <h2 class="text-2xl font-black text-black">Team A</h2>
       </div>
-
       <div class="grid gap-3 md:grid-cols-2">
-        <select name="a1" required class="w-full border-2 border-black bg-white p-3 font-bold">
-          {players?.map(player => (
-            <option value={player.id}>{player.name}</option>
-          ))}
-        </select>
-
-        <select name="a2" required class="w-full border-2 border-black bg-white p-3 font-bold">
-          {players?.map(player => (
-            <option value={player.id}>{player.name}</option>
-          ))}
-        </select>
+        <input 
+          type="text" 
+          name="a1_name" 
+          list="players-list" 
+          placeholder="Cerca giocatore A1..." 
+          required 
+          autocomplete="off"
+          class="w-full border-2 border-black bg-white p-3 font-bold"
+        />
+        <input 
+          type="text" 
+          name="a2_name" 
+          list="players-list" 
+          placeholder="Cerca giocatore A2..." 
+          required 
+          autocomplete="off"
+          class="w-full border-2 border-black bg-white p-3 font-bold"
+        />
       </div>
     </div>
 
     <div class="flex items-center gap-3">
       <div class="h-1 bg-black flex-1"></div>
-      <span class="bg-black text-white px-4 py-2 font-black uppercase text-sm">
-        vs
-      </span>
+      <span class="bg-black text-white px-4 py-2 font-black uppercase text-sm">vs</span>
       <div class="h-1 bg-black flex-1"></div>
     </div>
 
     <div>
       <div class="flex items-center gap-3 mb-4">
-        <span class="bg-[var(--giallo-club)] border-2 border-black text-black px-3 py-1 font-black text-sm">
-          B
-        </span>
-        <h2 class="text-2xl font-black text-black">
-          Team B
-        </h2>
+        <span class="bg-[var(--giallo-club)] border-2 border-black text-black px-3 py-1 font-black text-sm">B</span>
+        <h2 class="text-2xl font-black text-black">Team B</h2>
       </div>
-
       <div class="grid gap-3 md:grid-cols-2">
-        <select name="b1" required class="w-full border-2 border-black bg-white p-3 font-bold">
-          {players?.map(player => (
-            <option value={player.id}>{player.name}</option>
-          ))}
-        </select>
-
-        <select name="b2" required class="w-full border-2 border-black bg-white p-3 font-bold">
-          {players?.map(player => (
-            <option value={player.id}>{player.name}</option>
-          ))}
-        </select>
+        <input 
+          type="text" 
+          name="b1_name" 
+          list="players-list" 
+          placeholder="Cerca giocatore B1..." 
+          required 
+          autocomplete="off"
+          class="w-full border-2 border-black bg-white p-3 font-bold"
+        />
+        <input 
+          type="text" 
+          name="b2_name" 
+          list="players-list" 
+          placeholder="Cerca giocatore B2..." 
+          required 
+          autocomplete="off"
+          class="w-full border-2 border-black bg-white p-3 font-bold"
+        />
       </div>
     </div>
 
     <div class="grid gap-6 md:grid-cols-2">
       <div>
-        <h2 class="text-2xl font-black mb-3 text-black">
-          Vincitore
-        </h2>
-
+        <h2 class="text-2xl font-black mb-3 text-black">Vincitore</h2>
         <select name="winner" required class="w-full border-2 border-black bg-white p-3 font-bold">
           <option value="A">Team A</option>
           <option value="B">Team B</option>
@@ -247,10 +258,7 @@ if (Astro.request.method === 'POST') {
       </div>
 
       <div>
-        <h2 class="text-2xl font-black mb-3 text-black">
-          Risultato
-        </h2>
-
+        <h2 class="text-2xl font-black mb-3 text-black">Risultato</h2>
         <input
           type="text"
           name="score"
@@ -264,4 +272,16 @@ if (Astro.request.method === 'POST') {
       Salva Match
     </button>
   </form>
+
+  <script is:inline>
+    const banner = document.getElementById('success-banner');
+    if (banner) {
+      setTimeout(() => {
+        banner.remove();
+        const url = new URL(window.location);
+        url.searchParams.delete('saved');
+        window.history.replaceState({}, '', url);
+      }, 3000);
+    }
+  </script>
 </Layout>
