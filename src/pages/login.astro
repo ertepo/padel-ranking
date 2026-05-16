@@ -1,0 +1,57 @@
+---
+import '../styles/global.css';
+let error = '';
+
+if (Astro.request.method === 'POST') {
+  const body = await Astro.request.text();
+
+  const data = new URLSearchParams(body);
+
+  const password = data.get('password');
+
+  if (
+    password ===
+    import.meta.env.ADMIN_PASSWORD
+  ) {
+    Astro.cookies.set(
+      'admin_password',
+      password,
+      {
+        path: '/',
+        httpOnly: true,
+      }
+    );
+
+    return Astro.redirect('/admin');
+  }
+
+  error = 'Password errata';
+}
+---
+
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <title>Login</title>
+  </head>
+
+  <body>
+    <h1>Admin Login</h1>
+
+    {
+      error && <p>{error}</p>
+    }
+
+    <form method="POST">
+      <input
+        type="password"
+        name="password"
+        placeholder="Password"
+      />
+
+      <button type="submit">
+        Login
+      </button>
+    </form>
+  </body>
+</html>

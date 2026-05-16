@@ -1,0 +1,269 @@
+---
+import { supabase } from '../lib/supabase';
+import { calculateEloChange } from '../lib/elo';
+import '../styles/global.css';
+import Layout from '../layouts/Layout.astro';
+
+const adminPassword =
+  Astro.cookies.get('admin_password');
+
+if (
+  adminPassword?.value !==
+  import.meta.env.ADMIN_PASSWORD
+) {
+  return Astro.redirect('/login');
+}
+
+const { data: players } = await supabase
+  .from('players')
+  .select('*')
+  .order('name');
+
+let message = '';
+
+if (Astro.request.method === 'POST') {
+  const body = await Astro.request.text();
+  console.log('BODY:', body);
+
+  const data = new URLSearchParams(body);
+
+  const a1 = data.get('a1') || '';
+  const a2 = data.get('a2') || '';
+  const b1 = data.get('b1') || '';
+  const b2 = data.get('b2') || '';
+  const winner = (data.get('winner') || '') as 'A' | 'B';
+  const score = data.get('score') || '';
+
+  if (!a1 || !a2 || !b1 || !b2 || !winner) {
+    throw new Error('Errore: alcuni campi del form non sono stati inviati.');
+  }
+
+  const ids = [a1, a2, b1, b2];
+
+  if (new Set(ids).size !== 4) {
+    throw new Error('Errore: hai selezionato due volte lo stesso giocatore.');
+  }
+
+  const { data: selectedPlayers, error } = await supabase
+    .from('players')
+    .select('*')
+    .in('id', ids);
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!selectedPlayers || selectedPlayers.length !== 4) {
+    throw new Error('Errore caricamento giocatori selezionati.');
+  }
+
+  const teamA = selectedPlayers.filter(p => p.id === a1 || p.id === a2);
+  const teamB = selectedPlayers.filter(p => p.id === b1 || p.id === b2);
+
+  const avgA = (teamA[0].current_elo + teamA[1].current_elo) / 2;
+  const avgB = (teamB[0].current_elo + teamB[1].current_elo) / 2;
+
+  const elo = calculateEloChange(avgA, avgB, winner);
+
+  const winners = winner === 'A' ? teamA : teamB;
+  const losers = winner === 'A' ? teamB : teamA;
+
+  const { data: insertedMatch, error: matchError } =
+    await supabase
+      .from('matches')
+      .insert({
+        winner_team: winner,
+
+        score,
+  
+        team_a_avg_elo: avgA,
+        team_b_avg_elo: avgB,
+  
+        match_type: elo.matchType,
+  
+        elo_delta_winner: elo.winnerDelta,
+        elo_delta_loser: elo.loserDelta,
+      })
+      .select()
+      .single();
+  
+  if (matchError) {
+    throw new Error(matchError.message);
+  }
+
+  for (const player of winners) {
+    await supabase
+      .from('players')
+      .update({
+        current_elo: player.current_elo + elo.winnerDelta,
+        matches_played: player.matches_played + 1,
+        wins: player.wins + 1,
+      })
+      .eq('id', player.id);
+  }
+
+  for (const player of losers) {
+    await supabase
+      .from('players')
+      .update({
+        current_elo: player.current_elo + elo.loserDelta,
+        matches_played: player.matches_played + 1,
+        losses: player.losses + 1,
+      })
+      .eq('id', player.id);
+  }
+
+  for (const player of winners) {
+    await supabase
+      .from('match_players')
+      .insert({
+        match_id: insertedMatch.id,
+  
+        player_id: player.id,
+  
+        team:
+          winner === 'A'
+            ? teamA.includes(player)
+              ? 'A'
+              : 'B'
+            : teamB.includes(player)
+            ? 'B'
+            : 'A',
+  
+        elo_before: player.current_elo,
+  
+        elo_after:
+          player.current_elo +
+          elo.winnerDelta,
+  
+        delta: elo.winnerDelta,
+  
+        result: 'win',
+      });
+  }
+  
+  for (const player of losers) {
+    await supabase
+      .from('match_players')
+      .insert({
+        match_id: insertedMatch.id,
+  
+        player_id: player.id,
+  
+        team:
+          winner === 'A'
+            ? teamB.includes(player)
+              ? 'B'
+              : 'A'
+            : teamA.includes(player)
+            ? 'A'
+            : 'B',
+  
+        elo_before: player.current_elo,
+  
+        elo_after:
+          player.current_elo +
+          elo.loserDelta,
+  
+        delta: elo.loserDelta,
+  
+        result: 'loss',
+      });
+  }
+
+  message = 'Match salvato correttamente!';
+}
+---
+
+<Layout title="Admin">
+  <h1 class="text-4xl font-bold mb-2">
+    Admin
+  </h1>
+
+  <p class="text-zinc-400 mb-8">
+    Inserisci un nuovo match ranking.
+  </p>
+
+  {message && (
+    <div class="mb-6 rounded-xl bg-green-950 border border-green-800 text-green-300 p-4">
+      {message}
+    </div>
+  )}
+
+  <form
+    method="POST"
+    action="/admin"
+    class="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 space-y-6 max-w-xl"
+  >
+    <div>
+      <h2 class="text-xl font-bold mb-3 text-green-400">
+        Team A
+      </h2>
+
+      <div class="grid gap-3">
+        <select name="a1" required class="w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3">
+          {players?.map(player => (
+            <option value={player.id}>{player.name}</option>
+          ))}
+        </select>
+
+        <select name="a2" required class="w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3">
+          {players?.map(player => (
+            <option value={player.id}>{player.name}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="text-xl font-bold mb-3 text-blue-400">
+        Team B
+      </h2>
+
+      <div class="grid gap-3">
+        <select name="b1" required class="w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3">
+          {players?.map(player => (
+            <option value={player.id}>{player.name}</option>
+          ))}
+        </select>
+
+        <select name="b2" required class="w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3">
+          {players?.map(player => (
+            <option value={player.id}>{player.name}</option>
+          ))}
+        </select>
+      </div>
+    </div>
+
+    <div>
+      <h2 class="text-xl font-bold mb-3">
+        Vincitore
+      </h2>
+
+      <select name="winner" required class="w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3">
+        <option value="A">Team A</option>
+        <option value="B">Team B</option>
+      </select>
+    </div>
+
+    <div>
+      <h2 class="text-xl font-bold mb-3">
+        Risultato
+      </h2>
+    
+      <input
+        type="text"
+        name="score"
+        placeholder="6-4 6-3"
+        class="w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3"
+      />
+    </div>
+
+    <button
+      type="submit"
+      class="w-full rounded-xl bg-green-500 hover:bg-green-400 text-zinc-950 font-bold p-4 transition"
+    >
+      Salva Match
+    </button>
+  </form>
+</Layout>

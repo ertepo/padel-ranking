@@ -1,0 +1,79 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { supabase } from '../lib/supabase';
+
+const { data: players, error } = await supabase
+  .from('players')
+  .select('*')
+  .eq('active', true)
+  .order('current_elo', { ascending: false });
+---
+
+<Layout title="Classifica">
+  <h1 class="text-4xl font-bold mb-8">
+    Classifica Padel
+  </h1>
+
+  {error && (
+    <pre class="bg-red-950 text-red-200 p-4 rounded-xl mb-6">
+      {JSON.stringify(error, null, 2)}
+    </pre>
+  )}
+
+  <div class="overflow-x-auto rounded-2xl border border-zinc-800 bg-zinc-900">
+    <table class="w-full text-sm">
+      <thead class="bg-zinc-800 text-zinc-300">
+        <tr>
+          <th class="p-4 text-left">#</th>
+          <th class="p-4 text-left">Giocatore</th>
+          <th class="p-4 text-right">ELO</th>
+          <th class="p-4 text-right">P</th>
+          <th class="p-4 text-right">V</th>
+          <th class="p-4 text-right">S</th>
+          <th class="p-4 text-right">Win%</th>
+        </tr>
+      </thead>
+
+      <tbody>
+        {players?.map((player, index) => {
+          const winRate =
+            player.matches_played > 0
+              ? Math.round((player.wins / player.matches_played) * 100)
+              : 0;
+
+          return (
+            <tr class="border-t border-zinc-800">
+              <td class="p-4 font-bold text-zinc-400">
+                {index + 1}
+              </td>
+
+              <td class="p-4 font-semibold">
+                {player.name}
+              </td>
+
+              <td class="p-4 text-right text-green-400 font-bold">
+                {player.current_elo}
+              </td>
+
+              <td class="p-4 text-right">
+                {player.matches_played}
+              </td>
+
+              <td class="p-4 text-right">
+                {player.wins}
+              </td>
+
+              <td class="p-4 text-right">
+                {player.losses}
+              </td>
+
+              <td class="p-4 text-right">
+                {winRate}%
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+</Layout>
