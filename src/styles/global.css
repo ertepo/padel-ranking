@@ -1,1 +1,77 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap');
 @import "tailwindcss";
+
+:root {
+  --giallo-club: #ffcc00;
+  --text-color: rgb(30, 30, 30);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Montserrat, Arial, sans-serif;
+  color: var(--text-color);
+  background-attachment: fixed;
+  background-color: hsl(209, 36%, 86%);
+  background-size: 100vw 100vh;
+  background-image:
+    radial-gradient(
+      50% 50% at 50% 50%,
+      rgba(255, 255, 255, 0.75) 0%,
+      rgba(255, 255, 255, 0) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgb(202, 216, 228) 0%,
+      hsl(209, 36%, 86%) 15%,
+      hsl(224, 44%, 95%) 50%
+    );
+}
+
+.ombra {
+  box-shadow: -0.5em 0.5em black;
+}
+
+.dotted {
+  position: relative;
+}
+
+.dotted::before {
+  position: absolute;
+  content: '';
+  display: block;
+  top: -1.2rem;
+  right: 1.2rem;
+  bottom: 1.2rem;
+  left: -1.2rem;
+  z-index: -1;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background:
+    repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 2px, #fff 10px),
+    repeating-linear-gradient(-90deg, #000, #000 2px, #fff 2px, #fff 10px);
+}
+
+.club-card {
+  background: white;
+  border: 2px solid black;
+  box-shadow: -0.5em 0.5em black;
+}
+
+.club-btn {
+  background: white;
+  border: 2px solid black;
+  box-shadow: -0.35em 0.35em black;
+  color: black;
+  font-weight: 800;
+  transition: all 120ms ease;
+}
+
+.club-btn:hover {
+  background: black;
+  color: white;
+  box-shadow: 0 0 black;
+}

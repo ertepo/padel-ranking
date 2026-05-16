@@ -1,12 +1,107 @@
 ---
-import Welcome from '../components/Welcome.astro';
 import Layout from '../layouts/Layout.astro';
-import Test from '../components/Test.svelte';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
 ---
-<Test client:load />
-<Layout>
-	<Welcome />
+
+<Layout title="Regolamento">
+  <section class="mb-10 dotted">
+    <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+      Padel Ranking 2026
+    </p>
+
+    <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+      Poggio's<br />Championship
+    </h1>
+
+    <p class="mt-5 max-w-2xl text-lg font-semibold text-slate-700">
+      Competizione individuale di padel con ranking ELO, partite libere e playoff finale.
+    </p>
+
+    <div class="mt-6 flex flex-wrap gap-4">
+      <a href="/classifica" class="club-btn px-5 py-3">
+        Vedi classifica
+      </a>
+
+      <a href="/matches" class="club-btn px-5 py-3">
+        Storico match
+      </a>
+    </div>
+  </section>
+
+  <section class="grid gap-5 md:grid-cols-3 mb-10">
+    <div class="club-card p-5">
+      <div class="text-4xl font-black mb-3">1</div>
+      <h2 class="text-2xl font-black mb-2">Partite libere</h2>
+      <p class="font-medium text-slate-700">
+        I soci organizzano autonomamente le partite. Le coppie possono cambiare ogni volta.
+      </p>
+    </div>
+
+    <div class="club-card p-5 bg-[var(--giallo-club)]">
+      <div class="text-4xl font-black mb-3">2</div>
+      <h2 class="text-2xl font-black mb-2">Ranking ELO</h2>
+      <p class="font-medium text-slate-800">
+        Ogni giocatore ha un punteggio individuale che sale o scende dopo ogni match.
+      </p>
+    </div>
+
+    <div class="club-card p-5">
+      <div class="text-4xl font-black mb-3">3</div>
+      <h2 class="text-2xl font-black mb-2">Finale playoff</h2>
+      <p class="font-medium text-slate-700">
+        A fine stagione la classifica determina i qualificati al master finale.
+      </p>
+    </div>
+  </section>
+
+  <section class="club-card p-6 mb-8">
+    <h2 class="text-3xl font-black mb-5">
+      Regolamento
+    </h2>
+
+    <div class="grid gap-4 md:grid-cols-2">
+      <div class="border-2 border-black p-4 bg-white">
+        <h3 class="font-black text-xl mb-2">ELO iniziale</h3>
+        <p class="font-medium text-slate-700">
+          Tutti i giocatori partono da 1000 punti ELO.
+        </p>
+      </div>
+
+      <div class="border-2 border-black p-4 bg-white">
+        <h3 class="font-black text-xl mb-2">Prime 3 partite</h3>
+        <p class="font-medium text-slate-700">
+          Nei primi tre incontri di ogni giocatore la vittoria vale +15 punti, la sconfitta -15 punti.
+        </p>
+      </div>
+
+      <div class="border-2 border-black p-4 bg-white">
+        <h3 class="font-black text-xl mb-2">Match equilibrato</h3>
+        <p class="font-medium text-slate-700">
+          Se la differenza media ELO tra le coppie è entro 50 punti (esempio: TeamA 1200pt - TeamB 1170pt = 30pt): ±12.
+        </p>
+      </div>
+
+      <div class="border-2 border-black p-4 bg-white">
+        <h3 class="font-black text-xl mb-2">Favoriti e sfavoriti</h3>
+        <p class="font-medium text-slate-700">
+          Se vincono i favoriti guadagnano 8 punti e gli sfavoriti ne perdono 8. Se vincono gli sfavoriti guadagnano 25 punti e i favoriti ne perdono 25.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section class="club-card p-6 bg-[var(--giallo-club)]">
+    <h2 class="text-3xl font-black mb-4">
+      Come si calcola la forza delle coppie?
+    </h2>
+
+    <p class="font-semibold text-slate-900 mb-4">
+      La forza di una coppia è la media ELO dei due giocatori.
+    </p>
+
+    <div class="bg-white border-2 border-black p-4 font-black text-lg">
+      Team A: 1000 + 1040 = media 1020<br />
+      Team B: 990 + 970 = media 980<br />
+      Differenza: 40 punti → match equilibrato
+    </div>
+  </section>
 </Layout>

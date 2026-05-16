@@ -1,42 +1,55 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
-import MatchCard from '../components/MatchCard.svelte';
+import MatchesList from '../components/MatchesList.svelte';
 
 const { data: matches, error } = await supabase
   .from('matches')
   .select(`
     *,
     match_players (
-      *,
+      id,
+      player_id,
+      team,
+      result,
+      delta,
+      elo_before,
+      elo_after,
       players (
+        id,
         name
       )
     )
   `)
   .order('created_at', { ascending: false });
+
+const { data: players } = await supabase
+  .from('players')
+  .select('id, name')
+  .eq('active', true)
+  .order('name');
 ---
 
 <Layout title="Match">
-  <h1 class="text-4xl font-bold mb-8">
-    Storico Match
-  </h1>
+  <section class="mb-8">
+    <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+      Storico
+    </p>
+
+    <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+      Match
+    </h1>
+  </section>
 
   {error && (
-    <pre class="bg-red-950 text-red-200 p-4 rounded-xl mb-6">
+    <pre class="club-card p-4 text-red-600 mb-6">
       {JSON.stringify(error, null, 2)}
     </pre>
   )}
 
-  {!error && matches?.length === 0 && (
-    <p class="text-zinc-400">
-      Nessun match inserito.
-    </p>
-  )}
-
-  <div class="space-y-4">
-    {matches?.map(match => (
-      <MatchCard match={match} />
-    ))}
-  </div>
+  <MatchesList
+    matches={matches ?? []}
+    players={players ?? []}
+    client:load
+  />
 </Layout>

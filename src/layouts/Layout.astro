@@ -7,47 +7,26 @@ const { title = 'Padel Ranking' } = Astro.props;
 <html lang="it">
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1"
-    />
-
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
   </head>
 
-  <body class="bg-zinc-950 text-white min-h-screen">
-    <header
-      class="border-b border-zinc-800"
-    >
-      <div
-        class="max-w-5xl mx-auto px-4 py-4 flex gap-6"
-      >
-        <a
-          href="/classifica"
-          class="text-green-400 font-semibold"
-        >
-          Classifica
+  <body>
+    <header class="bg-[var(--giallo-club)] border-b-4 border-black">
+      <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
+        <a href="/classifica" class="text-2xl font-black tracking-tight text-black">
+          POGGIO'S<br class="sm:hidden" /> CHAMPIONSHIP
         </a>
 
-        <a
-          href="/matches"
-          class="text-zinc-300"
-        >
-          Match
-        </a>
-
-        <a
-          href="/admin"
-          class="text-zinc-300"
-        >
-          Admin
-        </a>
+        <nav class="flex gap-3 text-sm sm:text-base">
+          <a href="/classifica" class="club-btn px-3 py-2">Classifica</a>
+          <a href="/matches" class="club-btn px-3 py-2">Match</a>
+          <a href="/admin" class="club-btn px-3 py-2">Admin</a>
+        </nav>
       </div>
     </header>
 
-    <main
-      class="max-w-5xl mx-auto px-4 py-8"
-    >
+    <main class="max-w-5xl mx-auto px-4 py-8">
       <slot />
     </main>
   </body>

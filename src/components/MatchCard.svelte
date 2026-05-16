@@ -13,60 +13,81 @@
   const date = new Date(match.created_at).toLocaleString('it-IT');
 </script>
 
-<div class="rounded-2xl bg-zinc-900 border border-zinc-800 p-5 shadow-sm">
-  <div class="text-sm text-zinc-500 mb-3">
-    {date}
+<article class="club-card p-5 md:p-6 relative">
+  <div class="flex items-start justify-between gap-4 mb-5">
+    <div>
+      <p class="text-xs uppercase tracking-widest font-bold text-slate-600">
+        Match ranking
+      </p>
+
+      <p class="text-sm text-slate-600 mt-1">
+        {date}
+      </p>
+    </div>
+
+    <div class="bg-[var(--giallo-club)] border-2 border-black px-3 py-1 font-black uppercase text-xs">
+      {match.match_type}
+    </div>
   </div>
 
-  <div class="space-y-2 mb-4">
+  <div class="grid gap-3">
     <div
       class={match.winner_team === 'A'
-        ? 'text-green-400 font-bold text-xl'
-        : 'text-white font-semibold text-xl'}
+        ? 'border-2 border-black bg-[var(--giallo-club)] p-4 font-black text-xl md:text-2xl'
+        : 'border-2 border-black bg-white p-4 font-bold text-xl md:text-2xl'}
     >
       {teamAName}
     </div>
 
-    <div class="text-xs uppercase tracking-wide text-zinc-500">
-      vs
+    <div class="flex items-center gap-3">
+      <div class="h-1 bg-black flex-1"></div>
+      <span class="bg-black text-white px-3 py-1 font-black text-xs uppercase">
+        vs
+      </span>
+      <div class="h-1 bg-black flex-1"></div>
     </div>
 
     <div
       class={match.winner_team === 'B'
-        ? 'text-green-400 font-bold text-xl'
-        : 'text-white font-semibold text-xl'}
+        ? 'border-2 border-black bg-[var(--giallo-club)] p-4 font-black text-xl md:text-2xl'
+        : 'border-2 border-black bg-white p-4 font-bold text-xl md:text-2xl'}
     >
       {teamBName}
     </div>
   </div>
 
-  <div class="text-sm text-zinc-300">
-    Vincitori:
-    <span class="font-semibold text-white">
-      {winnersName}
-    </span>
-    {#if match.score}
-      <div class="mt-3 text-lg font-bold text-zinc-200">
-        {match.score}
-      </div>
-    {/if}
+  {#if match.score}
+    <div class="mt-5 bg-black text-white inline-block px-4 py-2 font-black text-lg">
+      {match.score}
+    </div>
+  {/if}
+
+  <div class="mt-5 grid gap-3 md:grid-cols-3">
+    <div class="border-2 border-black bg-white p-3">
+      <p class="text-xs uppercase font-bold text-slate-500">
+        Vincitori
+      </p>
+      <p class="font-black">
+        {winnersName}
+      </p>
+    </div>
+
+    <div class="border-2 border-black bg-white p-3">
+      <p class="text-xs uppercase font-bold text-slate-500">
+        Delta ELO
+      </p>
+      <p class="font-black">
+        +{match.elo_delta_winner} / {match.elo_delta_loser}
+      </p>
+    </div>
+
+    <div class="border-2 border-black bg-white p-3">
+      <p class="text-xs uppercase font-bold text-slate-500">
+        Media ELO
+      </p>
+      <p class="font-black">
+        A {Math.round(match.team_a_avg_elo)} · B {Math.round(match.team_b_avg_elo)}
+      </p>
+    </div>
   </div>
-
-  <div class="mt-4 flex flex-wrap gap-2 text-xs">
-    <span class="rounded-full bg-zinc-800 px-3 py-1 text-zinc-300">
-      {match.match_type}
-    </span>
-
-    <span class="rounded-full bg-zinc-800 px-3 py-1 text-zinc-300">
-      +{match.elo_delta_winner} / {match.elo_delta_loser}
-    </span>
-
-    <span class="rounded-full bg-zinc-800 px-3 py-1 text-zinc-300">
-      MEDIA PUNTI A {Math.round(match.team_a_avg_elo)}
-    </span>
-
-    <span class="rounded-full bg-zinc-800 px-3 py-1 text-zinc-300">
-      MEDIA PUNTI B {Math.round(match.team_b_avg_elo)}
-    </span>
-  </div>
-</div>
+</article>

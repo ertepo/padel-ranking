@@ -10,70 +10,77 @@ const { data: players, error } = await supabase
 ---
 
 <Layout title="Classifica">
-  <h1 class="text-4xl font-bold mb-8">
-    Classifica Padel
-  </h1>
+  <section class="mb-8">
+    <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+      Padel Ranking
+    </p>
+
+    <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+      Classifica
+    </h1>
+  </section>
 
   {error && (
-    <pre class="bg-red-950 text-red-200 p-4 rounded-xl mb-6">
+    <pre class="club-card p-4 text-red-600 mb-6">
       {JSON.stringify(error, null, 2)}
     </pre>
   )}
 
-  <div class="overflow-x-auto rounded-2xl border border-zinc-800 bg-zinc-900">
-    <table class="w-full text-sm">
-      <thead class="bg-zinc-800 text-zinc-300">
-        <tr>
-          <th class="p-4 text-left">#</th>
-          <th class="p-4 text-left">Giocatore</th>
-          <th class="p-4 text-right">ELO</th>
-          <th class="p-4 text-right">P</th>
-          <th class="p-4 text-right">V</th>
-          <th class="p-4 text-right">S</th>
-          <th class="p-4 text-right">Win%</th>
-        </tr>
-      </thead>
+  <div class="club-card overflow-hidden">
+    <div class="bg-[var(--giallo-club)] border-b-2 border-black p-4 flex justify-between items-center">
+      <h2 class="text-xl font-black uppercase">
+        Ranking Live
+      </h2>
 
-      <tbody>
-        {players?.map((player, index) => {
-          const winRate =
-            player.matches_played > 0
-              ? Math.round((player.wins / player.matches_played) * 100)
-              : 0;
+      <span class="bg-black text-white px-3 py-1 text-xs font-black uppercase">
+        ELO
+      </span>
+    </div>
 
-          return (
-            <tr class="border-t border-zinc-800">
-              <td class="p-4 font-bold text-zinc-400">
-                {index + 1}
-              </td>
+    <div class="divide-y-2 divide-black">
+      {players?.map((player, index) => {
+        const winRate =
+          player.matches_played > 0
+            ? Math.round((player.wins / player.matches_played) * 100)
+            : 0;
 
-              <td class="p-4 font-semibold">
+        return (
+          <a
+            href={`/player/${player.id}`}
+            class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--giallo-club)] transition"
+          >
+            <div class="text-3xl font-black text-black">
+              #{index + 1}
+            </div>
+
+            <div>
+              <div class="font-black text-xl text-black">
                 {player.name}
-              </td>
+              </div>
 
-              <td class="p-4 text-right text-green-400 font-bold">
-                {player.current_elo}
-              </td>
+              <div class="text-sm font-bold text-slate-600 md:hidden">
+                {player.matches_played} partite · {player.wins}V/{player.losses}S · {winRate}%
+              </div>
+            </div>
 
-              <td class="p-4 text-right">
-                {player.matches_played}
-              </td>
+            <div class="text-right font-black text-2xl text-black">
+              {player.current_elo}
+            </div>
 
-              <td class="p-4 text-right">
-                {player.wins}
-              </td>
+            <div class="hidden md:block text-right font-bold">
+              {player.matches_played}
+            </div>
 
-              <td class="p-4 text-right">
-                {player.losses}
-              </td>
+            <div class="hidden md:block text-right font-bold">
+              {player.wins}V
+            </div>
 
-              <td class="p-4 text-right">
-                {winRate}%
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+            <div class="hidden md:block text-right font-bold">
+              {winRate}%
+            </div>
+          </a>
+        );
+      })}
+    </div>
   </div>
 </Layout>

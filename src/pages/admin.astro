@@ -21,6 +21,10 @@ const { data: players } = await supabase
 
 let message = '';
 
+if (Astro.url.searchParams.get('saved') === '1') {
+  message = 'Match salvato correttamente!';
+}
+
 if (Astro.request.method === 'POST') {
   const body = await Astro.request.text();
   console.log('BODY:', body);
@@ -171,43 +175,50 @@ if (Astro.request.method === 'POST') {
       });
   }
 
-  message = 'Match salvato correttamente!';
+return Astro.redirect('/admin?saved=1');
 }
 ---
 
 <Layout title="Admin">
-  <h1 class="text-4xl font-bold mb-2">
-    Admin
-  </h1>
+  <section class="mb-8">
+    <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+      Area riservata
+    </p>
 
-  <p class="text-zinc-400 mb-8">
-    Inserisci un nuovo match ranking.
-  </p>
+    <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+      Admin
+    </h1>
+
+    <p class="mt-4 max-w-xl text-slate-700 font-medium">
+      Inserisci un nuovo match ranking e aggiorna automaticamente la classifica ELO.
+    </p>
+  </section>
 
   {message && (
-    <div class="mb-6 rounded-xl bg-green-950 border border-green-800 text-green-300 p-4">
+    <div class="club-card bg-[var(--giallo-club)] p-4 mb-6 font-black">
       {message}
     </div>
   )}
 
-  <form
-    method="POST"
-    action="/admin"
-    class="rounded-2xl border border-zinc-800 bg-zinc-900 p-6 space-y-6 max-w-xl"
-  >
+  <form method="POST" action="/admin" class="club-card p-5 md:p-6 max-w-2xl space-y-8">
     <div>
-      <h2 class="text-xl font-bold mb-3 text-green-400">
-        Team A
-      </h2>
+      <div class="flex items-center gap-3 mb-4">
+        <span class="bg-black text-white px-3 py-1 font-black text-sm">
+          A
+        </span>
+        <h2 class="text-2xl font-black text-black">
+          Team A
+        </h2>
+      </div>
 
-      <div class="grid gap-3">
-        <select name="a1" required class="w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3">
+      <div class="grid gap-3 md:grid-cols-2">
+        <select name="a1" required class="w-full border-2 border-black bg-white p-3 font-bold">
           {players?.map(player => (
             <option value={player.id}>{player.name}</option>
           ))}
         </select>
 
-        <select name="a2" required class="w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3">
+        <select name="a2" required class="w-full border-2 border-black bg-white p-3 font-bold">
           {players?.map(player => (
             <option value={player.id}>{player.name}</option>
           ))}
@@ -215,19 +226,32 @@ if (Astro.request.method === 'POST') {
       </div>
     </div>
 
-    <div>
-      <h2 class="text-xl font-bold mb-3 text-blue-400">
-        Team B
-      </h2>
+    <div class="flex items-center gap-3">
+      <div class="h-1 bg-black flex-1"></div>
+      <span class="bg-black text-white px-4 py-2 font-black uppercase text-sm">
+        vs
+      </span>
+      <div class="h-1 bg-black flex-1"></div>
+    </div>
 
-      <div class="grid gap-3">
-        <select name="b1" required class="w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3">
+    <div>
+      <div class="flex items-center gap-3 mb-4">
+        <span class="bg-[var(--giallo-club)] border-2 border-black text-black px-3 py-1 font-black text-sm">
+          B
+        </span>
+        <h2 class="text-2xl font-black text-black">
+          Team B
+        </h2>
+      </div>
+
+      <div class="grid gap-3 md:grid-cols-2">
+        <select name="b1" required class="w-full border-2 border-black bg-white p-3 font-bold">
           {players?.map(player => (
             <option value={player.id}>{player.name}</option>
           ))}
         </select>
 
-        <select name="b2" required class="w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3">
+        <select name="b2" required class="w-full border-2 border-black bg-white p-3 font-bold">
           {players?.map(player => (
             <option value={player.id}>{player.name}</option>
           ))}
@@ -235,34 +259,33 @@ if (Astro.request.method === 'POST') {
       </div>
     </div>
 
-    <div>
-      <h2 class="text-xl font-bold mb-3">
-        Vincitore
-      </h2>
+    <div class="grid gap-6 md:grid-cols-2">
+      <div>
+        <h2 class="text-2xl font-black mb-3 text-black">
+          Vincitore
+        </h2>
 
-      <select name="winner" required class="w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3">
-        <option value="A">Team A</option>
-        <option value="B">Team B</option>
-      </select>
+        <select name="winner" required class="w-full border-2 border-black bg-white p-3 font-bold">
+          <option value="A">Team A</option>
+          <option value="B">Team B</option>
+        </select>
+      </div>
+
+      <div>
+        <h2 class="text-2xl font-black mb-3 text-black">
+          Risultato
+        </h2>
+
+        <input
+          type="text"
+          name="score"
+          placeholder="6-4 6-3"
+          class="w-full border-2 border-black bg-white p-3 font-bold"
+        />
+      </div>
     </div>
 
-    <div>
-      <h2 class="text-xl font-bold mb-3">
-        Risultato
-      </h2>
-    
-      <input
-        type="text"
-        name="score"
-        placeholder="6-4 6-3"
-        class="w-full rounded-xl bg-zinc-950 border border-zinc-700 p-3"
-      />
-    </div>
-
-    <button
-      type="submit"
-      class="w-full rounded-xl bg-green-500 hover:bg-green-400 text-zinc-950 font-bold p-4 transition"
-    >
+    <button type="submit" class="club-btn w-full p-4 text-xl">
       Salva Match
     </button>
   </form>
