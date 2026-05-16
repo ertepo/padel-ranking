@@ -127,7 +127,7 @@ const strokeDashoffsetUnique = circumference - (uniquePlayersProgress / uniquePl
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center font-black text-black">
               <span class="text-xl leading-none">{realMatchesCount}</span>
-              <span class="text-[10px] opacity-50 uppercase">/ {totalMatchesGoal}</span>
+              <span class="text-l opacity-50 uppercase">/ {totalMatchesGoal}</span>
             </div>
           </div>
           <div>
@@ -145,12 +145,12 @@ const strokeDashoffsetUnique = circumference - (uniquePlayersProgress / uniquePl
             </svg>
             <div class="absolute inset-0 flex flex-col items-center justify-center font-black text-black">
               <span class="text-xl leading-none">{uniqueOpponentsCount}</span>
-              <span class="text-[10px] opacity-50 uppercase">/ {uniquePlayersGoal}</span>
+              <span class="text-l opacity-50 uppercase">/ {uniquePlayersGoal}</span>
             </div>
           </div>
           <div>
             <h3 class="text-lg font-black text-black">Varietà Avversari</h3>
-            <p class="text-xs text-slate-600 font-bold">Devi incrociare le racchette con almeno {uniquePlayersGoal} giocatori unici.</p>
+            <p class="text-xs text-slate-600 font-bold">Devi giocare con almeno {uniquePlayersGoal} giocatori differenti.</p>
             {uniqueOpponentsCount >= uniquePlayersGoal ? <span class="inline-block mt-2 text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 font-black uppercase">Soddisfatto ✓</span> : <span class="inline-block mt-2 text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 font-black uppercase">In Corso</span>}
           </div>
         </div>
