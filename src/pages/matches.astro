@@ -3,31 +3,42 @@ import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
 import MatchesList from '../components/MatchesList.svelte';
 
-const { data: matches, error } = await supabase
-  .from('matches')
-  .select(`
-    *,
-    match_players (
+// Carichiamo i dati iniziali in parallelo lato server
+const [matchesResponse, playersResponse] = await Promise.all([
+  supabase
+    .from('matches')
+    .select(`
       id,
-      player_id,
-      team,
-      result,
-      delta,
-      elo_before,
-      elo_after,
-      players (
+      created_at,
+      winner_team,
+      score,
+      team_a_avg_elo,
+      team_b_avg_elo,
+      match_type,
+      match_players (
         id,
-        name
+        player_id,
+        team,
+        result,
+        delta,
+        players (
+          name
+        )
       )
-    )
-  `)
-  .order('created_at', { ascending: false });
+    `)
+    .order('created_at', { ascending: false })
+    .range(0, 9), // Carica i primi 10 per testare subito se va, poi puoi mettere 25 o 50
 
-const { data: players } = await supabase
-  .from('players')
-  .select('id, name')
-  .eq('active', true)
-  .order('name');
+  supabase
+    .from('players')
+    .select('id, name')
+    .eq('active', true)
+    .order('name')
+]);
+
+const initialMatches = matchesResponse.data ?? [];
+const error = matchesResponse.error;
+const players = playersResponse.data ?? [];
 ---
 
 <Layout title="Match">
@@ -35,7 +46,6 @@ const { data: players } = await supabase
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">
       Storico
     </p>
-
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
       Match
     </h1>
@@ -47,9 +57,10 @@ const { data: players } = await supabase
     </pre>
   )}
 
+  {/* Usiamo client:load o client:visible. Passiamo i dati iniziali a Svelte */}
   <MatchesList
-    matches={matches ?? []}
-    players={players ?? []}
+    initialMatches={initialMatches}
+    players={players}
     client:load
   />
 </Layout>

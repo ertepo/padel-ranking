@@ -4,13 +4,9 @@ import { calculateEloChange } from '../lib/elo';
 import '../styles/global.css';
 import Layout from '../layouts/Layout.astro';
 
-const adminPassword =
-  Astro.cookies.get('admin_password');
+const adminPassword = Astro.cookies.get('admin_password');
 
-if (
-  adminPassword?.value !==
-  import.meta.env.ADMIN_PASSWORD
-) {
+if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
   return Astro.redirect('/login');
 }
 
@@ -67,115 +63,94 @@ if (Astro.request.method === 'POST') {
   const avgA = (teamA[0].current_elo + teamA[1].current_elo) / 2;
   const avgB = (teamB[0].current_elo + teamB[1].current_elo) / 2;
 
+  // Calcolo Elo standard (usato come fallback per i veterani)
   const elo = calculateEloChange(avgA, avgB, winner);
 
   const winners = winner === 'A' ? teamA : teamB;
   const losers = winner === 'A' ? teamB : teamA;
 
-  const { data: insertedMatch, error: matchError } =
-    await supabase
-      .from('matches')
-      .insert({
-        winner_team: winner,
-
-        score,
-  
-        team_a_avg_elo: avgA,
-        team_b_avg_elo: avgB,
-  
-        match_type: elo.matchType,
-  
-        elo_delta_winner: elo.winnerDelta,
-        elo_delta_loser: elo.loserDelta,
-      })
-      .select()
-      .single();
+  // 1. INSERIMENTO DEL MATCH NELLA TABELLA PRINCIPALE
+  const { data: insertedMatch, error: matchError } = await supabase
+    .from('matches')
+    .insert({
+      winner_team: winner,
+      score,
+      team_a_avg_elo: avgA,
+      team_b_avg_elo: avgB,
+      match_type: elo.matchType,
+      elo_delta_winner: elo.winnerDelta, // <--- Ripristinato per il vincolo del DB
+      elo_delta_loser: elo.loserDelta,   // <--- Ripristinato per il vincolo del DB
+    })
+    .select()
+    .single();
   
   if (matchError) {
     throw new Error(matchError.message);
   }
 
+  // 2. AGGIORNAMENTO CLASSIFICA VINCITORI (TABELLA PLAYERS)
   for (const player of winners) {
+    const playerDelta = player.matches_played < 3 ? 15 : elo.winnerDelta;
+
     await supabase
       .from('players')
       .update({
-        current_elo: player.current_elo + elo.winnerDelta,
+        current_elo: player.current_elo + playerDelta,
         matches_played: player.matches_played + 1,
         wins: player.wins + 1,
       })
       .eq('id', player.id);
   }
 
+  // 3. AGGIORNAMENTO CLASSIFICA PERDENTI (TABELLA PLAYERS)
   for (const player of losers) {
+    const playerDelta = player.matches_played < 3 ? -15 : elo.loserDelta;
+
     await supabase
       .from('players')
       .update({
-        current_elo: player.current_elo + elo.loserDelta,
+        current_elo: player.current_elo + playerDelta,
         matches_played: player.matches_played + 1,
         losses: player.losses + 1,
       })
       .eq('id', player.id);
   }
 
+  // 4. INSERIMENTO STORICO INDIVIDUALE VINCITORI (TABELLA MATCH_PLAYERS)
   for (const player of winners) {
+    const playerDelta = player.matches_played < 3 ? 15 : elo.winnerDelta;
+
     await supabase
       .from('match_players')
       .insert({
         match_id: insertedMatch.id,
-  
         player_id: player.id,
-  
-        team:
-          winner === 'A'
-            ? teamA.includes(player)
-              ? 'A'
-              : 'B'
-            : teamB.includes(player)
-            ? 'B'
-            : 'A',
-  
+        team: winner === 'A' ? (teamA.includes(player) ? 'A' : 'B') : (teamB.includes(player) ? 'B' : 'A'),
         elo_before: player.current_elo,
-  
-        elo_after:
-          player.current_elo +
-          elo.winnerDelta,
-  
-        delta: elo.winnerDelta,
-  
+        elo_after: player.current_elo + playerDelta,
+        delta: playerDelta,
         result: 'win',
       });
   }
-  
+
+  // 5. INSERIMENTO STORICO INDIVIDUALE PERDENTI (TABELLA MATCH_PLAYERS)
   for (const player of losers) {
+    const playerDelta = player.matches_played < 3 ? -15 : elo.loserDelta;
+
     await supabase
       .from('match_players')
       .insert({
         match_id: insertedMatch.id,
-  
         player_id: player.id,
-  
-        team:
-          winner === 'A'
-            ? teamB.includes(player)
-              ? 'B'
-              : 'A'
-            : teamA.includes(player)
-            ? 'A'
-            : 'B',
-  
+        team: winner === 'A' ? (teamB.includes(player) ? 'B' : 'A') : (teamA.includes(player) ? 'A' : 'B'),
         elo_before: player.current_elo,
-  
-        elo_after:
-          player.current_elo +
-          elo.loserDelta,
-  
-        delta: elo.loserDelta,
-  
+        elo_after: player.current_elo + playerDelta,
+        delta: playerDelta,
         result: 'loss',
       });
   }
 
-return Astro.redirect('/admin?saved=1');
+  return Astro.redirect('/admin?saved=1');
 }
 ---
 
