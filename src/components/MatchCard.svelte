@@ -35,9 +35,15 @@
       </p>
     </div>
 
-    <div class="bg-[var(--giallo-club)] border-2 border-black px-3 py-1 font-black uppercase text-xs">
-      {match.match_type}
-    </div>
+    <div class={`px-3 py-1 font-black uppercase text-xs border-2 ${
+      {
+        expected: 'bg-white text-black border-black',
+        balanced: 'bg-[var(--blu-bilanciato)] text-slate-100 border-black',
+        upset: 'bg-[var(--giallo-club)] text-black border-black border-dashed'
+      }[match.match_type?.toLowerCase()] || 'bg-slate-200 text-slate-700'
+    }`}>
+  {match.match_type}
+</div>
   </div>
 
   <!-- BLOCCO SQUADRE E GIOCATORI -->
@@ -45,7 +51,7 @@
     <!-- TEAM A -->
     <div
       class={match.winner_team === 'A'
-        ? 'border-2 border-black bg-[var(--giallo-club)] p-4 font-black text-xl md:text-2xl flex flex-wrap gap-x-2'
+        ? 'border-2 border-black bg-[var(--giallo-club)] px-4 font-black text-xl md:text-2xl flex flex-wrap gap-x-2'
         : 'border-2 border-black bg-white p-4 font-bold text-xl md:text-2xl flex flex-wrap gap-x-2'}
     >
       {#each teamA as p, i}
@@ -66,8 +72,8 @@
     <!-- TEAM B -->
     <div
       class={match.winner_team === 'B'
-        ? 'border-2 border-black bg-[var(--giallo-club)] p-4 font-black text-xl md:text-2xl flex flex-wrap gap-x-2'
-        : 'border-2 border-black bg-white p-4 font-bold text-xl md:text-2xl flex flex-wrap gap-x-2'}
+        ? 'border-2 border-black bg-[var(--giallo-club)] px-4 font-black text-xl md:text-2xl flex flex-wrap gap-x-2'
+        : 'border-2 border-black bg-white px-4 font-bold text-xl md:text-2xl flex flex-wrap gap-x-2'}
     >
       {#each teamB as p, i}
         <span>{p.players.name} ({formatDelta(p.delta)})</span>
@@ -80,8 +86,8 @@
   <div class="mt-5 grid gap-3 md:grid-cols-3">
     
     <!-- 1. RISULTATO (Sostituisce "Vincitori" con sfondo nero) -->
-    <div class="bg-black text-white p-3 flex flex-col justify-center">
-      <p class="text-xs uppercase font-bold text-slate-400">
+    <div class="bg-black text-white px-1 flex flex-col justify-center">
+      <p class="text-xs uppercase font-bold text-slate-400 p-0">
         Punteggio
       </p>
       <p class="font-black text-xl mt-0.5">
@@ -90,7 +96,7 @@
     </div>
 
     <!-- 2. MEDIA ELO (Spostato al centro) -->
-    <div class="border-2 border-black bg-white p-3">
+    <div class="border-2 border-black bg-white  px-1">
       <p class="text-xs uppercase font-bold text-slate-500">
         Media ELO
       </p>
@@ -100,7 +106,7 @@
     </div>
 
     <!-- 3. DIFFERENZA ELO (Nuovo blocco a destra) -->
-    <div class="border-2 border-black bg-white p-3">
+    <div class="border-2 border-black bg-white  px-1">
       <p class="text-xs uppercase font-bold text-slate-500">
         Diff. Equilibrio
       </p>
