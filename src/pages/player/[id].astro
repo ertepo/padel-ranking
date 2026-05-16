@@ -1,0 +1,215 @@
+---
+import { supabase } from '../../lib/supabase';
+import Layout from '../../layouts/Layout.astro';
+import '../../styles/global.css';
+
+const { id } = Astro.params;
+
+// 1. Scarichiamo i dati del giocatore
+const { data: player, error: playerError } = await supabase
+  .from('players')
+  .select('*')
+  .eq('id', id)
+  .single();
+
+if (playerError || !player) {
+  return Astro.redirect('/404');
+}
+
+// 2. Scarichiamo lo storico delle sue partite, ma questa volta includiamo TUTTI i giocatori di quel match
+const { data: matchesData, error: matchesError } = await supabase
+  .from('match_players')
+  .select(`
+    result,
+    delta,
+    team,
+    matches (
+      id,
+      played_at,
+      score,
+      winner_team,
+      match_players (
+        team,
+        player_id,
+        players (
+          name
+        )
+      )
+    )
+  `)
+  .eq('player_id', id);
+
+const matchesPlayedList = matchesData || [];
+
+// Ordiniamo i match dal più recente al più vecchio
+matchesPlayedList.sort((a, b) => {
+  const dateA = new Date(a.matches?.played_at || 0).getTime();
+  const dateB = new Date(b.matches?.played_at || 0).getTime();
+  return dateB - dateA;
+});
+
+// 3. Calcoliamo il numero di avversari unici incontrati
+const matchIds = matchesPlayedList.map(m => m.matches?.id).filter(Boolean);
+let uniqueOpponentsCount = 0;
+
+if (matchIds.length > 0) {
+  const { data: allPlayersInMatches } = await supabase
+    .from('match_players')
+    .select('player_id')
+    .in('match_id', matchIds)
+    .not('player_id', 'eq', id);
+
+  const opponentIds = allPlayersInMatches?.map(p => p.player_id) || [];
+  uniqueOpponentsCount = new Set(opponentIds).size;
+}
+
+// 4. Calcolo percentuale di vittoria REALE (basata sui match contati nel DB)
+const realMatchesCount = matchesPlayedList.length;
+const realWinsCount = matchesPlayedList.filter(m => m.result === 'win').length;
+const winPercentage = realMatchesCount > 0 
+  ? Math.round((realWinsCount / realMatchesCount) * 100) 
+  : 0;
+
+// Obiettivi Playoff
+const totalMatchesGoal = 7;
+const uniquePlayersGoal = 4;
+
+const totalMatchesProgress = Math.min(realMatchesCount, totalMatchesGoal);
+const uniquePlayersProgress = Math.min(uniqueOpponentsCount, uniquePlayersGoal);
+
+const radius = 40;
+const circumference = 2 * Math.PI * radius;
+const strokeDashoffsetTotal = circumference - (totalMatchesProgress / totalMatchesGoal) * circumference;
+const strokeDashoffsetUnique = circumference - (uniquePlayersProgress / uniquePlayersGoal) * circumference;
+---
+
+<Layout title={`Profilo - ${player.name}`}>
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    
+    <section class="mb-10">
+      <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-1">Profilo Giocatore</p>
+      <h1 class="text-5xl md:text-6xl font-black text-black leading-none mb-6">{player.name}</h1>
+      
+      <div class="grid gap-4 grid-cols-2 md:grid-cols-5">
+        <div class="club-card p-4 text-center bg-[var(--giallo-club)]">
+          <p class="text-xs uppercase font-black text-black opacity-60">Punti ELO</p>
+          <p class="text-3xl font-black text-black">{player.current_elo}</p>
+        </div>
+        <div class="club-card p-4 text-center bg-white">
+          <p class="text-xs uppercase font-black text-slate-600">Partite</p>
+          <p class="text-3xl font-black text-black">{realMatchesCount}</p>
+        </div>
+        <div class="club-card p-4 text-center bg-white">
+          <p class="text-xs uppercase font-black text-emerald-600">Vinte</p>
+          <p class="text-3xl font-black text-emerald-600">{realWinsCount}</p>
+        </div>
+        <div class="club-card p-4 text-center bg-white">
+          <p class="text-xs uppercase font-black text-rose-600">Perse</p>
+          <p class="text-3xl font-black text-rose-600">{realMatchesCount - realWinsCount}</p>
+        </div>
+        <div class="club-card p-4 text-center bg-white">
+          <p class="text-xs uppercase font-black text-rose-600">Win Rate</p>
+          <p class="text-3xl font-black text-rose-600">{winPercentage}%</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="club-card p-6 bg-white mb-10">
+      <h2 class="text-2xl font-black text-black uppercase tracking-tight mb-2">Target Playoff Settembre</h2>
+      <p class="text-sm text-slate-600 font-medium mb-6">Requisiti minimi di qualificazione per accedere alla fase finale.</p>
+      
+      <div class="grid gap-8 md:grid-cols-2">
+        <div class="flex items-center gap-4 bg-slate-50 p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div class="relative w-24 h-24 shrink-0">
+            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r={radius} stroke="#e2e8f0" stroke-width="10" fill="transparent" />
+              <circle cx="50" cy="50" r={radius} stroke="var(--giallo-club)" stroke-width="10" fill="transparent" stroke-dasharray={circumference} stroke-dashoffset={strokeDashoffsetTotal} stroke-linecap="round" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center font-black text-black">
+              <span class="text-xl leading-none">{realMatchesCount}</span>
+              <span class="text-[10px] opacity-50 uppercase">/ {totalMatchesGoal}</span>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-black">Partite Totali</h3>
+            <p class="text-xs text-slate-600 font-bold">Devi disputare almeno {totalMatchesGoal} incontri ufficiali.</p>
+            {realMatchesCount >= totalMatchesGoal ? <span class="inline-block mt-2 text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 font-black uppercase">Soddisfatto ✓</span> : <span class="inline-block mt-2 text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 font-black uppercase">In Corso</span>}
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 bg-slate-50 p-4 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          <div class="relative w-24 h-24 shrink-0">
+            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+              <circle cx="50" cy="50" r={radius} stroke="#e2e8f0" stroke-width="10" fill="transparent" />
+              <circle cx="50" cy="50" r={radius} stroke="black" stroke-width="10" fill="transparent" stroke-dasharray={circumference} stroke-dashoffset={strokeDashoffsetUnique} stroke-linecap="round" />
+            </svg>
+            <div class="absolute inset-0 flex flex-col items-center justify-center font-black text-black">
+              <span class="text-xl leading-none">{uniqueOpponentsCount}</span>
+              <span class="text-[10px] opacity-50 uppercase">/ {uniquePlayersGoal}</span>
+            </div>
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-black">Varietà Avversari</h3>
+            <p class="text-xs text-slate-600 font-bold">Devi incrociare le racchette con almeno {uniquePlayersGoal} giocatori unici.</p>
+            {uniqueOpponentsCount >= uniquePlayersGoal ? <span class="inline-block mt-2 text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 font-black uppercase">Soddisfatto ✓</span> : <span class="inline-block mt-2 text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 font-black uppercase">In Corso</span>}
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-2xl font-black text-black uppercase tracking-tight mb-4">Cronologia Incontri</h2>
+      
+      {realMatchesCount === 0 ? (
+        <p class="text-slate-500 font-bold italic">Nessun match disputato al momento.</p>
+      ) : (
+        <ul class="divide-y-2 divide-black border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
+          {matchesPlayedList.map((item) => {
+            const isWin = item.result === 'win';
+            const dateStr = item.matches?.played_at 
+              ? new Date(item.matches.played_at).toLocaleDateString('it-IT') 
+              : '';
+            
+            // Estraiamo i partecipanti per capire chi è compagno e chi avversario
+            const allParticipants = item.matches?.match_players || [];
+            
+            // Compagno: stesso team del giocatore corrente, escludendo il giocatore stesso
+            const partnerObj = allParticipants.find(p => p.team === item.team && p.player_id !== id);
+            const partnerName = partnerObj?.players?.name || 'un compagno';
+            
+            // Avversari: tutti quelli del team opposto
+            const opponents = allParticipants.filter(p => p.team !== item.team);
+            const opponent1 = opponents[0]?.players?.name || 'Avversario 1';
+            const opponent2 = opponents[1]?.players?.name || 'Avversario 2';
+            
+            return (
+              <li class={`p-4 font-black flex flex-col md:flex-row md:justify-between md:items-center gap-2 ${isWin ? 'text-emerald-600' : 'text-black'}`}>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <span class="text-xs text-slate-400 font-bold shrink-0">{dateStr}</span>
+                  <span class="text-sm">
+                    giocato con <span class="underline">{partnerName}</span> contro <span class="underline">{opponent1}</span> e <span class="underline">{opponent2}</span> 
+                    — <span class="uppercase">{isWin ? 'Vittoria' : 'Sconfitta'}</span>
+                    <span class="text-xs opacity-70 font-bold ml-1">
+                      ({isWin ? '+' : ''}{item.delta} ELO)
+                    </span>
+                  </span>
+                </div>
+                {item.matches?.score && (
+                  <span class="text-sm font-mono text-slate-500 font-bold md:self-center">
+                    {item.matches.score}
+                  </span>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+
+    <div class="mt-8">
+      <a href="/" class="text-sm font-black uppercase tracking-wider text-black hover:underline">
+        ← Torna alla Classifica Generale
+      </a>
+    </div>
+  </main>
+</Layout>
