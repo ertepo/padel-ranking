@@ -4,8 +4,8 @@
 
 <header class="sticky top-0 z-50 bg-[var(--giallo-club)] border-b-2 border-black">
   <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-    <a href="/" class="font-black text-2xl uppercase tracking-tight">
-      Poggio's Championship
+    <a href="/" class="font-black text-4xl uppercase tracking-tight">
+      Tie-Break
     </a>
 
     <!-- Desktop -->
