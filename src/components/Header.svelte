@@ -6,7 +6,7 @@
   <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
     <svg 
       viewBox="0 0 3227 455" 
-      class="h-8  max-w-[160px] sm:max-w-[200px] md:h-10 md:max-w-none"
+      class="h-8  max-w-[200px] sm:max-w-[300px] md:h-10 md:max-w-none"
       version="1.1" 
       xmlns="http://www.w3.org/2000/svg" 
       xmlns:xlink="http://www.w3.org/1999/xlink" 
@@ -14,7 +14,7 @@
       xmlns:serif="http://www.serif.com/" 
       style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;"
 >
-    <g id="Tavola-da-disegno1" serif:id="Tavola da disegno1" transform="matrix(0.935799,0,0,0.721373,0,-180.537452)">
+    <g id="Tavola-da-disegno1" transform="matrix(0.935799,0,0,0.721373,0,-180.537452)">
         <rect x="0" y="250.269" width="3447.394" height="630.221" style="fill:none;"/>
         <g transform="matrix(1.068606,0,0,1.386246,-68.445629,-1062.564046)">
             <path d="M2053.837,1189.714L2053.837,959.413L2381.661,959.413L2381.661,1059.963L2185.03,1059.963L2185.03,1123.166L2304.483,1123.166C2227.379,1143.218 2143.999,1165.332 2053.837,1189.714Z"/>
