@@ -1,8 +1,9 @@
 ---
-import { supabase } from '../lib/supabase';
-import { calculateEloChange } from '../lib/elo';
-import '../styles/global.css';
-import Layout from '../layouts/Layout.astro';
+// CORRETTO: Aggiunto un livello di uscita (../) perché ora siamo dentro la sottocartella admin/
+import { supabase } from '../../lib/supabase';
+import { calculateEloChange } from '../../lib/elo';
+import '../../styles/global.css';
+import Layout from '../../layouts/Layout.astro';
 
 const adminPassword = Astro.cookies.get('admin_password');
 
@@ -42,7 +43,7 @@ if (Astro.request.method === 'POST') {
 
   const inputNames = [a1Name, a2Name, b1Name, b2Name];
   
-  // CORRETTO QUI: Rilevamento dei duplicati funzionante
+  // Rilevamento dei duplicati funzionante
   if (new Set(inputNames).size !== 4) {
     throw new Error('Errore: hai inserito lo stesso giocatore in più posizioni.');
   }
@@ -158,11 +159,12 @@ if (Astro.request.method === 'POST') {
       });
   }
 
-  return Astro.redirect('/admin?saved=1');
+  // CORRETTO: Ora reindirizza alla nuova rotta /admin/padel
+  return Astro.redirect('/admin/padel?saved=1');
 }
 ---
 
-<Layout title="Admin">
+<Layout title="Admin Padel">
   <datalist id="players-list">
     {players?.map(player => (
       <option value={player.name}></option>
@@ -174,10 +176,10 @@ if (Astro.request.method === 'POST') {
       Area riservata
     </p>
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
-      Admin
+      Admin Padel
     </h1>
     <p class="mt-4 max-w-xl text-slate-700 font-medium">
-      Inserisci un nuovo match ranking e aggiorna automaticamente la classifica ELO.
+      Inserisci un nuovo match ranking e aggiorna automaticamente la classifica ELO del torneo di Padel.
     </p>
   </section>
 
@@ -187,7 +189,8 @@ if (Astro.request.method === 'POST') {
     </div>
   )}
 
-  <form method="POST" action="/admin" class="club-card p-5 md:p-6 max-w-2xl space-y-8">
+  {/* CORRETTO: action puntata sulla rotta corretta /admin/padel */}
+  <form method="POST" action="/admin/padel" class="club-card p-5 md:p-6 max-w-2xl space-y-8">
     <div>
       <div class="flex items-center gap-3 mb-4">
         <span class="bg-black text-white px-3 py-1 font-black text-sm">A</span>
@@ -269,7 +272,7 @@ if (Astro.request.method === 'POST') {
     </div>
 
     <button type="submit" class="club-btn w-full p-4 text-xl">
-      Salva Match
+      Salva Match Padel
     </button>
   </form>
 

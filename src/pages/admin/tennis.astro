@@ -1,0 +1,295 @@
+---
+import { supabase } from '../../lib/supabase';
+import '../../styles/global.css';
+import Layout from '../../layouts/Layout.astro';
+
+const adminPassword = Astro.cookies.get('admin_password');
+
+if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
+  return Astro.redirect('/login');
+}
+
+// Recuperiamo tutti i giocatori di tennis ordinati per nome per l'autocompletamento
+const { data: players } = await supabase
+  .from('tennis_players')
+  .select('*')
+  .order('name');
+
+let message = '';
+let errorMessage = '';
+
+if (Astro.url.searchParams.get('saved') === '1') {
+  message = 'Match di Tennis e classifica aggiornati con successo!';
+}
+
+if (Astro.request.method === 'POST') {
+  const body = await Astro.request.text();
+  const data = new URLSearchParams(body);
+
+  const challengerName = data.get('challenger_name')?.trim() || '';
+  const defenderName = data.get('defender_name')?.trim() || '';
+  const winnerName = data.get('winner_name')?.trim() || '';
+  const score = data.get('score')?.trim() || '';
+
+  try {
+    if (!challengerName || !defenderName || !winnerName) {
+      throw new Error('Tutti i campi dei giocatori sono obbligatori.');
+    }
+
+    if (challengerName === defenderName) {
+      throw new Error('Un giocatore non può sfidare se stesso.');
+    }
+
+    // 1. Recuperiamo TUTTI i giocatori per poter riordinare la scala senza conflitti
+    const { data: allPlayers, error: fetchError } = await supabase
+      .from('tennis_players')
+      .select('*')
+      .order('position', { ascending: true });
+
+    if (fetchError || !allPlayers) {
+      throw new Error('Errore nel recupero dei giocatori dal database.');
+    }
+
+    const challenger = allPlayers.find(p => p.name === challengerName);
+    const defender = allPlayers.find(p => p.name === defenderName);
+
+    if (!challenger || !defender) {
+      throw new Error('Uno o entrambi i giocatori non sono registrati nel sistema.');
+    }
+
+    // Calcoliamo la distanza in classifica (Challenger deve stare SOTTO, quindi posizione PIÙ ALTA numericamente)
+    const distance = challenger.position - defender.position;
+
+    if (distance <= 0) {
+      throw new Error(`Sfidante non valido. ${challengerName} (${challenger.position}°) si trova già sopra o pari a ${defenderName} (${defender.position}°).`);
+    }
+
+    if (distance > 5) {
+      throw new Error(`Sfida non valida. Ci sono ${distance} posizioni di distanza (Massimo consentito: 5).`);
+    }
+
+    const challengerWon = winnerName === challengerName;
+    const updates = [];
+
+    if (challengerWon) {
+      // === SCENARIO A: VINCE LO SFIDANTE (CHI STA SOTTO) ===
+      let newChallengerPos = challenger.position;
+      let newDefenderPos = defender.position;
+
+      if (distance === 5 || distance === 4) {
+        newChallengerPos = challenger.position - 2;
+        newDefenderPos = defender.position + 1;
+      } else if (distance === 3) {
+        newChallengerPos = challenger.position - 1;
+        newDefenderPos = defender.position + 1;
+      } else if (distance === 2) {
+        newChallengerPos = challenger.position - 1;
+        newDefenderPos = defender.position; // Resta fermo
+      } else if (distance === 1) {
+        newChallengerPos = defender.position;
+        newDefenderPos = challenger.position; // Si invertono
+      }
+
+      // Ricalcolo posizioni globali per evitare buchi o doppioni
+      allPlayers.forEach(p => {
+        let finalPos = p.position;
+
+        if (p.id === challenger.id) {
+          finalPos = newChallengerPos;
+        } else if (p.id === defender.id) {
+          finalPos = newDefenderPos;
+        } else {
+          // Movimenti di assestamento per chi sta in mezzo
+          if (distance === 5 || distance === 4 || distance === 3) {
+            if (p.position >= newChallengerPos && p.position < challenger.position) {
+              finalPos += 1;
+            }
+            if (p.position > defender.position && p.position <= newChallengerPos) {
+              finalPos -= 1;
+            }
+          }
+          if (distance === 2) {
+            if (p.position === newChallengerPos) {
+              finalPos = challenger.position;
+            }
+          }
+        }
+
+        updates.push({
+          id: p.id,
+          position: finalPos,
+          matches_played: p.id === challenger.id || p.id === defender.id ? p.matches_played + 1 : p.matches_played,
+          wins: p.id === challenger.id ? p.wins + 1 : p.wins,
+          losses: p.id === defender.id ? p.losses + 1 : p.losses
+        });
+      });
+
+    } else {
+      // === SCENARIO B: VINCE LO SFIDATO (CHI STA SOPRA) ===
+      // Il Challenger viene punito e scende di 1 posizione. Chi era immediatamente sotto di lui sale.
+      const targetPos = challenger.position + 1;
+      const playerToElevate = allPlayers.find(p => p.position === targetPos);
+
+      allPlayers.forEach(p => {
+        let finalPos = p.position;
+
+        if (p.id === challenger.id) {
+          finalPos = targetPos; // Scende di 1
+        } else if (playerToElevate && p.id === playerToElevate.id) {
+          finalPos = challenger.position; // Guadagna una posizione gratis
+        }
+
+        updates.push({
+          id: p.id,
+          position: finalPos,
+          matches_played: p.id === challenger.id || p.id === defender.id ? p.matches_played + 1 : p.matches_played,
+          wins: p.id === defender.id ? p.wins + 1 : p.wins,
+          losses: p.id === challenger.id ? p.losses + 1 : p.losses
+        });
+      });
+    }
+
+    // 2. Inviamo tutti gli aggiornamenti dei giocatori a Supabase
+    for (const playerUpdate of updates) {
+      await supabase
+        .from('tennis_players')
+        .update({
+          position: playerUpdate.position,
+          matches_played: playerUpdate.matches_played,
+          wins: playerUpdate.wins,
+          losses: playerUpdate.losses
+        })
+        .eq('id', playerUpdate.id);
+    }
+
+    // 3. Salva lo storico della partita
+    await supabase.from('tennis_matches').insert({
+      challenger_id: challenger.id,
+      defender_id: defender.id,
+      winner_id: challengerWon ? challenger.id : defender.id,
+      score: score,
+      challenger_old_position: challenger.position,
+      defender_old_position: defender.position
+    });
+
+    return Astro.redirect('/admin/tennis?saved=1');
+
+  } catch (err: any) {
+    errorMessage = err.message;
+  }
+}
+---
+
+<Layout title="Admin Tennis">
+  <datalist id="tennis-players-list">
+    {players?.map(player => (
+      <option value={player.name}>{player.name} (attualmente {player.position}°)</option>
+    ))}
+  </datalist>
+
+  <section class="mb-8">
+    <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+      Area riservata
+    </p>
+    <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+      Admin Tennis
+    </h1>
+    <p class="mt-4 max-w-xl text-slate-700 font-medium">
+      Inserisci una sfida di singolo e aggiorna dinamicamente le posizioni della classifica a scala.
+    </p>
+  </section>
+
+  {message && (
+    <div id="success-banner" class="club-card bg-emerald-500 text-black p-4 mb-6 font-black">
+      {message}
+    </div>
+  )}
+
+  {errorMessage && (
+    <div class="club-card bg-rose-500 text-black p-4 mb-6 font-black">
+      ⚠️ {errorMessage}
+    </div>
+  )}
+
+  <form method="POST" action="/admin/tennis" class="club-card p-5 md:p-6 max-w-2xl space-y-8 bg-white">
+    
+    <div>
+      <div class="flex items-center gap-3 mb-4">
+        <span class="bg-[var(--giallo-club)] border-2 border-black text-black px-3 py-1 font-black text-sm">SOTTO</span>
+        <h2 class="text-2xl font-black text-black">Sfidante (Challenger)</h2>
+      </div>
+      <input 
+        type="text" 
+        name="challenger_name" 
+        list="tennis-players-list" 
+        placeholder="Cerca chi lancia la sfida..." 
+        required 
+        autocomplete="on"
+        class="w-full border-2 border-black bg-white p-3 font-bold"
+      />
+    </div>
+
+    <div class="flex items-center gap-3">
+      <div class="h-1 bg-black flex-1"></div>
+      <span class="bg-black text-white px-4 py-2 font-black uppercase text-sm">Sfida</span>
+      <div class="h-1 bg-black flex-1"></div>
+    </div>
+
+    <div>
+      <div class="flex items-center gap-3 mb-4">
+        <span class="bg-black text-white px-3 py-1 font-black text-sm">SOPRA</span>
+        <h2 class="text-2xl font-black text-black">Sfidato (Defender)</h2>
+      </div>
+      <input 
+        type="text" 
+        name="defender_name" 
+        list="tennis-players-list" 
+        placeholder="Cerca il giocatore sfidato..." 
+        required 
+        autocomplete="on"
+        class="w-full border-2 border-black bg-white p-3 font-bold"
+      />
+    </div>
+
+    <div class="grid gap-6 md:grid-cols-2 pt-4 border-t-2 border-dashed border-slate-200">
+      <div>
+        <h2 class="text-2xl font-black mb-3 text-black">Chi ha vinto?</h2>
+        <input 
+          type="text" 
+          name="winner_name" 
+          list="tennis-players-list" 
+          placeholder="Nome del vincitore..." 
+          required 
+          autocomplete="on"
+          class="w-full border-2 border-black bg-white p-3 font-bold"
+        />
+      </div>
+
+      <div>
+        <h2 class="text-2xl font-black mb-3 text-black">Punteggio Incontro</h2>
+        <input
+          type="text"
+          name="score"
+          placeholder="6-4 7-5"
+          class="w-full border-2 border-black bg-white p-3 font-bold"
+        />
+      </div>
+    </div>
+
+    <button type="submit" class="club-btn w-full p-4 text-xl">
+      Registra Risultato Tennis
+    </button>
+  </form>
+
+  <script is:inline>
+    const banner = document.getElementById('success-banner');
+    if (banner) {
+      setTimeout(() => {
+        banner.remove();
+        const url = new URL(window.location);
+        url.searchParams.delete('saved');
+        window.history.replaceState({}, '', url);
+      }, 3000);
+    }
+  </script>
+</Layout>
