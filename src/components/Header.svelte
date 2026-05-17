@@ -44,12 +44,16 @@
         Home
       </a>
 
-      <a href="/classifica" class="club-btn px-4 py-2">
-        Classifica
+      <a href="/ranking/tennis" class="club-btn px-4 py-2">
+        Tennis Ranking
+      </a>
+
+      <a href="/ranking/padel" class="club-btn px-4 py-2">
+        Padel Ranking
       </a>
 
       <a href="/matches" class="club-btn px-4 py-2">
-        Match
+        Padel Matches
       </a>
     </nav>
 
@@ -106,11 +110,19 @@
       </a>
 
       <a
-        href="/classifica"
+        href="/ranking/tennis"
         class="club-btn p-4 text-center"
         on:click={() => (isOpen = false)}
       >
-        Classifica
+        Tennis Ranking
+      </a>
+
+      <a
+        href="/ranking/padel"
+        class="club-btn p-4 text-center"
+        on:click={() => (isOpen = false)}
+      >
+        Padel Ranking
       </a>
 
       <a

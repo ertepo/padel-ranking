@@ -1,6 +1,6 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import { supabase } from '../lib/supabase';
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
 
 const { data: players, error } = await supabase
   .from('players')
@@ -9,14 +9,14 @@ const { data: players, error } = await supabase
   .order('current_elo', { ascending: false });
 ---
 
-<Layout title="Classifica">
+<Layout title="Classifica Padel">
   <section class="mb-8">
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">
       Padel Ranking
     </p>
 
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
-      Classifica
+      Classifica Padel
     </h1>
   </section>
 

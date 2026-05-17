@@ -1,6 +1,6 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import { supabase } from '../lib/supabase';
+import Layout from '../../layouts/Layout.astro';
+import { supabase } from '../../lib/supabase';
 
 // Recuperiamo i giocatori di tennis ordinandoli dal 1° in giù
 const { data: players, error } = await supabase
@@ -57,7 +57,7 @@ const { data: players, error } = await supabase
 
         return (
           <a
-            href={`/tennis/player/${player.id}`}
+            href={`/player/${player.id}`}
             class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--giallo-club)] transition"
           >
             {/* Posizione effettiva presa dal Database */}
@@ -68,6 +68,19 @@ const { data: players, error } = await supabase
             {/* Informazioni Giocatore */}
             <div>
               <div class="font-black text-xl text-black">
+                <span class="text-xl">
+                  {player.position - player.previous_position < 0 && (
+                    <span class="text-green-600">▲</span>
+                  )}
+                 
+                  {player.position - player.previous_position > 0 && (
+                    <span class="text-red-600">▼</span>
+                  )}
+                 
+                  {player.position - player.previous_position === 0 && (
+                    <span class="text-gray-400">–</span>
+                  )}
+                </span>
                 {player.name}
               </div>
 
