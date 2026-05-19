@@ -2,11 +2,16 @@
 import Layout from '../../layouts/Layout.astro';
 import { supabase } from '../../lib/supabase';
 
-// Recuperiamo i giocatori di tennis ordinandoli dal 1° in giù
+// Recuperiamo ranking tennis + dati anagrafici
 const { data: players, error } = await supabase
-  .from('tennis_players')
-  .select('*')
-  .eq('active', true)
+  .from('tennis_rankings')
+  .select(`
+    *,
+    players (
+      id,
+      name
+    )
+  `)
   .order('position', { ascending: true });
 ---
 
@@ -38,7 +43,7 @@ const { data: players, error } = await supabase
       </span>
     </div>
 
-    {/* Intestazione colonne visibile solo su desktop */}
+    {/* Header desktop */}
     <div class="hidden md:grid grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 px-4 py-2 bg-slate-100 border-b-2 border-black font-black text-xs uppercase text-slate-600">
       <div>Pos</div>
       <div>Giocatore</div>
@@ -50,47 +55,62 @@ const { data: players, error } = await supabase
 
     <div class="divide-y-2 divide-black">
       {players?.map((player) => {
+
         const winRate =
           player.matches_played > 0
-            ? Math.round((player.wins / player.matches_played) * 100)
+            ? Math.round(
+                (player.wins / player.matches_played) * 100
+              )
+            : 0;
+
+        const movement =
+          player.previous_position
+            ? player.position - player.previous_position
             : 0;
 
         return (
           <a
-            href={`/player/${player.id}`}
+            href={`/player/${player.player_id}`}
             class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--giallo-club)] transition"
           >
-            {/* Posizione effettiva presa dal Database */}
+
+            {/* Posizione */}
             <div class="text-3xl font-black text-black">
               #{player.position}
             </div>
 
-            {/* Informazioni Giocatore */}
+            {/* Info giocatore */}
             <div>
-              <div class="font-black text-xl text-black">
+              <div class="font-black text-xl text-black flex items-center gap-2">
+
                 <span class="text-xl">
-                  {player.position - player.previous_position < 0 && (
+                  {movement < 0 && (
                     <span class="text-green-600">▲</span>
                   )}
-                 
-                  {player.position - player.previous_position > 0 && (
+
+                  {movement > 0 && (
                     <span class="text-red-600">▼</span>
                   )}
-                 
-                  {player.position - player.previous_position === 0 && (
+
+                  {movement === 0 && (
                     <span class="text-gray-400">–</span>
                   )}
                 </span>
-                {player.name}
+
+                {player.players.name}
               </div>
 
-              {/* Statistiche visibili solo su Mobile */}
+              {/* Mobile */}
               <div class="text-sm font-bold text-slate-600 md:hidden">
-                {player.matches_played} partite · {player.wins}V/{player.losses}P · {winRate}%
+                {player.matches_played} partite ·
+                {' '}
+                {player.wins}V/{player.losses}P ·
+                {' '}
+                {winRate}%
               </div>
             </div>
 
-            {/* Statistiche ordinate su Desktop */}
+            {/* Desktop stats */}
             <div class="hidden md:block text-right font-bold text-black">
               {player.matches_played}
             </div>
@@ -106,11 +126,12 @@ const { data: players, error } = await supabase
             <div class="hidden md:block text-right font-black text-xl text-black">
               {winRate}%
             </div>
-            
-            {/* Freccia visibile solo su Mobile */}
+
+            {/* Mobile arrow */}
             <div class="md:hidden text-right font-black text-slate-400">
               →
             </div>
+
           </a>
         );
       })}

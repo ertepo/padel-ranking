@@ -3,9 +3,18 @@ import Layout from '../../layouts/Layout.astro';
 import { supabase } from '../../lib/supabase';
 
 const { data: players, error } = await supabase
-  .from('players')
-  .select('*')
-  .eq('active', true)
+  .from('padel_rankings')
+  .select(`
+    player_id,
+    current_elo,
+    matches_played,
+    wins,
+    losses,
+    players (
+      id,
+      name
+    )
+  `)
   .order('current_elo', { ascending: false });
 ---
 
@@ -46,7 +55,7 @@ const { data: players, error } = await supabase
 
         return (
           <a
-            href={`/player/${player.id}`}
+            href={`/player/${player.player_id}`}
             class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--giallo-club)] transition"
           >
             <div class="text-3xl font-black text-black">
@@ -55,7 +64,7 @@ const { data: players, error } = await supabase
 
             <div>
               <div class="font-black text-xl text-black">
-                {player.name}
+                {player.players.name}
               </div>
 
               <div class="text-sm font-bold text-slate-600 md:hidden">

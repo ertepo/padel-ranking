@@ -5,19 +5,45 @@ import '../../styles/global.css';
 
 const { id } = Astro.params;
 
-// 1. Scarichiamo i dati del giocatore
-const { data: player, error: playerError } = await supabase
+/* =========================================================
+   DATI ANAGRAFICI GIOCATORE
+========================================================= */
+
+const { data: playerData, error: playerError } = await supabase
   .from('players')
   .select('*')
   .eq('id', id)
   .single();
 
-if (playerError || !player) {
+if (playerError || !playerData) {
   return Astro.redirect('/404');
 }
 
-// 2. Scarichiamo lo storico delle sue partite, ma questa volta includiamo TUTTI i giocatori di quel match
-const { data: matchesData, error: matchesError } = await supabase
+/* =========================================================
+   PADEL RANKING
+========================================================= */
+
+const { data: padelData } = await supabase
+  .from('padel_rankings')
+  .select('*')
+  .eq('player_id', id)
+  .single();
+
+/* =========================================================
+   TENNIS RANKING
+========================================================= */
+
+const { data: tennisData } = await supabase
+  .from('tennis_rankings')
+  .select('*')
+  .eq('player_id', id)
+  .single();
+
+/* =========================================================
+   MATCHES PADEL
+========================================================= */
+
+const { data: matchesData } = await supabase
   .from('match_players')
   .select(`
     result,
@@ -39,17 +65,62 @@ const { data: matchesData, error: matchesError } = await supabase
   `)
   .eq('player_id', id);
 
-const matchesPlayedList = matchesData || [];
+const padelMatches = matchesData || [];
 
-// Ordiniamo i match dal più recente al più vecchio
-matchesPlayedList.sort((a, b) => {
+padelMatches.sort((a, b) => {
   const dateA = new Date(a.matches?.played_at || 0).getTime();
   const dateB = new Date(b.matches?.played_at || 0).getTime();
   return dateB - dateA;
 });
 
-// 3. Calcoliamo il numero di avversari unici incontrati
-const matchIds = matchesPlayedList.map(m => m.matches?.id).filter(Boolean);
+/* =========================================================
+   MATCHES TENNIS
+========================================================= */
+
+const { data: tennisMatchesData } = await supabase
+  .from('tennis_matches')
+  .select(`
+    *,
+    challenger:challenger_id (
+      id,
+      name
+    ),
+    defender:defender_id (
+      id,
+      name
+    ),
+    winner:winner_id (
+      id,
+      name
+    )
+  `)
+  .or(`challenger_id.eq.${id},defender_id.eq.${id}`)
+  .order('played_at', { ascending: false });
+
+const tennisMatches = tennisMatchesData || [];
+
+/* =========================================================
+   STATS PADEL
+========================================================= */
+
+const realMatchesCount = padelMatches.length;
+
+const realWinsCount =
+  padelMatches.filter(m => m.result === 'win').length;
+
+const padelWinPercentage =
+  realMatchesCount > 0
+    ? Math.round((realWinsCount / realMatchesCount) * 100)
+    : 0;
+
+/* =========================================================
+   AVVERSARI UNICI PADEL
+========================================================= */
+
+const matchIds = padelMatches
+  .map(m => m.matches?.id)
+  .filter(Boolean);
+
 let uniqueOpponentsCount = 0;
 
 if (matchIds.length > 0) {
@@ -59,157 +130,640 @@ if (matchIds.length > 0) {
     .in('match_id', matchIds)
     .not('player_id', 'eq', id);
 
-  const opponentIds = allPlayersInMatches?.map(p => p.player_id) || [];
-  uniqueOpponentsCount = new Set(opponentIds).size;
+  const opponentIds =
+    allPlayersInMatches?.map(p => p.player_id) || [];
+
+  uniqueOpponentsCount =
+    new Set(opponentIds).size;
 }
 
-// 4. Calcolo percentuale di vittoria REALE (basata sui match contati nel DB)
-const realMatchesCount = matchesPlayedList.length;
-const realWinsCount = matchesPlayedList.filter(m => m.result === 'win').length;
-const winPercentage = realMatchesCount > 0 
-  ? Math.round((realWinsCount / realMatchesCount) * 100) 
-  : 0;
+/* =========================================================
+   STATS TENNIS
+========================================================= */
 
-// Obiettivi Playoff
+const tennisMatchesCount =
+  tennisData?.matches_played || 0;
+
+const tennisWinsCount =
+  tennisData?.wins || 0;
+
+const tennisLossesCount =
+  tennisData?.losses || 0;
+
+const tennisWinPercentage =
+  tennisMatchesCount > 0
+    ? Math.round((tennisWinsCount / tennisMatchesCount) * 100)
+    : 0;
+
+/* =========================================================
+   AVVERSARI UNICI TENNIS
+========================================================= */
+
+const uniqueTennisOpponents = new Set();
+
+tennisMatches.forEach(match => {
+  const challengerId = match.challenger?.id;
+  const defenderId = match.defender?.id;
+
+  if (challengerId && challengerId !== id) {
+    uniqueTennisOpponents.add(challengerId);
+  }
+
+  if (defenderId && defenderId !== id) {
+    uniqueTennisOpponents.add(defenderId);
+  }
+});
+
+const uniqueTennisOpponentsCount =
+  uniqueTennisOpponents.size;
+
+/* =========================================================
+   TARGET PLAYOFF PADEL
+========================================================= */
+
 const totalMatchesGoal = 7;
 const uniquePlayersGoal = 4;
 
-const totalMatchesProgress = Math.min(realMatchesCount, totalMatchesGoal);
-const uniquePlayersProgress = Math.min(uniqueOpponentsCount, uniquePlayersGoal);
+/* =========================================================
+   TARGET PLAYOFF TENNIS
+========================================================= */
+
+const tennisMatchesGoal = 7;
+const tennisOpponentsGoal = 4;
+
+/* =========================================================
+   SVG CIRCLES
+========================================================= */
 
 const radius = 40;
 const circumference = 2 * Math.PI * radius;
-const strokeDashoffsetTotal = circumference - (totalMatchesProgress / totalMatchesGoal) * circumference;
-const strokeDashoffsetUnique = circumference - (uniquePlayersProgress / uniquePlayersGoal) * circumference;
+
+/* PADEL */
+
+const strokeDashoffsetTotal =
+  circumference -
+  (Math.min(realMatchesCount, totalMatchesGoal) /
+    totalMatchesGoal) *
+    circumference;
+
+const strokeDashoffsetUnique =
+  circumference -
+  (Math.min(uniqueOpponentsCount, uniquePlayersGoal) /
+    uniquePlayersGoal) *
+    circumference;
+
+/* TENNIS */
+
+const tennisMatchesOffset =
+  circumference -
+  (Math.min(tennisMatchesCount, tennisMatchesGoal) /
+    tennisMatchesGoal) *
+    circumference;
+
+const tennisOpponentsOffset =
+  circumference -
+  (Math.min(uniqueTennisOpponentsCount, tennisOpponentsGoal) /
+    tennisOpponentsGoal) *
+    circumference;
 ---
 
-<Layout title={`Profilo - ${player.name}`}>
-  <main class="max-w-4xl mx-auto px-4 py-8">
-    
+<Layout title={`Profilo - ${playerData.name}`}>
+
+  <main class="max-w-5xl mx-auto px-4 py-8">
+
+    <!-- ===================================================== -->
+    <!-- HEADER -->
+    <!-- ===================================================== -->
+
     <section class="mb-10">
-      <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-1">Profilo Giocatore</p>
-      <h1 class="text-5xl md:text-6xl font-black text-black leading-none mb-6">{player.name}</h1>
-      
-      <div class="grid gap-4 grid-cols-2 md:grid-cols-5">
-        <div class="club-card p-4 text-center bg-[var(--giallo-club)]">
-          <p class="text-xs uppercase font-black text-black opacity-60">Punti ELO</p>
-          <p class="text-3xl font-black text-black">{player.current_elo}</p>
-        </div>
-        <div class="club-card p-4 text-center bg-white">
-          <p class="text-xs uppercase font-black text-slate-600">Partite</p>
-          <p class="text-3xl font-black text-black">{realMatchesCount}</p>
-        </div>
-        <div class="club-card p-4 text-center bg-white">
-          <p class="text-xs uppercase font-black text-emerald-600">Vinte</p>
-          <p class="text-3xl font-black text-emerald-600">{realWinsCount}</p>
-        </div>
-        <div class="club-card p-4 text-center bg-white">
-          <p class="text-xs uppercase font-black text-rose-600">Perse</p>
-          <p class="text-3xl font-black text-rose-600">{realMatchesCount - realWinsCount}</p>
-        </div>
-        <div class="club-card p-4 text-center bg-white">
-          <p class="text-xs uppercase font-black text-rose-600">Win Rate</p>
-          <p class="text-3xl font-black text-rose-600">{winPercentage}%</p>
-        </div>
-      </div>
-    </section>
+      <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-1">
+        Profilo Giocatore
+      </p>
 
-    <section class="club-card p-6 bg-white mb-10">
-      <h2 class="text-2xl font-black text-black uppercase tracking-tight mb-2">Target Playoff Settembre</h2>
-      <p class="text-sm text-slate-600 font-medium mb-6">Requisiti minimi di qualificazione per accedere alla fase finale.</p>
-      
-      <div class="grid gap-8 md:grid-cols-2">
-        <div class="flex items-center gap-8 p-2 bg-slate-50 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <div class="relative w-36 h-36 shrink-0">
-            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r={radius} stroke="#e2e8f0" stroke-width="10" fill="transparent" />
-              <circle cx="50" cy="50" r={radius} stroke="var(--giallo-club)" stroke-width="10" fill="transparent" stroke-dasharray={circumference} stroke-dashoffset={strokeDashoffsetTotal} stroke-linecap="round" />
-            </svg>
-            <div class="absolute inset-0 flex flex-col items-center justify-center font-black text-black">
-              <span class="text-xl leading-none">{realMatchesCount}</span>
-              <span class="text-l opacity-50 uppercase">/ {totalMatchesGoal}</span>
+      <h1 class="text-5xl md:text-6xl font-black text-black leading-none mb-8">
+        {playerData.name}
+      </h1>
+
+      <!-- ==================== PADEL ==================== -->
+
+      {padelData && (
+        <div class="mb-8">
+          <div class="flex items-center gap-3 mb-4">
+            <span class="bg-[var(--giallo-club)] border-2 border-black text-black px-3 py-1 text-xs font-black uppercase">
+              Padel
+            </span>
+
+            <h2 class="text-2xl font-black text-black">
+              Statistiche ELO
+            </h2>
+          </div>
+
+          <div class="grid gap-4 grid-cols-2 md:grid-cols-5">
+
+            <div class="club-card p-4 text-center bg-[var(--giallo-club)]">
+              <p class="text-xs uppercase font-black text-black opacity-60">
+                Punti ELO
+              </p>
+
+              <p class="text-3xl font-black text-black">
+                {padelData.current_elo}
+              </p>
             </div>
-          </div>
-          <div>
-            <h3 class="text-lg font-black text-black">Partite Totali</h3>
-            <p class="text-xs text-slate-600 font-bold">Devi disputare almeno {totalMatchesGoal} incontri ufficiali.</p>
-            {realMatchesCount >= totalMatchesGoal ? <span class="inline-block mt-2 text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 font-black uppercase">Soddisfatto ✓</span> : <span class="inline-block mt-2 text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 font-black uppercase">In Corso</span>}
-          </div>
-        </div>
 
-        <div class="flex items-center gap-8 p-2 bg-slate-50 border-2 border-black shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          <div class="relative w-36 h-36 shrink-0">
-            <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r={radius} stroke="#e2e8f0" stroke-width="10" fill="transparent" />
-              <circle cx="50" cy="50" r={radius} stroke="black" stroke-width="10" fill="transparent" stroke-dasharray={circumference} stroke-dashoffset={strokeDashoffsetUnique} stroke-linecap="round" />
-            </svg>
-            <div class="absolute inset-0 flex flex-col items-center justify-center font-black text-black">
-              <span class="text-xl leading-none">{uniqueOpponentsCount}</span>
-              <span class="text-l opacity-50 uppercase">/ {uniquePlayersGoal}</span>
+            <div class="club-card p-4 text-center bg-white">
+              <p class="text-xs uppercase font-black text-slate-600">
+                Partite
+              </p>
+
+              <p class="text-3xl font-black text-black">
+                {realMatchesCount}
+              </p>
             </div>
-          </div>
-          <div>
-            <h3 class="text-lg font-black text-black">Varietà Avversari</h3>
-            <p class="text-xs text-slate-600 font-bold">Devi giocare con almeno {uniquePlayersGoal} giocatori differenti.</p>
-            {uniqueOpponentsCount >= uniquePlayersGoal ? <span class="inline-block mt-2 text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 font-black uppercase">Soddisfatto ✓</span> : <span class="inline-block mt-2 text-[10px] bg-amber-100 text-amber-800 px-2 py-0.5 font-black uppercase">In Corso</span>}
+
+            <div class="club-card p-4 text-center bg-white">
+              <p class="text-xs uppercase font-black text-emerald-600">
+                Vinte
+              </p>
+
+              <p class="text-3xl font-black text-emerald-600">
+                {realWinsCount}
+              </p>
+            </div>
+
+            <div class="club-card p-4 text-center bg-white">
+              <p class="text-xs uppercase font-black text-rose-600">
+                Perse
+              </p>
+
+              <p class="text-3xl font-black text-rose-600">
+                {realMatchesCount - realWinsCount}
+              </p>
+            </div>
+
+            <div class="club-card p-4 text-center bg-white">
+              <p class="text-xs uppercase font-black text-slate-600">
+                Win Rate
+              </p>
+
+              <p class="text-3xl font-black text-black">
+                {padelWinPercentage}%
+              </p>
+            </div>
+
           </div>
         </div>
-      </div>
-    </section>
+      )}
 
-    <section>
-      <h2 class="text-2xl font-black text-black uppercase tracking-tight mb-4">Cronologia Incontri</h2>
-      
-      {realMatchesCount === 0 ? (
-        <p class="text-slate-500 font-bold italic">Nessun match disputato al momento.</p>
-      ) : (
-        <ul class="divide-y-2 divide-black border-2 border-black bg-white shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]">
-          {matchesPlayedList.map((item) => {
-            const isWin = item.result === 'win';
-            const dateStr = item.matches?.played_at 
-              ? new Date(item.matches.played_at).toLocaleDateString('it-IT') 
-              : '';
-            
-            // Estraiamo i partecipanti per capire chi è compagno e chi avversario
-            const allParticipants = item.matches?.match_players || [];
-            
-            // Compagno: stesso team del giocatore corrente, escludendo il giocatore stesso
-            const partnerObj = allParticipants.find(p => p.team === item.team && p.player_id !== id);
-            const partnerName = partnerObj?.players?.name || 'un compagno';
-            
-            // Avversari: tutti quelli del team opposto
-            const opponents = allParticipants.filter(p => p.team !== item.team);
-            const opponent1 = opponents[0]?.players?.name || 'Avversario 1';
-            const opponent2 = opponents[1]?.players?.name || 'Avversario 2';
-            
-            return (
-              <li class={`p-4 font-black flex flex-col md:flex-row md:justify-between md:items-center gap-2 ${isWin ? 'text-emerald-600' : 'text-black'}`}>
-                <div class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-                  <span class="text-xs text-slate-400 font-bold shrink-0">{dateStr}</span>
-                  <span class="text-sm">
-                    giocato con <span class="underline">{partnerName}</span> contro <span class="underline">{opponent1}</span> e <span class="underline">{opponent2}</span> 
-                    — <span class="uppercase">{isWin ? 'Vittoria' : 'Sconfitta'}</span>
-                    <span class="text-xs opacity-70 font-bold ml-1">
-                      ({isWin ? '+' : ''}{item.delta} ELO)
-                    </span>
-                  </span>
-                </div>
-                {item.matches?.score && (
-                  <span class="text-sm font-mono text-slate-500 font-bold md:self-center">
-                    {item.matches.score}
-                  </span>
-                )}
-              </li>
-            );
-          })}
-        </ul>
+      <!-- ==================== TENNIS ==================== -->
+
+      {tennisData && (
+        <div>
+          <div class="flex items-center gap-3 mb-4">
+            <span class="bg-black text-white px-3 py-1 text-xs font-black uppercase">
+              Tennis
+            </span>
+
+            <h2 class="text-2xl font-black text-black">
+              Statistiche Scala
+            </h2>
+          </div>
+
+          <div class="grid gap-4 grid-cols-2 md:grid-cols-5">
+
+            <div class="club-card p-4 text-center bg-black">
+              <p class="text-xs uppercase font-black text-black opacity-70">
+                Posizione
+              </p>
+
+              <p class="text-3xl font-black text-black">
+                #{tennisData.position}
+              </p>
+            </div>
+
+            <div class="club-card p-4 text-center bg-white">
+              <p class="text-xs uppercase font-black text-slate-600">
+                Partite
+              </p>
+
+              <p class="text-3xl font-black text-black">
+                {tennisMatchesCount}
+              </p>
+            </div>
+
+            <div class="club-card p-4 text-center bg-white">
+              <p class="text-xs uppercase font-black text-emerald-600">
+                Vinte
+              </p>
+
+              <p class="text-3xl font-black text-emerald-600">
+                {tennisWinsCount}
+              </p>
+            </div>
+
+            <div class="club-card p-4 text-center bg-white">
+              <p class="text-xs uppercase font-black text-rose-600">
+                Perse
+              </p>
+
+              <p class="text-3xl font-black text-rose-600">
+                {tennisLossesCount}
+              </p>
+            </div>
+
+            <div class="club-card p-4 text-center bg-white">
+              <p class="text-xs uppercase font-black text-slate-600">
+                Win Rate
+              </p>
+
+              <p class="text-3xl font-black text-black">
+                {tennisWinPercentage}%
+              </p>
+            </div>
+
+          </div>
+        </div>
       )}
     </section>
 
-    <div class="mt-8">
-      <a href="/" class="text-sm font-black uppercase tracking-wider text-black hover:underline">
-        ← Torna alla Classifica Generale
-      </a>
-    </div>
+    <!-- ===================================================== -->
+    <!-- TARGET -->
+    <!-- ===================================================== -->
+
+    <section class="club-card p-6 bg-white mb-10">
+
+      <h2 class="text-2xl font-black text-black uppercase tracking-tight mb-2">
+        Target Playoff Settembre
+      </h2>
+
+      <p class="text-sm text-slate-600 font-medium mb-6">
+        Requisiti minimi di qualificazione.
+      </p>
+
+      <!-- ==================== PADEL TARGET ==================== -->
+
+      <div class="mb-10">
+
+        <div class="flex items-center gap-3 mb-6">
+          <span class="bg-[var(--giallo-club)] border-2 border-black text-black px-3 py-1 text-xs font-black uppercase">
+            Padel
+          </span>
+
+          <h3 class="text-xl font-black text-black">
+            Requisiti Padel
+          </h3>
+        </div>
+
+        <div class="grid gap-8 md:grid-cols-2">
+
+          <div class="flex items-center gap-8 p-2 bg-slate-50 border-2 border-black">
+            <div class="relative w-36 h-36 shrink-0">
+
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r={radius} stroke="#e2e8f0" stroke-width="10" fill="transparent" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={radius}
+                  stroke="var(--giallo-club)"
+                  stroke-width="10"
+                  fill="transparent"
+                  stroke-dasharray={circumference}
+                  stroke-dashoffset={strokeDashoffsetTotal}
+                  stroke-linecap="round"
+                />
+              </svg>
+
+              <div class="absolute inset-0 flex flex-col items-center justify-center font-black text-black">
+                <span class="text-xl">{realMatchesCount}</span>
+                <span class="opacity-50">/ {totalMatchesGoal}</span>
+              </div>
+
+            </div>
+
+            <div>
+              <h3 class="text-lg font-black text-black">
+                Match Totali
+              </h3>
+
+              <p class="text-xs text-slate-600 font-bold">
+                Minimo {totalMatchesGoal} incontri.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-8 p-2 bg-slate-50 border-2 border-black">
+            <div class="relative w-36 h-36 shrink-0">
+
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r={radius} stroke="#e2e8f0" stroke-width="10" fill="transparent" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={radius}
+                  stroke="black"
+                  stroke-width="10"
+                  fill="transparent"
+                  stroke-dasharray={circumference}
+                  stroke-dashoffset={strokeDashoffsetUnique}
+                  stroke-linecap="round"
+                />
+              </svg>
+
+              <div class="absolute inset-0 flex flex-col items-center justify-center font-black text-black">
+                <span class="text-xl">{uniqueOpponentsCount}</span>
+                <span class="opacity-50">/ {uniquePlayersGoal}</span>
+              </div>
+
+            </div>
+
+            <div>
+              <h3 class="text-lg font-black text-black">
+                Avversari Diversi
+              </h3>
+
+              <p class="text-xs text-slate-600 font-bold">
+                Minimo {uniquePlayersGoal} avversari.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ==================== TENNIS TARGET ==================== -->
+
+      <div>
+
+        <div class="flex items-center gap-3 mb-6">
+          <span class="bg-black text-white px-3 py-1 text-xs font-black uppercase">
+            Tennis
+          </span>
+
+          <h3 class="text-xl font-black text-black">
+            Requisiti Tennis
+          </h3>
+        </div>
+
+        <div class="grid gap-8 md:grid-cols-2">
+
+          <div class="flex items-center gap-8 p-2 bg-slate-50 border-2 border-black">
+
+            <div class="relative w-36 h-36 shrink-0">
+
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r={radius} stroke="#e2e8f0" stroke-width="10" fill="transparent" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={radius}
+                  stroke="black"
+                  stroke-width="10"
+                  fill="transparent"
+                  stroke-dasharray={circumference}
+                  stroke-dashoffset={tennisMatchesOffset}
+                  stroke-linecap="round"
+                />
+              </svg>
+
+              <div class="absolute inset-0 flex flex-col items-center justify-center font-black text-black">
+                <span class="text-xl">{tennisMatchesCount}</span>
+                <span class="opacity-50">/ {tennisMatchesGoal}</span>
+              </div>
+
+            </div>
+
+            <div>
+              <h3 class="text-lg font-black text-black">
+                Match Totali
+              </h3>
+
+              <p class="text-xs text-slate-600 font-bold">
+                Minimo {tennisMatchesGoal} incontri.
+              </p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-8 p-2 bg-slate-50 border-2 border-black">
+
+            <div class="relative w-36 h-36 shrink-0">
+
+              <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r={radius} stroke="#e2e8f0" stroke-width="10" fill="transparent" />
+                <circle
+                  cx="50"
+                  cy="50"
+                  r={radius}
+                  stroke="var(--giallo-club)"
+                  stroke-width="10"
+                  fill="transparent"
+                  stroke-dasharray={circumference}
+                  stroke-dashoffset={tennisOpponentsOffset}
+                  stroke-linecap="round"
+                />
+              </svg>
+
+              <div class="absolute inset-0 flex flex-col items-center justify-center font-black text-black">
+                <span class="text-xl">{uniqueTennisOpponentsCount}</span>
+                <span class="opacity-50">/ {tennisOpponentsGoal}</span>
+              </div>
+
+            </div>
+
+            <div>
+              <h3 class="text-lg font-black text-black">
+                Avversari Diversi
+              </h3>
+
+              <p class="text-xs text-slate-600 font-bold">
+                Minimo {tennisOpponentsGoal} avversari.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- CRONOLOGIA PADEL -->
+    <!-- ===================================================== -->
+
+    <section class="mb-10">
+
+      <div class="flex items-center gap-3 mb-4">
+        <span class="bg-[var(--giallo-club)] border-2 border-black text-black px-3 py-1 text-xs font-black uppercase">
+          Padel
+        </span>
+
+        <h2 class="text-2xl font-black text-black">
+          Cronologia Match
+        </h2>
+      </div>
+
+      {padelMatches.length === 0 ? (
+        <p class="text-slate-500 font-bold italic">
+          Nessun match padel disputato.
+        </p>
+      ) : (
+        <ul class="divide-y-2 divide-black border-2 border-black bg-white">
+
+          {padelMatches.map((item) => {
+
+            const isWin =
+              item.result === 'win';
+
+            const dateStr =
+              item.matches?.played_at
+                ? new Date(item.matches.played_at)
+                    .toLocaleDateString('it-IT')
+                : '';
+
+            const allParticipants =
+              item.matches?.match_players || [];
+
+            const partnerObj =
+              allParticipants.find(
+                p =>
+                  p.team === item.team &&
+                  p.player_id !== id
+              );
+
+            const partnerName =
+              partnerObj?.players?.name || 'Compagno';
+
+            const opponents =
+              allParticipants.filter(
+                p => p.team !== item.team
+              );
+
+            return (
+              <li class={`p-4 font-black ${isWin ? 'bg-emerald-100' : 'bg-rose-100'}`}>
+
+                <div class="flex justify-between items-center gap-4">
+
+                  <div>
+                    <p class="text-xs text-slate-400 font-bold mb-1">
+                      {dateStr}
+                    </p>
+
+                    <p class="font-black text-black">
+                      con {partnerName}
+                    </p>
+
+                    <p class="text-sm font-bold text-slate-600">
+                      contro {opponents[0]?.players?.name} e {opponents[1]?.players?.name}
+                    </p>
+                  </div>
+
+                  <div class="text-right">
+                    <p class={`font-black ${isWin ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {isWin ? 'Vittoria' : 'Sconfitta'}
+                    </p>
+
+                    <p class="text-xs font-bold text-slate-500">
+                      {item.delta > 0 ? '+' : ''}{item.delta} ELO
+                    </p>
+
+                    {item.matches?.score && (
+                      <p class="text-xs font-mono text-slate-500 mt-1">
+                        {item.matches.score}
+                      </p>
+                    )}
+                  </div>
+
+                </div>
+
+              </li>
+            );
+          })}
+
+        </ul>
+      )}
+
+    </section>
+
+    <!-- ===================================================== -->
+    <!-- CRONOLOGIA TENNIS -->
+    <!-- ===================================================== -->
+
+    <section>
+
+      <div class="flex items-center gap-3 mb-4">
+        <span class="bg-black text-white px-3 py-1 text-xs font-black uppercase">
+          Tennis
+        </span>
+
+        <h2 class="text-2xl font-black text-black">
+          Cronologia Match
+        </h2>
+      </div>
+
+      {tennisMatches.length === 0 ? (
+        <p class="text-slate-500 font-bold italic">
+          Nessun match tennis disputato.
+        </p>
+      ) : (
+        <ul class="divide-y-2 divide-black border-2 border-black bg-white">
+
+          {tennisMatches.map((match) => {
+
+            const isWinner =
+              match.winner?.id === id;
+
+            const opponent =
+              match.challenger?.id === id
+                ? match.defender
+                : match.challenger;
+
+            const dateStr =
+              match.played_at
+                ? new Date(match.played_at)
+                    .toLocaleDateString('it-IT')
+                : '';
+
+            return (
+              <li class="p-4">
+
+                <div class="flex justify-between items-center gap-4">
+
+                  <div>
+                    <p class="text-xs text-slate-400 font-bold mb-1">
+                      {dateStr}
+                    </p>
+
+                    <p class="font-black text-black">
+                      contro {opponent?.name}
+                    </p>
+                  </div>
+
+                  <div class="text-right">
+
+                    <p class={`font-black ${isWinner ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {isWinner ? 'Vittoria' : 'Sconfitta'}
+                    </p>
+
+                    {match.score && (
+                      <p class="text-xs font-mono text-slate-500 mt-1">
+                        {match.score}
+                      </p>
+                    )}
+
+                  </div>
+
+                </div>
+
+              </li>
+            );
+          })}
+
+        </ul>
+      )}
+
+    </section>
+
   </main>
+
 </Layout>

@@ -9,9 +9,18 @@ if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
   return Astro.redirect('/login');
 }
 
+// Recupera ranking tennis + dati anagrafici
 const { data: players } = await supabase
-  .from('tennis_players')
-  .select('*')
+  .from('tennis_rankings')
+  .select(`
+    *,
+    players (
+      id,
+      name,
+      email,
+      phone
+    )
+  `)
   .order('position', { ascending: true });
 
 let message = '';
@@ -38,51 +47,58 @@ if (Astro.request.method === 'POST') {
       throw new Error('Un giocatore non può giocare contro se stesso.');
     }
 
+    // Recupera tutto il ranking
     const { data: allPlayers, error: fetchError } = await supabase
-      .from('tennis_players')
-      .select('*')
+      .from('tennis_rankings')
+      .select(`
+        *,
+        players (
+          id,
+          name
+        )
+      `)
       .order('position', { ascending: true });
 
     if (fetchError || !allPlayers) {
       throw new Error('Errore nel recupero dei giocatori.');
     }
 
+    // Trova vincitore e sconfitto
     const winner = allPlayers.find(
-      p => p.name === winnerName
+      p => p.players.name === winnerName
     );
 
     const loser = allPlayers.find(
-      p => p.name === loserName
+      p => p.players.name === loserName
     );
 
     if (!winner || !loser) {
       throw new Error('Giocatori non trovati.');
     }
 
-    // CHALLENGER = chi stava sotto
+    // Challenger = quello sotto
     const challenger =
       winner.position > loser.position
         ? winner
         : loser;
 
-    // DEFENDER = chi stava sopra
+    // Defender = quello sopra
     const defender =
       winner.position < loser.position
         ? winner
         : loser;
 
     const challengerWon =
-      winner.id === challenger.id;
+      winner.player_id === challenger.player_id;
 
     const distance =
       challenger.position - defender.position;
 
-    // Nuove posizioni
     const newPositions = {};
 
-    // Copia stato iniziale
+    // Stato iniziale
     allPlayers.forEach(p => {
-      newPositions[p.id] = p.position;
+      newPositions[p.player_id] = p.position;
     });
 
     // =========================
@@ -91,47 +107,47 @@ if (Astro.request.method === 'POST') {
 
     if (challengerWon) {
 
-      // ===== DISTANZA 1 =====
+      // DISTANZA 1
       if (distance === 1) {
 
-        newPositions[challenger.id] =
+        newPositions[challenger.player_id] =
           defender.position;
 
-        newPositions[defender.id] =
+        newPositions[defender.player_id] =
           challenger.position;
       }
 
-      // ===== DISTANZA 2 =====
+      // DISTANZA 2
       else if (distance === 2) {
 
         const playerBetween = allPlayers.find(
           p => p.position === challenger.position - 1
         );
 
-        newPositions[challenger.id] =
+        newPositions[challenger.player_id] =
           challenger.position - 1;
 
         if (playerBetween) {
-          newPositions[playerBetween.id] =
+          newPositions[playerBetween.player_id] =
             challenger.position;
         }
       }
 
-      // ===== DISTANZA 3 =====
+      // DISTANZA 3
       else if (distance === 3) {
 
         const playerBetween = allPlayers.find(
           p => p.position === challenger.position - 1
         );
 
-        newPositions[challenger.id] =
+        newPositions[challenger.player_id] =
           challenger.position - 1;
 
-        newPositions[defender.id] =
+        newPositions[defender.player_id] =
           defender.position + 1;
 
         if (playerBetween) {
-          newPositions[playerBetween.id] =
+          newPositions[playerBetween.player_id] =
             challenger.position;
         }
 
@@ -142,20 +158,20 @@ if (Astro.request.method === 'POST') {
 
         if (
           playerBelowDefender &&
-          playerBelowDefender.id !== challenger.id
+          playerBelowDefender.player_id !== challenger.player_id
         ) {
-          newPositions[playerBelowDefender.id] =
+          newPositions[playerBelowDefender.player_id] =
             defender.position;
         }
       }
 
-      // ===== DISTANZA 4 =====
+      // DISTANZA 4
       else if (distance === 4) {
 
-        newPositions[challenger.id] =
+        newPositions[challenger.player_id] =
           challenger.position - 2;
 
-        newPositions[defender.id] =
+        newPositions[defender.player_id] =
           defender.position + 1;
 
         const p1 = allPlayers.find(
@@ -170,29 +186,29 @@ if (Astro.request.method === 'POST') {
           p => p.position === challenger.position - 1
         );
 
-        if (p1 && p1.id !== challenger.id) {
-          newPositions[p1.id] =
+        if (p1 && p1.player_id !== challenger.player_id) {
+          newPositions[p1.player_id] =
             defender.position;
         }
 
-        if (p2 && p2.id !== challenger.id) {
-          newPositions[p2.id] =
+        if (p2 && p2.player_id !== challenger.player_id) {
+          newPositions[p2.player_id] =
             p2.position + 1;
         }
 
-        if (p3 && p3.id !== challenger.id) {
-          newPositions[p3.id] =
+        if (p3 && p3.player_id !== challenger.player_id) {
+          newPositions[p3.player_id] =
             p3.position + 1;
         }
       }
 
-      // ===== DISTANZA >= 5 =====
+      // DISTANZA >= 5
       else {
 
-        newPositions[challenger.id] =
+        newPositions[challenger.player_id] =
           challenger.position - 2;
 
-        newPositions[defender.id] =
+        newPositions[defender.player_id] =
           defender.position + 2;
 
         const below1 = allPlayers.find(
@@ -204,12 +220,12 @@ if (Astro.request.method === 'POST') {
         );
 
         if (below1) {
-          newPositions[below1.id] =
+          newPositions[below1.player_id] =
             below1.position - 1;
         }
 
         if (below2) {
-          newPositions[below2.id] =
+          newPositions[below2.player_id] =
             below2.position - 1;
         }
 
@@ -221,13 +237,13 @@ if (Astro.request.method === 'POST') {
           p => p.position === challenger.position - 1
         );
 
-        if (jumped1 && jumped1.id !== challenger.id) {
-          newPositions[jumped1.id] =
+        if (jumped1 && jumped1.player_id !== challenger.player_id) {
+          newPositions[jumped1.player_id] =
             jumped1.position + 1;
         }
 
-        if (jumped2 && jumped2.id !== challenger.id) {
-          newPositions[jumped2.id] =
+        if (jumped2 && jumped2.player_id !== challenger.player_id) {
+          newPositions[jumped2.player_id] =
             jumped2.position + 1;
         }
       }
@@ -244,11 +260,11 @@ if (Astro.request.method === 'POST') {
           p => p.position === challenger.position + 1
         );
 
-      newPositions[challenger.id] =
+      newPositions[challenger.player_id] =
         challenger.position + 1;
 
       if (playerBelowChallenger) {
-        newPositions[playerBelowChallenger.id] =
+        newPositions[playerBelowChallenger.player_id] =
           challenger.position;
       }
     }
@@ -259,29 +275,26 @@ if (Astro.request.method === 'POST') {
 
     for (const p of allPlayers) {
 
-      const newPos = newPositions[p.id];
-      const oldPos = p.position;
-      
-      const positionChange = oldPos - newPos;
+      const newPos = newPositions[p.player_id];
 
       const matchesPlayed =
-        p.id === challenger.id ||
-        p.id === defender.id
+        p.player_id === challenger.player_id ||
+        p.player_id === defender.player_id
           ? p.matches_played + 1
           : p.matches_played;
 
       const wins =
-        p.id === winner.id
+        p.player_id === winner.player_id
           ? p.wins + 1
           : p.wins;
 
       const losses =
-        p.id === loser.id
+        p.player_id === loser.player_id
           ? p.losses + 1
           : p.losses;
 
       const { error } = await supabase
-        .from('tennis_players')
+        .from('tennis_rankings')
         .update({
           previous_position: p.position,
           position: newPos,
@@ -289,7 +302,7 @@ if (Astro.request.method === 'POST') {
           wins,
           losses
         })
-        .eq('id', p.id);
+        .eq('player_id', p.player_id);
 
       if (error) {
         console.log(error);
@@ -304,21 +317,21 @@ if (Astro.request.method === 'POST') {
     await supabase
       .from('tennis_matches')
       .insert({
-        challenger_id: challenger.id,
-        defender_id: defender.id,
-        winner_id: winner.id,
+        challenger_id: challenger.player_id,
+        defender_id: defender.player_id,
+        winner_id: winner.player_id,
         score,
         challenger_old_position:
           challenger.position,
         defender_old_position:
           defender.position,
-        challenger_new_position: newPositions[challenger.id],
-        defender_new_position: newPositions[defender.id]
+        challenger_new_position:
+          newPositions[challenger.player_id],
+        defender_new_position:
+          newPositions[defender.player_id]
       });
 
-    return Astro.redirect(
-      '/admin/tennis?saved=1'
-    );
+    return Astro.redirect('/admin/tennis?saved=1');
 
   } catch (err: any) {
     errorMessage = err.message;
@@ -330,8 +343,7 @@ if (Astro.request.method === 'POST') {
 
   <datalist id="tennis-players-list">
     {players?.map(player => (
-      <option value={player.name}>
-        {player.name} ({player.position}°)
+      <option value={player.players.name}>({player.position}°)
       </option>
     ))}
   </datalist>
