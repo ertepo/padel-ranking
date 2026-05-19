@@ -7,7 +7,8 @@ import Layout from '../../layouts/Layout.astro';
 const adminPassword = Astro.cookies.get('admin_password');
 
 if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
-  return Astro.redirect('/login');
+  const redirectTo = encodeURIComponent(Astro.url.pathname);
+  return Astro.redirect(`/login?redirect=${redirectTo}`);
 }
 
 // Recupera SOLO i giocatori iscritti al padel
@@ -274,6 +275,11 @@ if (Astro.request.method === 'POST') {
     <p class="mt-4 max-w-xl text-slate-700 font-medium">
       Inserisci un nuovo match ranking e aggiorna automaticamente la classifica ELO del torneo di Padel.
     </p>
+    <div class="mt-6 flex flex-wrap gap-4">
+      <a href="/admin/tennis" class="club-btn px-5 py-3">
+        Vai ad Admin Tennis
+      </a>
+    </div>
   </section>
 
   {message && (

@@ -6,7 +6,8 @@ import Layout from '../../layouts/Layout.astro';
 const adminPassword = Astro.cookies.get('admin_password');
 
 if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
-  return Astro.redirect('/login');
+  const redirectTo = encodeURIComponent(Astro.url.pathname);
+  return Astro.redirect(`/login?redirect=${redirectTo}`);
 }
 
 // Recupera ranking tennis + dati anagrafici
@@ -361,6 +362,11 @@ if (Astro.request.method === 'POST') {
       Inserisci il vincitore e lo sconfitto.
       La classifica verrà aggiornata automaticamente.
     </p>
+    <div class="mt-6 flex flex-wrap gap-4">
+      <a href="/admin/padel" class="club-btn px-5 py-3">
+        Vai ad Admin Padel
+      </a>
+    </div>
   </section>
 
   {message && (
@@ -396,7 +402,7 @@ if (Astro.request.method === 'POST') {
         placeholder="Chi ha vinto?"
         required
         autocomplete="off"
-        class="w-full border-2 border-black bg-white p-3 font-bold"
+        class="w-full border-2 border-black bg-green-200 p-3 font-bold"
       />
     </div>
 
@@ -412,7 +418,7 @@ if (Astro.request.method === 'POST') {
         placeholder="Chi ha perso?"
         required
         autocomplete="off"
-        class="w-full border-2 border-black bg-white p-3 font-bold"
+        class="w-full border-2 border-black bg-purple-200 p-3 font-bold"
       />
     </div>
 

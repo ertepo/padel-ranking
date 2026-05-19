@@ -22,7 +22,10 @@ if (Astro.request.method === 'POST') {
       }
     );
 
-    return Astro.redirect('/admin');
+    const redirectTo =
+      Astro.url.searchParams.get('redirect') || '/admin';
+
+    return Astro.redirect(redirectTo);
   }
 
   error = 'Password errata';
