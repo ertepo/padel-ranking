@@ -11,7 +11,7 @@ if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
   return Astro.redirect(`/login?redirect=${redirectTo}`);
 }
 
-// Recupera SOLO i giocatori iscritti al padel
+// Recupera SOLO i giocatori iscritti al padel con i relativi dati anagrafici
 const { data: players } = await supabase
   .from('padel_rankings')
   .select(`
@@ -38,26 +38,26 @@ if (Astro.request.method === 'POST') {
     const body = await Astro.request.text();
     const data = new URLSearchParams(body);
 
-    const a1Name = data.get('a1_name')?.trim() || '';
-    const a2Name = data.get('a2_name')?.trim() || '';
-    const b1Name = data.get('b1_name')?.trim() || '';
-    const b2Name = data.get('b2_name')?.trim() || '';
-
+    // 1. Recuperiamo gli ID (UUID) inviati dalle select invece dei nomi
+    const a1Id = data.get('a1_id')?.trim() || '';
+    const a2Id = data.get('a2_id')?.trim() || '';
+    const b1Id = data.get('b1_id')?.trim() || '';
+    const b2Id = data.get('b2_id')?.trim() || '';
     const winner = (data.get('winner') || '') as 'A' | 'B';
     const score = data.get('score') || '';
 
-    if (!a1Name || !a2Name || !b1Name || !b2Name || !winner) {
+    if (!a1Id || !a2Id || !b1Id || !b2Id || !winner) {
       throw new Error('Compila tutti i campi.');
     }
 
-    const inputNames = [a1Name, a2Name, b1Name, b2Name];
+    const inputIds = [a1Id, a2Id, b1Id, b2Id];
 
-    // Controllo duplicati
-    if (new Set(inputNames).size !== 4) {
+    // Controllo duplicati basato sugli ID univoci
+    if (new Set(inputIds).size !== 4) {
       throw new Error('Hai inserito lo stesso giocatore più volte.');
     }
 
-    // Recuperiamo TUTTI i giocatori padel
+    // Recuperiamo TUTTI i giocatori padel dal database
     const { data: allPlayers, error: fetchError } = await supabase
       .from('padel_rankings')
       .select(`
@@ -76,9 +76,9 @@ if (Astro.request.method === 'POST') {
       throw new Error('Errore nel recupero dei giocatori.');
     }
 
-    // Filtra i 4 giocatori selezionati
+    // 2. Filtriamo i 4 giocatori selezionati confrontando direttamente il loro player_id (UUID)
     const selectedPlayers = allPlayers.filter(p =>
-      inputNames.includes(p.players.name)
+      inputIds.includes(p.player_id)
     );
 
     if (selectedPlayers.length !== 4) {
@@ -87,22 +87,11 @@ if (Astro.request.method === 'POST') {
       );
     }
 
-    // Associazione giocatori
-    const a1 = selectedPlayers.find(
-      p => p.players.name === a1Name
-    );
-
-    const a2 = selectedPlayers.find(
-      p => p.players.name === a2Name
-    );
-
-    const b1 = selectedPlayers.find(
-      p => p.players.name === b1Name
-    );
-
-    const b2 = selectedPlayers.find(
-      p => p.players.name === b2Name
-    );
+    // 3. Associazione dei singoli giocatori tramite l'ID
+    const a1 = selectedPlayers.find(p => p.player_id === a1Id);
+    const a2 = selectedPlayers.find(p => p.player_id === a2Id);
+    const b1 = selectedPlayers.find(p => p.player_id === b1Id);
+    const b2 = selectedPlayers.find(p => p.player_id === b2Id);
 
     if (!a1 || !a2 || !b1 || !b2) {
       throw new Error('Errore nella selezione giocatori.');
@@ -111,33 +100,29 @@ if (Astro.request.method === 'POST') {
     const teamA = [a1, a2];
     const teamB = [b1, b2];
 
-    const avgA =
-      (teamA[0].current_elo + teamA[1].current_elo) / 2;
+    const avgA = (teamA[0].current_elo + teamA[1].current_elo) / 2;
+    const avgB = (teamB[0].current_elo + teamB[1].current_elo) / 2;
 
-    const avgB =
-      (teamB[0].current_elo + teamB[1].current_elo) / 2;
-
-    // Calcolo elo
+    // Calcolo ELO
     const elo = calculateEloChange(avgA, avgB, winner);
 
     const winners = winner === 'A' ? teamA : teamB;
     const losers = winner === 'A' ? teamB : teamA;
 
-    // Inserimento match principale
-    const { data: insertedMatch, error: matchError } =
-      await supabase
-        .from('matches')
-        .insert({
-          winner_team: winner,
-          score,
-          team_a_avg_elo: avgA,
-          team_b_avg_elo: avgB,
-          match_type: elo.matchType,
-          elo_delta_winner: elo.winnerDelta,
-          elo_delta_loser: elo.loserDelta,
-        })
-        .select()
-        .single();
+    // Inserimento del match principale
+    const { data: insertedMatch, error: matchError } = await supabase
+      .from('matches')
+      .insert({
+        winner_team: winner,
+        score,
+        team_a_avg_elo: avgA,
+        team_b_avg_elo: avgB,
+        match_type: elo.matchType,
+        elo_delta_winner: elo.winnerDelta,
+        elo_delta_loser: elo.loserDelta,
+      })
+      .select()
+      .single();
 
     if (matchError || !insertedMatch) {
       throw new Error(matchError?.message);
@@ -145,104 +130,58 @@ if (Astro.request.method === 'POST') {
 
     // UPDATE VINCITORI
     for (const player of winners) {
-      const playerDelta =
-        player.matches_played < 3
-          ? 15
-          : elo.winnerDelta;
-
+      const playerDelta = player.matches_played < 3 ? 15 : elo.winnerDelta;
       await supabase
         .from('padel_rankings')
         .update({
-          current_elo:
-            player.current_elo + playerDelta,
-
-          matches_played:
-            player.matches_played + 1,
-
-          wins:
-            player.wins + 1,
+          current_elo: player.current_elo + playerDelta,
+          matches_played: player.matches_played + 1,
+          wins: player.wins + 1,
         })
         .eq('player_id', player.player_id);
     }
 
     // UPDATE PERDENTI
     for (const player of losers) {
-      const playerDelta =
-        player.matches_played < 3
-          ? -15
-          : elo.loserDelta;
-
+      const playerDelta = player.matches_played < 3 ? -15 : elo.loserDelta;
       await supabase
         .from('padel_rankings')
         .update({
-          current_elo:
-            player.current_elo + playerDelta,
-
-          matches_played:
-            player.matches_played + 1,
-
-          losses:
-            player.losses + 1,
+          current_elo: player.current_elo + playerDelta,
+          matches_played: player.matches_played + 1,
+          losses: player.losses + 1,
         })
         .eq('player_id', player.player_id);
     }
 
     // Storico vincitori
     for (const player of winners) {
-      const playerDelta =
-        player.matches_played < 3
-          ? 15
-          : elo.winnerDelta;
-
+      const playerDelta = player.matches_played < 3 ? 15 : elo.winnerDelta;
       await supabase
         .from('match_players')
         .insert({
           match_id: insertedMatch.id,
-
           player_id: player.player_id,
-
-          team:
-            winner === 'A'
-              ? 'A'
-              : 'B',
-
+          team: winner === 'A' ? 'A' : 'B',
           elo_before: player.current_elo,
-
-          elo_after:
-            player.current_elo + playerDelta,
-
+          elo_after: player.current_elo + playerDelta,
           delta: playerDelta,
-
           result: 'win',
         });
     }
 
     // Storico perdenti
     for (const player of losers) {
-      const playerDelta =
-        player.matches_played < 3
-          ? -15
-          : elo.loserDelta;
-
+      const playerDelta = player.matches_played < 3 ? -15 : elo.loserDelta;
       await supabase
         .from('match_players')
         .insert({
           match_id: insertedMatch.id,
-
           player_id: player.player_id,
-
-          team:
-            winner === 'A'
-              ? 'B'
-              : 'A',
-
+          team: winner === 'A' ? 'B' : 'A',
           elo_before: player.current_elo,
-
-          elo_after:
-            player.current_elo + playerDelta,
-
+          elo_after: player.current_elo + playerDelta,
           delta: playerDelta,
-
           result: 'loss',
         });
     }
@@ -257,11 +196,6 @@ if (Astro.request.method === 'POST') {
 ---
 
 <Layout title="Admin Padel">
-  <datalist id="players-list">
-    {players?.map(player => (
-      <option value={player.players.name}></option>
-    ))}
-  </datalist>
 
   <section class="mb-8">
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">
@@ -294,49 +228,52 @@ if (Astro.request.method === 'POST') {
   <form
     method="POST"
     action="/admin/padel"
-    class="club-card p-5 md:p-6 max-w-2xl space-y-8"
+    class="club-card p-5 md:p-6 max-w-2xl space-y-8 bg-white"
   >
     <div>
       <div class="flex items-center gap-3 mb-4">
         <span class="bg-black text-white px-3 py-1 font-black text-sm">
           A
         </span>
-
         <h2 class="text-2xl font-black text-black">
           Team A
         </h2>
       </div>
 
       <div class="grid gap-3 md:grid-cols-2">
-        <input
-          type="text"
-          name="a1_name"
-          list="players-list"
-          placeholder="Cerca giocatore A1..."
+        <select
+          name="a1_id"
           required
-          autocomplete="off"
           class="w-full border-2 border-black bg-white p-3 font-bold"
-        />
+        >
+          <option value="" disabled selected>Seleziona Giocatore A1...</option>
+          {players?.map(player => (
+            <option value={player.player_id}>
+              {player.players.name} ({player.current_elo} ELO)
+            </option>
+          ))}
+        </select>
 
-        <input
-          type="text"
-          name="a2_name"
-          list="players-list"
-          placeholder="Cerca giocatore A2..."
+        <select
+          name="a2_id"
           required
-          autocomplete="off"
           class="w-full border-2 border-black bg-white p-3 font-bold"
-        />
+        >
+          <option value="" disabled selected>Seleziona Giocatore A2...</option>
+          {players?.map(player => (
+            <option value={player.player_id}>
+              {player.players.name} ({player.current_elo} ELO)
+            </option>
+          ))}
+        </select>
       </div>
     </div>
 
     <div class="flex items-center gap-3">
       <div class="h-1 bg-black flex-1"></div>
-
       <span class="bg-black text-white px-4 py-2 font-black uppercase text-sm">
         vs
       </span>
-
       <div class="h-1 bg-black flex-1"></div>
     </div>
 
@@ -345,32 +282,37 @@ if (Astro.request.method === 'POST') {
         <span class="bg-[var(--giallo-club)] border-2 border-black text-black px-3 py-1 font-black text-sm">
           B
         </span>
-
         <h2 class="text-2xl font-black text-black">
           Team B
         </h2>
       </div>
 
       <div class="grid gap-3 md:grid-cols-2">
-        <input
-          type="text"
-          name="b1_name"
-          list="players-list"
-          placeholder="Cerca giocatore B1..."
+        <select
+          name="b1_id"
           required
-          autocomplete="off"
           class="w-full border-2 border-black bg-white p-3 font-bold"
-        />
+        >
+          <option value="" disabled selected>Seleziona Giocatore B1...</option>
+          {players?.map(player => (
+            <option value={player.player_id}>
+              {player.players.name} ({player.current_elo} ELO)
+            </option>
+          ))}
+        </select>
 
-        <input
-          type="text"
-          name="b2_name"
-          list="players-list"
-          placeholder="Cerca giocatore B2..."
+        <select
+          name="b2_id"
           required
-          autocomplete="off"
           class="w-full border-2 border-black bg-white p-3 font-bold"
-        />
+        >
+          <option value="" disabled selected>Seleziona Giocatore B2...</option>
+          {players?.map(player => (
+            <option value={player.player_id}>
+              {player.players.name} ({player.current_elo} ELO)
+            </option>
+          ))}
+        </select>
       </div>
     </div>
 
@@ -379,7 +321,6 @@ if (Astro.request.method === 'POST') {
         <h2 class="text-2xl font-black mb-3 text-black">
           Vincitore
         </h2>
-
         <select
           name="winner"
           required
@@ -394,7 +335,6 @@ if (Astro.request.method === 'POST') {
         <h2 class="text-2xl font-black mb-3 text-black">
           Risultato
         </h2>
-
         <input
           type="text"
           name="score"
@@ -414,18 +354,14 @@ if (Astro.request.method === 'POST') {
 
   <script is:inline>
     const banner = document.getElementById('success-banner');
-
     if (banner) {
       setTimeout(() => {
         banner.remove();
-
         const url = new URL(window.location);
-
         url.searchParams.delete('saved');
-
         window.history.replaceState({}, '', url);
       }, 3000);
     }
   </script>
 </Layout>
-```
+

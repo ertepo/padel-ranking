@@ -1,19 +1,20 @@
 ---
-import { supabase } from '../../lib/supabase';
-import '../../styles/global.css';
-import Layout from '../../layouts/Layout.astro';
+import { supabase } from "../../lib/supabase";
+import "../../styles/global.css";
+import Layout from "../../layouts/Layout.astro";
 
-const adminPassword = Astro.cookies.get('admin_password');
+const adminPassword = Astro.cookies.get("admin_password");
 
 if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
-  const redirectTo = encodeURIComponent(Astro.url.pathname);
-  return Astro.redirect(`/login?redirect=${redirectTo}`);
+    const redirectTo = encodeURIComponent(Astro.url.pathname);
+    return Astro.redirect(`/login?redirect=${redirectTo}`);
 }
 
-// Recupera ranking tennis + dati anagrafici
+// Recupera ranking tennis e i dati dati anagrafici
 const { data: players } = await supabase
-  .from('tennis_rankings')
-  .select(`
+    .from("tennis_rankings")
+    .select(
+        `
     *,
     players (
       id,
@@ -21,450 +22,395 @@ const { data: players } = await supabase
       email,
       phone
     )
-  `)
-  .order('position', { ascending: true });
+  `,
+    )
+    .order("position", { ascending: true });
 
-let message = '';
-let errorMessage = '';
+let message = "";
+let errorMessage = "";
 
-if (Astro.url.searchParams.get('saved') === '1') {
-  message = 'Match Tennis registrato con successo!';
+if (Astro.url.searchParams.get("saved") === "1") {
+    message = "Match Tennis registrato con successo!";
 }
 
-if (Astro.request.method === 'POST') {
-  const body = await Astro.request.text();
-  const data = new URLSearchParams(body);
+if (Astro.request.method === "POST") {
+    const body = await Astro.request.text();
+    const data = new URLSearchParams(body);
 
-  const winnerName = data.get('winner_name')?.trim() || '';
-  const loserName = data.get('loser_name')?.trim() || '';
-  const score = data.get('score')?.trim() || '';
+    const winnerId = data.get('winner_id')?.trim() || '';
+    const loserId = data.get('loser_id')?.trim() || '';
+    const score = data.get('score')?.trim() || '';
+    try {
+        if (!winnerId || !loserId) {
+            throw new Error("Entrambi i giocatori sono obbligatori.");
+        }
 
-  try {
-    if (!winnerName || !loserName) {
-      throw new Error('Entrambi i giocatori sono obbligatori.');
-    }
+        if (winnerId === loserId) {
+        throw new Error('Un giocatore non può giocare contro se stesso.');
+      }
 
-    if (winnerName === loserName) {
-      throw new Error('Un giocatore non può giocare contro se stesso.');
-    }
-
-    // Recupera tutto il ranking
-    const { data: allPlayers, error: fetchError } = await supabase
-      .from('tennis_rankings')
-      .select(`
+        // Recupera tutto il ranking
+        const { data: allPlayers, error: fetchError } = await supabase
+            .from("tennis_rankings")
+            .select(
+                `
         *,
         players (
           id,
           name
         )
-      `)
-      .order('position', { ascending: true });
+      `,
+            )
+            .order("position", { ascending: true });
 
-    if (fetchError || !allPlayers) {
-      throw new Error('Errore nel recupero dei giocatori.');
+        if (fetchError || !allPlayers) {
+            throw new Error("Errore nel recupero dei giocatori.");
+        }
+
+        // Trova vincitore e sconfitto
+        const winner = allPlayers.find((p) => p.players.id === winnerId);
+
+        const loser = allPlayers.find((p) => p.players.id === loserId);
+
+        if (!winner || !loser) {
+            throw new Error("Giocatori non trovati.");
+        }
+
+        const challenger = winner.position > loser.position ? winner : loser;
+
+        const defender = winner.position < loser.position ? winner : loser;
+
+        const challengerWon = winner.player_id === challenger.player_id;
+
+        const distance = challenger.position - defender.position;
+
+        const newPositions = {};
+
+        // Stato iniziale
+
+        allPlayers.forEach((p) => {
+            newPositions[p.player_id] = p.position;
+        });
+
+        // CHALLENGER VINCE
+
+        if (challengerWon) {
+            if (distance === 1) {
+                newPositions[challenger.player_id] = defender.position;
+
+                newPositions[defender.player_id] = challenger.position;
+            }
+
+            else if (distance === 2) {
+                const playerBetween = allPlayers.find(
+                    (p) => p.position === challenger.position - 1,
+                );
+
+                newPositions[challenger.player_id] = challenger.position - 1;
+
+                if (playerBetween) {
+                    newPositions[playerBetween.player_id] = challenger.position;
+                }
+            }
+
+            else if (distance === 3) {
+                const playerBetween = allPlayers.find(
+                    (p) => p.position === challenger.position - 1,
+                );
+
+                newPositions[challenger.player_id] = challenger.position - 1;
+
+                newPositions[defender.player_id] = defender.position + 1;
+
+                if (playerBetween) {
+                    newPositions[playerBetween.player_id] = challenger.position;
+                }
+
+                const playerBelowDefender = allPlayers.find(
+                    (p) => p.position === defender.position + 1,
+                );
+
+                if (
+                    playerBelowDefender &&
+                    playerBelowDefender.player_id !== challenger.player_id
+                ) {
+                    newPositions[playerBelowDefender.player_id] =
+                        defender.position;
+                }
+            }
+
+            else if (distance === 4) {
+                newPositions[challenger.player_id] = challenger.position - 2;
+
+                newPositions[defender.player_id] = defender.position + 1;
+
+                const p1 = allPlayers.find(
+                    (p) => p.position === defender.position + 1,
+                );
+
+                const p2 = allPlayers.find(
+                    (p) => p.position === challenger.position - 2,
+                );
+
+                const p3 = allPlayers.find(
+                    (p) => p.position === challenger.position - 1,
+                );
+
+                if (p1 && p1.player_id !== challenger.player_id) {
+                    newPositions[p1.player_id] = defender.position;
+                }
+
+                if (p2 && p2.player_id !== challenger.player_id) {
+                    newPositions[p2.player_id] = p2.position + 1;
+                }
+
+                if (p3 && p3.player_id !== challenger.player_id) {
+                    newPositions[p3.player_id] = p3.position + 1;
+                }
+            }
+
+            else {
+                newPositions[challenger.player_id] = challenger.position - 2;
+
+                newPositions[defender.player_id] = defender.position + 2;
+
+                const below1 = allPlayers.find(
+                    (p) => p.position === defender.position + 1,
+                );
+
+                const below2 = allPlayers.find(
+                    (p) => p.position === defender.position + 2,
+                );
+
+                if (below1) {
+                    newPositions[below1.player_id] = below1.position - 1;
+                }
+
+                if (below2) {
+                    newPositions[below2.player_id] = below2.position - 1;
+                }
+
+                const jumped1 = allPlayers.find(
+                    (p) => p.position === challenger.position - 2,
+                );
+
+                const jumped2 = allPlayers.find(
+                    (p) => p.position === challenger.position - 1,
+                );
+
+                if (jumped1 && jumped1.player_id !== challenger.player_id) {
+                    newPositions[jumped1.player_id] = jumped1.position + 1;
+                }
+
+                if (jumped2 && jumped2.player_id !== challenger.player_id) {
+                    newPositions[jumped2.player_id] = jumped2.position + 1;
+                }
+            }
+        }
+
+        // vince chi è sopra
+
+        else {
+
+          const maxPosition = allPlayers.length;
+     
+          // Se il challenger è ultimo, non scende
+          if (challenger.position === maxPosition) {
+     
+            newPositions[challenger.player_id] =
+              challenger.position;
+     
+          } else {
+     
+            const playerBelowChallenger =
+              allPlayers.find(
+                p => p.position === challenger.position + 1
+              );
+     
+            newPositions[challenger.player_id] =
+              challenger.position + 1;
+     
+            if (playerBelowChallenger) {
+              newPositions[playerBelowChallenger.player_id] =
+                challenger.position;
+            }
+          }
+     }           
+
+
+        // UPDATE DATABASE
+
+        for (const p of allPlayers) {
+            const newPos = newPositions[p.player_id];
+
+            const matchesPlayed =
+                p.player_id === challenger.player_id ||
+                p.player_id === defender.player_id
+                    ? p.matches_played + 1
+                    : p.matches_played;
+
+            const wins = p.player_id === winner.player_id ? p.wins + 1 : p.wins;
+
+            const losses =
+                p.player_id === loser.player_id ? p.losses + 1 : p.losses;
+
+            const { error } = await supabase
+                .from("tennis_rankings")
+                .update({
+                    previous_position: p.position,
+                    position: newPos,
+                    matches_played: matchesPlayed,
+                    wins,
+                    losses,
+                })
+                .eq("player_id", p.player_id);
+
+            if (error) {
+                console.log(error);
+                throw new Error(error.message);
+            }
+        }
+ 
+        // STORICO MATCH
+
+        await supabase.from("tennis_matches").insert({
+            challenger_id: challenger.player_id,
+            defender_id: defender.player_id,
+            winner_id: winner.player_id,
+            score,
+            challenger_old_position: challenger.position,
+            defender_old_position: defender.position,
+            challenger_new_position: newPositions[challenger.player_id],
+            defender_new_position: newPositions[defender.player_id],
+        });
+
+        return Astro.redirect("/admin/tennis?saved=1");
+    } catch (err: any) {
+        errorMessage = err.message;
     }
-
-    // Trova vincitore e sconfitto
-    const winner = allPlayers.find(
-      p => p.players.name === winnerName
-    );
-
-    const loser = allPlayers.find(
-      p => p.players.name === loserName
-    );
-
-    if (!winner || !loser) {
-      throw new Error('Giocatori non trovati.');
-    }
-
-    // Challenger = quello sotto
-    const challenger =
-      winner.position > loser.position
-        ? winner
-        : loser;
-
-    // Defender = quello sopra
-    const defender =
-      winner.position < loser.position
-        ? winner
-        : loser;
-
-    const challengerWon =
-      winner.player_id === challenger.player_id;
-
-    const distance =
-      challenger.position - defender.position;
-
-    const newPositions = {};
-
-    // Stato iniziale
-    allPlayers.forEach(p => {
-      newPositions[p.player_id] = p.position;
-    });
-
-    // =========================
-    // CHALLENGER VINCE
-    // =========================
-
-    if (challengerWon) {
-
-      // DISTANZA 1
-      if (distance === 1) {
-
-        newPositions[challenger.player_id] =
-          defender.position;
-
-        newPositions[defender.player_id] =
-          challenger.position;
-      }
-
-      // DISTANZA 2
-      else if (distance === 2) {
-
-        const playerBetween = allPlayers.find(
-          p => p.position === challenger.position - 1
-        );
-
-        newPositions[challenger.player_id] =
-          challenger.position - 1;
-
-        if (playerBetween) {
-          newPositions[playerBetween.player_id] =
-            challenger.position;
-        }
-      }
-
-      // DISTANZA 3
-      else if (distance === 3) {
-
-        const playerBetween = allPlayers.find(
-          p => p.position === challenger.position - 1
-        );
-
-        newPositions[challenger.player_id] =
-          challenger.position - 1;
-
-        newPositions[defender.player_id] =
-          defender.position + 1;
-
-        if (playerBetween) {
-          newPositions[playerBetween.player_id] =
-            challenger.position;
-        }
-
-        const playerBelowDefender =
-          allPlayers.find(
-            p => p.position === defender.position + 1
-          );
-
-        if (
-          playerBelowDefender &&
-          playerBelowDefender.player_id !== challenger.player_id
-        ) {
-          newPositions[playerBelowDefender.player_id] =
-            defender.position;
-        }
-      }
-
-      // DISTANZA 4
-      else if (distance === 4) {
-
-        newPositions[challenger.player_id] =
-          challenger.position - 2;
-
-        newPositions[defender.player_id] =
-          defender.position + 1;
-
-        const p1 = allPlayers.find(
-          p => p.position === defender.position + 1
-        );
-
-        const p2 = allPlayers.find(
-          p => p.position === challenger.position - 2
-        );
-
-        const p3 = allPlayers.find(
-          p => p.position === challenger.position - 1
-        );
-
-        if (p1 && p1.player_id !== challenger.player_id) {
-          newPositions[p1.player_id] =
-            defender.position;
-        }
-
-        if (p2 && p2.player_id !== challenger.player_id) {
-          newPositions[p2.player_id] =
-            p2.position + 1;
-        }
-
-        if (p3 && p3.player_id !== challenger.player_id) {
-          newPositions[p3.player_id] =
-            p3.position + 1;
-        }
-      }
-
-      // DISTANZA >= 5
-      else {
-
-        newPositions[challenger.player_id] =
-          challenger.position - 2;
-
-        newPositions[defender.player_id] =
-          defender.position + 2;
-
-        const below1 = allPlayers.find(
-          p => p.position === defender.position + 1
-        );
-
-        const below2 = allPlayers.find(
-          p => p.position === defender.position + 2
-        );
-
-        if (below1) {
-          newPositions[below1.player_id] =
-            below1.position - 1;
-        }
-
-        if (below2) {
-          newPositions[below2.player_id] =
-            below2.position - 1;
-        }
-
-        const jumped1 = allPlayers.find(
-          p => p.position === challenger.position - 2
-        );
-
-        const jumped2 = allPlayers.find(
-          p => p.position === challenger.position - 1
-        );
-
-        if (jumped1 && jumped1.player_id !== challenger.player_id) {
-          newPositions[jumped1.player_id] =
-            jumped1.position + 1;
-        }
-
-        if (jumped2 && jumped2.player_id !== challenger.player_id) {
-          newPositions[jumped2.player_id] =
-            jumped2.position + 1;
-        }
-      }
-    }
-
-    // =========================
-    // DEFENDER VINCE
-    // =========================
-
-    else {
-
-      const playerBelowChallenger =
-        allPlayers.find(
-          p => p.position === challenger.position + 1
-        );
-
-      newPositions[challenger.player_id] =
-        challenger.position + 1;
-
-      if (playerBelowChallenger) {
-        newPositions[playerBelowChallenger.player_id] =
-          challenger.position;
-      }
-    }
-
-    // =========================
-    // UPDATE DATABASE
-    // =========================
-
-    for (const p of allPlayers) {
-
-      const newPos = newPositions[p.player_id];
-
-      const matchesPlayed =
-        p.player_id === challenger.player_id ||
-        p.player_id === defender.player_id
-          ? p.matches_played + 1
-          : p.matches_played;
-
-      const wins =
-        p.player_id === winner.player_id
-          ? p.wins + 1
-          : p.wins;
-
-      const losses =
-        p.player_id === loser.player_id
-          ? p.losses + 1
-          : p.losses;
-
-      const { error } = await supabase
-        .from('tennis_rankings')
-        .update({
-          previous_position: p.position,
-          position: newPos,
-          matches_played: matchesPlayed,
-          wins,
-          losses
-        })
-        .eq('player_id', p.player_id);
-
-      if (error) {
-        console.log(error);
-        throw new Error(error.message);
-      }
-    }
-
-    // =========================
-    // STORICO MATCH
-    // =========================
-
-    await supabase
-      .from('tennis_matches')
-      .insert({
-        challenger_id: challenger.player_id,
-        defender_id: defender.player_id,
-        winner_id: winner.player_id,
-        score,
-        challenger_old_position:
-          challenger.position,
-        defender_old_position:
-          defender.position,
-        challenger_new_position:
-          newPositions[challenger.player_id],
-        defender_new_position:
-          newPositions[defender.player_id]
-      });
-
-    return Astro.redirect('/admin/tennis?saved=1');
-
-  } catch (err: any) {
-    errorMessage = err.message;
-  }
 }
 ---
 
 <Layout title="Admin Tennis">
+    <datalist id="tennis-players-list">
+        {
+            players?.map((player) => (
+                <option value={player.players.name}>
+                    ({player.position}°)
+                </option>
+            ))
+        }
+    </datalist>
 
-  <datalist id="tennis-players-list">
-    {players?.map(player => (
-      <option value={player.players.name}>({player.position}°)
-      </option>
-    ))}
-  </datalist>
+    <section class="mb-8">
+        <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+            Area riservata
+        </p>
 
-  <section class="mb-8">
-    <p class="text-sm uppercase tracking-widest font-black text-slate-600">
-      Area riservata
-    </p>
+        <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+            Admin Tennis
+        </h1>
 
-    <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
-      Admin Tennis
-    </h1>
+        <p class="mt-4 max-w-xl text-slate-700 font-medium">
+            Inserisci il vincitore e lo sconfitto. La classifica verrà
+            aggiornata automaticamente.
+        </p>
+        <div class="mt-6 flex flex-wrap gap-4">
+            <a href="/admin/padel" class="club-btn px-5 py-3">
+                Vai ad Admin Padel
+            </a>
+        </div>
+    </section>
 
-    <p class="mt-4 max-w-xl text-slate-700 font-medium">
-      Inserisci il vincitore e lo sconfitto.
-      La classifica verrà aggiornata automaticamente.
-    </p>
-    <div class="mt-6 flex flex-wrap gap-4">
-      <a href="/admin/padel" class="club-btn px-5 py-3">
-        Vai ad Admin Padel
-      </a>
-    </div>
-  </section>
-
-  {message && (
-    <div
-      id="success-banner"
-      class="club-card bg-emerald-500 text-black p-4 mb-6 font-black"
-    >
-      {message}
-    </div>
-  )}
-
-  {errorMessage && (
-    <div class="club-card bg-rose-500 text-black p-4 mb-6 font-black">
-      ⚠️ {errorMessage}
-    </div>
-  )}
-
-  <form
-    method="POST"
-    action="/admin/tennis"
-    class="club-card p-5 md:p-6 max-w-2xl space-y-8 bg-white"
-  >
-
-    <div>
-      <h2 class="text-2xl font-black mb-3 text-black">
-        Vincitore
-      </h2>
-
-      <input
-        type="text"
-        name="winner_name"
-        list="tennis-players-list"
-        placeholder="Chi ha vinto?"
-        required
-        autocomplete="off"
-        class="w-full border-2 border-black bg-green-200 p-3 font-bold"
-      />
-    </div>
-
-    <div>
-      <h2 class="text-2xl font-black mb-3 text-black">
-        Sconfitto
-      </h2>
-
-      <input
-        type="text"
-        name="loser_name"
-        list="tennis-players-list"
-        placeholder="Chi ha perso?"
-        required
-        autocomplete="off"
-        class="w-full border-2 border-black bg-purple-200 p-3 font-bold"
-      />
-    </div>
-
-    <div>
-      <h2 class="text-2xl font-black mb-3 text-black">
-        Punteggio
-      </h2>
-
-      <input
-        type="text"
-        name="score"
-        placeholder="6-4 7-5"
-        class="w-full border-2 border-black bg-white p-3 font-bold"
-      />
-    </div>
-
-    <button
-      type="submit"
-      class="club-btn w-full p-4 text-xl"
-    >
-      Registra Match Tennis
-    </button>
-
-  </form>
-
-  <script is:inline>
-    const banner =
-      document.getElementById(
-        'success-banner'
-      );
-
-    if (banner) {
-      setTimeout(() => {
-        banner.remove();
-
-        const url = new URL(window.location);
-
-        url.searchParams.delete('saved');
-
-        window.history.replaceState(
-          {},
-          '',
-          url
-        );
-      }, 3000);
+    {
+        message && (
+            <div
+                id="success-banner"
+                class="club-card bg-emerald-500 text-black p-4 mb-6 font-black"
+            >
+                {message}
+            </div>
+        )
     }
-  </script>
 
+    {
+        errorMessage && (
+            <div class="club-card bg-rose-500 text-black p-4 mb-6 font-black">
+                ⚠️ {errorMessage}
+            </div>
+        )
+    }
+
+    <form
+        method="POST"
+        action="/admin/tennis"
+        class="club-card p-5 md:p-6 max-w-2xl space-y-8 bg-white"
+    >
+        <div>
+            <h2 class="text-2xl font-black mb-3 text-black">Vincitore</h2>
+            <select
+                name="winner_id"
+                required
+                class="w-full border-2 border-black bg-green-200 p-3 font-bold"
+            >
+                <option value="" disabled selected>Chi ha vinto?</option>
+                {
+                    players?.map((player) => (
+                        <option value={player.player_id}>
+                            {player.players.name} ({player.position}°)
+                        </option>
+                    ))
+                }
+            </select>
+        </div>
+
+        <div>
+            <h2 class="text-2xl font-black mb-3 text-black">Sconfitto</h2>
+            <select
+                name="loser_id"
+                required
+                class="w-full border-2 border-black bg-purple-200 p-3 font-bold"
+            >
+                <option value="" disabled selected>Chi ha perso?</option>
+                {
+                    players?.map((player) => (
+                        <option value={player.player_id}>
+                            {player.players.name} ({player.position}°)
+                        </option>
+                    ))
+                }
+            </select>
+        </div>
+
+        <div>
+            <h2 class="text-2xl font-black mb-3 text-black">Punteggio</h2>
+
+            <input
+                type="text"
+                name="score"
+                placeholder="6-4 7-5"
+                class="w-full border-2 border-black bg-white p-3 font-bold"
+            />
+        </div>
+
+        <button type="submit" class="club-btn w-full p-4 text-xl">
+            Registra Match Tennis
+        </button>
+    </form>
+
+    <script is:inline>
+        const banner = document.getElementById("success-banner");
+
+        if (banner) {
+            setTimeout(() => {
+                banner.remove();
+
+                const url = new URL(window.location);
+
+                url.searchParams.delete("saved");
+
+                window.history.replaceState({}, "", url);
+            }, 3000);
+        }
+    </script>
 </Layout>
