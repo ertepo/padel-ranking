@@ -1,20 +1,21 @@
 ---
-import { supabase } from '../../lib/supabase';
-import { calculateEloChange } from '../../lib/elo';
-import '../../styles/global.css';
-import Layout from '../../layouts/Layout.astro';
+import { supabase } from "../../lib/supabase";
+import { calculateEloChange } from "../../lib/elo";
+import "../../styles/global.css";
+import Layout from "../../layouts/Layout.astro";
 
-const adminPassword = Astro.cookies.get('admin_password');
+const adminPassword = Astro.cookies.get("admin_password");
 
 if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
-  const redirectTo = encodeURIComponent(Astro.url.pathname);
-  return Astro.redirect(`/login?redirect=${redirectTo}`);
+    const redirectTo = encodeURIComponent(Astro.url.pathname);
+    return Astro.redirect(`/login?redirect=${redirectTo}`);
 }
 
 // Recupera SOLO i giocatori iscritti al padel con i relativi dati anagrafici
 const { data: players } = await supabase
-  .from('padel_rankings')
-  .select(`
+    .from("padel_rankings")
+    .select(
+        `
     player_id,
     current_elo,
     matches_played,
@@ -24,43 +25,45 @@ const { data: players } = await supabase
       id,
       name
     )
-  `)
-  .order('current_elo', { ascending: false });
+  `,
+    )
+    .order("current_elo", { ascending: false });
 
-let message = '';
+let message = "";
+let errorMessage = "";
 
-if (Astro.url.searchParams.get('saved') === '1') {
-  message = 'Match salvato correttamente!';
+if (Astro.url.searchParams.get("saved") === "1") {
+    message = "Match salvato correttamente!";
 }
 
-if (Astro.request.method === 'POST') {
-  try {
-    const body = await Astro.request.text();
-    const data = new URLSearchParams(body);
+if (Astro.request.method === "POST") {
+    try {
+        const body = await Astro.request.text();
+        const data = new URLSearchParams(body);
 
-    // 1. Recuperiamo gli ID (UUID) inviati dalle select invece dei nomi
-    const a1Id = data.get('a1_id')?.trim() || '';
-    const a2Id = data.get('a2_id')?.trim() || '';
-    const b1Id = data.get('b1_id')?.trim() || '';
-    const b2Id = data.get('b2_id')?.trim() || '';
-    const winner = (data.get('winner') || '') as 'A' | 'B';
-    const score = data.get('score') || '';
+        // 1. Recuperiamo gli ID (UUID) inviati dalle select invece dei nomi
+        const a1Id = data.get("a1_id")?.trim() || "";
+        const a2Id = data.get("a2_id")?.trim() || "";
+        const b1Id = data.get("b1_id")?.trim() || "";
+        const b2Id = data.get("b2_id")?.trim() || "";
+        const winner = (data.get("winner") || "") as "A" | "B";
+        const score = data.get("score") || "";
 
-    if (!a1Id || !a2Id || !b1Id || !b2Id || !winner) {
-      throw new Error('Compila tutti i campi.');
-    }
+        if (!a1Id || !a2Id || !b1Id || !b2Id || !winner) {
+            throw new Error("Compila tutti i campi.");
+        }
 
-    const inputIds = [a1Id, a2Id, b1Id, b2Id];
+        const inputIds = [a1Id, a2Id, b1Id, b2Id];
 
-    // Controllo duplicati basato sugli ID univoci
-    if (new Set(inputIds).size !== 4) {
-      throw new Error('Hai inserito lo stesso giocatore più volte.');
-    }
+        // Controllo duplicati basato sugli ID univoci
+        if (new Set(inputIds).size !== 4) {
+            throw new Error("Hai inserito lo stesso giocatore più volte.");
+        }
 
-    // Recuperiamo TUTTI i giocatori padel dal database
-    const { data: allPlayers, error: fetchError } = await supabase
-      .from('padel_rankings')
-      .select(`
+        // Recuperiamo TUTTI i giocatori padel dal database
+        const { data: allPlayers, error: fetchError } = await supabase.from(
+            "padel_rankings",
+        ).select(`
         player_id,
         current_elo,
         matches_played,
@@ -72,296 +75,327 @@ if (Astro.request.method === 'POST') {
         )
       `);
 
-    if (fetchError || !allPlayers) {
-      throw new Error('Errore nel recupero dei giocatori.');
+        if (fetchError || !allPlayers) {
+            throw new Error("Errore nel recupero dei giocatori.");
+        }
+
+        // 2. Filtriamo i 4 giocatori selezionati confrontando direttamente il loro player_id (UUID)
+        const selectedPlayers = allPlayers.filter((p) =>
+            inputIds.includes(p.player_id),
+        );
+
+        if (selectedPlayers.length !== 4) {
+            throw new Error("Uno o più giocatori non esistono nel database.");
+        }
+
+        // 3. Associazione dei singoli giocatori tramite l'ID
+        const a1 = selectedPlayers.find((p) => p.player_id === a1Id);
+        const a2 = selectedPlayers.find((p) => p.player_id === a2Id);
+        const b1 = selectedPlayers.find((p) => p.player_id === b1Id);
+        const b2 = selectedPlayers.find((p) => p.player_id === b2Id);
+
+        if (!a1 || !a2 || !b1 || !b2) {
+            throw new Error("Errore nella selezione giocatori.");
+        }
+
+        const teamA = [a1, a2];
+        const teamB = [b1, b2];
+
+        const avgA = (teamA[0].current_elo + teamA[1].current_elo) / 2;
+        const avgB = (teamB[0].current_elo + teamB[1].current_elo) / 2;
+
+        // Calcolo ELO
+        const elo = calculateEloChange(avgA, avgB, winner);
+
+        const winners = winner === "A" ? teamA : teamB;
+        const losers = winner === "A" ? teamB : teamA;
+
+        // Inserimento del match principale
+        const { data: insertedMatch, error: matchError } = await supabase
+            .from("matches")
+            .insert({
+                winner_team: winner,
+                score,
+                team_a_avg_elo: avgA,
+                team_b_avg_elo: avgB,
+                match_type: elo.matchType,
+                elo_delta_winner: elo.winnerDelta,
+                elo_delta_loser: elo.loserDelta,
+            })
+            .select()
+            .single();
+
+        if (matchError || !insertedMatch) {
+            throw new Error(matchError?.message);
+        }
+
+        // UPDATE VINCITORI
+        for (const player of winners) {
+            const playerDelta =
+                player.matches_played < 3 ? 15 : elo.winnerDelta;
+            await supabase
+                .from("padel_rankings")
+                .update({
+                    current_elo: player.current_elo + playerDelta,
+                    matches_played: player.matches_played + 1,
+                    wins: player.wins + 1,
+                })
+                .eq("player_id", player.player_id);
+        }
+
+        // UPDATE PERDENTI
+        for (const player of losers) {
+            const playerDelta =
+                player.matches_played < 3 ? -15 : elo.loserDelta;
+            await supabase
+                .from("padel_rankings")
+                .update({
+                    current_elo: player.current_elo + playerDelta,
+                    matches_played: player.matches_played + 1,
+                    losses: player.losses + 1,
+                })
+                .eq("player_id", player.player_id);
+        }
+
+        // Storico vincitori
+        for (const player of winners) {
+            const playerDelta =
+                player.matches_played < 3 ? 15 : elo.winnerDelta;
+            await supabase.from("match_players").insert({
+                match_id: insertedMatch.id,
+                player_id: player.player_id,
+                team: winner === "A" ? "A" : "B",
+                elo_before: player.current_elo,
+                elo_after: player.current_elo + playerDelta,
+                delta: playerDelta,
+                result: "win",
+            });
+        }
+
+        // Storico perdenti
+        for (const player of losers) {
+            const playerDelta =
+                player.matches_played < 3 ? -15 : elo.loserDelta;
+            await supabase.from("match_players").insert({
+                match_id: insertedMatch.id,
+                player_id: player.player_id,
+                team: winner === "A" ? "B" : "A",
+                elo_before: player.current_elo,
+                elo_after: player.current_elo + playerDelta,
+                delta: playerDelta,
+                result: "loss",
+            });
+        }
+
+        return Astro.redirect("/admin/padel?saved=1");
+    } catch (err: any) {
+        console.log(err);
+        errorMessage = err.message || "Errore sconosciuto";
     }
-
-    // 2. Filtriamo i 4 giocatori selezionati confrontando direttamente il loro player_id (UUID)
-    const selectedPlayers = allPlayers.filter(p =>
-      inputIds.includes(p.player_id)
-    );
-
-    if (selectedPlayers.length !== 4) {
-      throw new Error(
-        'Uno o più giocatori non esistono nel database.'
-      );
-    }
-
-    // 3. Associazione dei singoli giocatori tramite l'ID
-    const a1 = selectedPlayers.find(p => p.player_id === a1Id);
-    const a2 = selectedPlayers.find(p => p.player_id === a2Id);
-    const b1 = selectedPlayers.find(p => p.player_id === b1Id);
-    const b2 = selectedPlayers.find(p => p.player_id === b2Id);
-
-    if (!a1 || !a2 || !b1 || !b2) {
-      throw new Error('Errore nella selezione giocatori.');
-    }
-
-    const teamA = [a1, a2];
-    const teamB = [b1, b2];
-
-    const avgA = (teamA[0].current_elo + teamA[1].current_elo) / 2;
-    const avgB = (teamB[0].current_elo + teamB[1].current_elo) / 2;
-
-    // Calcolo ELO
-    const elo = calculateEloChange(avgA, avgB, winner);
-
-    const winners = winner === 'A' ? teamA : teamB;
-    const losers = winner === 'A' ? teamB : teamA;
-
-    // Inserimento del match principale
-    const { data: insertedMatch, error: matchError } = await supabase
-      .from('matches')
-      .insert({
-        winner_team: winner,
-        score,
-        team_a_avg_elo: avgA,
-        team_b_avg_elo: avgB,
-        match_type: elo.matchType,
-        elo_delta_winner: elo.winnerDelta,
-        elo_delta_loser: elo.loserDelta,
-      })
-      .select()
-      .single();
-
-    if (matchError || !insertedMatch) {
-      throw new Error(matchError?.message);
-    }
-
-    // UPDATE VINCITORI
-    for (const player of winners) {
-      const playerDelta = player.matches_played < 3 ? 15 : elo.winnerDelta;
-      await supabase
-        .from('padel_rankings')
-        .update({
-          current_elo: player.current_elo + playerDelta,
-          matches_played: player.matches_played + 1,
-          wins: player.wins + 1,
-        })
-        .eq('player_id', player.player_id);
-    }
-
-    // UPDATE PERDENTI
-    for (const player of losers) {
-      const playerDelta = player.matches_played < 3 ? -15 : elo.loserDelta;
-      await supabase
-        .from('padel_rankings')
-        .update({
-          current_elo: player.current_elo + playerDelta,
-          matches_played: player.matches_played + 1,
-          losses: player.losses + 1,
-        })
-        .eq('player_id', player.player_id);
-    }
-
-    // Storico vincitori
-    for (const player of winners) {
-      const playerDelta = player.matches_played < 3 ? 15 : elo.winnerDelta;
-      await supabase
-        .from('match_players')
-        .insert({
-          match_id: insertedMatch.id,
-          player_id: player.player_id,
-          team: winner === 'A' ? 'A' : 'B',
-          elo_before: player.current_elo,
-          elo_after: player.current_elo + playerDelta,
-          delta: playerDelta,
-          result: 'win',
-        });
-    }
-
-    // Storico perdenti
-    for (const player of losers) {
-      const playerDelta = player.matches_played < 3 ? -15 : elo.loserDelta;
-      await supabase
-        .from('match_players')
-        .insert({
-          match_id: insertedMatch.id,
-          player_id: player.player_id,
-          team: winner === 'A' ? 'B' : 'A',
-          elo_before: player.current_elo,
-          elo_after: player.current_elo + playerDelta,
-          delta: playerDelta,
-          result: 'loss',
-        });
-    }
-
-    return Astro.redirect('/admin/padel?saved=1');
-
-  } catch (err: any) {
-    console.log(err);
-    throw err;
-  }
 }
 ---
 
 <Layout title="Admin Padel">
+    <section class="mb-8">
+        <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+            Area riservata
+        </p>
 
-  <section class="mb-8">
-    <p class="text-sm uppercase tracking-widest font-black text-slate-600">
-      Area riservata
-    </p>
+        <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+            Admin Padel
+        </h1>
 
-    <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
-      Admin Padel
-    </h1>
+        <p class="mt-4 max-w-xl text-slate-700 font-medium">
+            Inserisci un nuovo match ranking e aggiorna automaticamente la
+            classifica ELO del torneo di Padel.
+        </p>
+        <div class="mt-6 flex flex-wrap gap-4">
+            <a href="/admin/tennis" class="club-btn px-5 py-3">
+                Vai ad Admin Tennis
+            </a>
+        </div>
+    </section>
 
-    <p class="mt-4 max-w-xl text-slate-700 font-medium">
-      Inserisci un nuovo match ranking e aggiorna automaticamente la classifica ELO del torneo di Padel.
-    </p>
-    <div class="mt-6 flex flex-wrap gap-4">
-      <a href="/admin/tennis" class="club-btn px-5 py-3">
-        Vai ad Admin Tennis
-      </a>
-    </div>
-  </section>
-
-  {message && (
-    <div
-      id="success-banner"
-      class="club-card bg-emerald-500 text-white p-4 mb-6 font-black"
-    >
-      {message}
-    </div>
-  )}
-
-  <form
-    method="POST"
-    action="/admin/padel"
-    class="club-card p-5 md:p-6 max-w-2xl space-y-8 bg-white"
-  >
-    <div>
-      <div class="flex items-center gap-3 mb-4">
-        <span class="bg-black text-white px-3 py-1 font-black text-sm">
-          A
-        </span>
-        <h2 class="text-2xl font-black text-black">
-          Team A
-        </h2>
-      </div>
-
-      <div class="grid gap-3 md:grid-cols-2">
-        <select
-          name="a1_id"
-          required
-          class="w-full border-2 border-black bg-white p-3 font-bold"
-        >
-          <option value="" disabled selected>Seleziona Giocatore A1...</option>
-          {players?.map(player => (
-            <option value={player.player_id}>
-              {player.players.name} ({player.current_elo} ELO)
-            </option>
-          ))}
-        </select>
-
-        <select
-          name="a2_id"
-          required
-          class="w-full border-2 border-black bg-white p-3 font-bold"
-        >
-          <option value="" disabled selected>Seleziona Giocatore A2...</option>
-          {players?.map(player => (
-            <option value={player.player_id}>
-              {player.players.name} ({player.current_elo} ELO)
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-
-    <div class="flex items-center gap-3">
-      <div class="h-1 bg-black flex-1"></div>
-      <span class="bg-black text-white px-4 py-2 font-black uppercase text-sm">
-        vs
-      </span>
-      <div class="h-1 bg-black flex-1"></div>
-    </div>
-
-    <div>
-      <div class="flex items-center gap-3 mb-4">
-        <span class="bg-[var(--giallo-club)] border-2 border-black text-black px-3 py-1 font-black text-sm">
-          B
-        </span>
-        <h2 class="text-2xl font-black text-black">
-          Team B
-        </h2>
-      </div>
-
-      <div class="grid gap-3 md:grid-cols-2">
-        <select
-          name="b1_id"
-          required
-          class="w-full border-2 border-black bg-white p-3 font-bold"
-        >
-          <option value="" disabled selected>Seleziona Giocatore B1...</option>
-          {players?.map(player => (
-            <option value={player.player_id}>
-              {player.players.name} ({player.current_elo} ELO)
-            </option>
-          ))}
-        </select>
-
-        <select
-          name="b2_id"
-          required
-          class="w-full border-2 border-black bg-white p-3 font-bold"
-        >
-          <option value="" disabled selected>Seleziona Giocatore B2...</option>
-          {players?.map(player => (
-            <option value={player.player_id}>
-              {player.players.name} ({player.current_elo} ELO)
-            </option>
-          ))}
-        </select>
-      </div>
-    </div>
-
-    <div class="grid gap-6 md:grid-cols-2">
-      <div>
-        <h2 class="text-2xl font-black mb-3 text-black">
-          Vincitore
-        </h2>
-        <select
-          name="winner"
-          required
-          class="w-full border-2 border-black bg-white p-3 font-bold"
-        >
-          <option value="A">Team A</option>
-          <option value="B">Team B</option>
-        </select>
-      </div>
-
-      <div>
-        <h2 class="text-2xl font-black mb-3 text-black">
-          Risultato
-        </h2>
-        <input
-          type="text"
-          name="score"
-          placeholder="6-4 6-3"
-          class="w-full border-2 border-black bg-white p-3 font-bold"
-        />
-      </div>
-    </div>
-
-    <button
-      type="submit"
-      class="club-btn w-full p-4 text-xl"
-    >
-      Salva Match Padel
-    </button>
-  </form>
-
-  <script is:inline>
-    const banner = document.getElementById('success-banner');
-    if (banner) {
-      setTimeout(() => {
-        banner.remove();
-        const url = new URL(window.location);
-        url.searchParams.delete('saved');
-        window.history.replaceState({}, '', url);
-      }, 3000);
+    {
+        message && (
+            <div
+                id="success-banner"
+                class="fixed top-6 right-6 z-[9999] bg-emerald-500 text-black px-6 py-4 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] font-black text-lg transition-all duration-700"
+            >
+                {message}
+            </div>
+        )
     }
-  </script>
-</Layout>
+    {
+        errorMessage && (
+            <div
+                id="error-banner"
+                class="fixed top-6 right-6 z-[9999] bg-rose-500 text-white px-6 py-4 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] font-black text-lg transition-all duration-700"
+            >
+                ⚠️ {errorMessage}
+            </div>
+        )
+    }
 
+    <form
+        method="POST"
+        action="/admin/padel"
+        class="club-card p-5 md:p-6 max-w-2xl space-y-8 bg-white"
+    >
+        <div>
+            <div class="flex items-center gap-3 mb-4">
+                <span class="bg-black text-white px-3 py-1 font-black text-sm">
+                    A
+                </span>
+                <h2 class="text-2xl font-black text-black">Team A</h2>
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
+                <select
+                    name="a1_id"
+                    required
+                    class="w-full border-2 border-black bg-white p-3 font-bold"
+                >
+                    <option value="" disabled selected
+                        >Seleziona Giocatore A1...</option
+                    >
+                    {
+                        players?.map((player) => (
+                            <option value={player.player_id}>
+                                {player.players.name} ({player.current_elo} ELO)
+                            </option>
+                        ))
+                    }
+                </select>
+
+                <select
+                    name="a2_id"
+                    required
+                    class="w-full border-2 border-black bg-white p-3 font-bold"
+                >
+                    <option value="" disabled selected
+                        >Seleziona Giocatore A2...</option
+                    >
+                    {
+                        players?.map((player) => (
+                            <option value={player.player_id}>
+                                {player.players.name} ({player.current_elo} ELO)
+                            </option>
+                        ))
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="h-1 bg-black flex-1"></div>
+            <span
+                class="bg-black text-white px-4 py-2 font-black uppercase text-sm"
+            >
+                vs
+            </span>
+            <div class="h-1 bg-black flex-1"></div>
+        </div>
+
+        <div>
+            <div class="flex items-center gap-3 mb-4">
+                <span
+                    class="bg-[var(--giallo-club)] border-2 border-black text-black px-3 py-1 font-black text-sm"
+                >
+                    B
+                </span>
+                <h2 class="text-2xl font-black text-black">Team B</h2>
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
+                <select
+                    name="b1_id"
+                    required
+                    class="w-full border-2 border-black bg-white p-3 font-bold"
+                >
+                    <option value="" disabled selected
+                        >Seleziona Giocatore B1...</option
+                    >
+                    {
+                        players?.map((player) => (
+                            <option value={player.player_id}>
+                                {player.players.name} ({player.current_elo} ELO)
+                            </option>
+                        ))
+                    }
+                </select>
+
+                <select
+                    name="b2_id"
+                    required
+                    class="w-full border-2 border-black bg-white p-3 font-bold"
+                >
+                    <option value="" disabled selected
+                        >Seleziona Giocatore B2...</option
+                    >
+                    {
+                        players?.map((player) => (
+                            <option value={player.player_id}>
+                                {player.players.name} ({player.current_elo} ELO)
+                            </option>
+                        ))
+                    }
+                </select>
+            </div>
+        </div>
+
+        <div class="grid gap-6 md:grid-cols-2">
+            <div>
+                <h2 class="text-2xl font-black mb-3 text-black">Vincitore</h2>
+                <select
+                    name="winner"
+                    required
+                    class="w-full border-2 border-black bg-white p-3 font-bold"
+                >
+                    <option value="A">Team A</option>
+                    <option value="B">Team B</option>
+                </select>
+            </div>
+
+            <div>
+                <h2 class="text-2xl font-black mb-3 text-black">Risultato</h2>
+                <input
+                    type="text"
+                    name="score"
+                    placeholder="6-4 6-3"
+                    class="w-full border-2 border-black bg-white p-3 font-bold"
+                />
+            </div>
+        </div>
+
+        <button type="submit" class="club-btn w-full p-4 text-xl">
+            Salva Match Padel
+        </button>
+    </form>
+
+    <script is:inline>
+        function setupBanner(id) {
+            const banner = document.getElementById(id);
+
+            if (!banner) return;
+
+            setTimeout(() => {
+                banner.style.transform = "translateX(150%)";
+                banner.style.opacity = "0";
+            }, 2200);
+
+            setTimeout(() => {
+                banner.remove();
+
+                const url = new URL(window.location);
+
+                url.searchParams.delete("saved");
+
+                window.history.replaceState({}, "", url);
+            }, 5000);
+        }
+
+        setupBanner("success-banner");
+        setupBanner("error-banner");
+    </script>
+</Layout>

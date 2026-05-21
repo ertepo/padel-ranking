@@ -66,12 +66,26 @@
 
   // Il tuo filtro reattivo originale (ora lavora sull'array 'matches' che cresce dinamico)
   $: filteredMatches = selectedPlayer
-    ? matches.filter((match) =>
-        match.match_players.some((mp) =>
-          mp.player_id === selectedPlayer
-        )
-      )
-    : matches;
+  ? matches.filter((match) => {
+
+      // PADEL
+      if (match.sport === 'padel') {
+        return match.match_players.some(
+          (mp) => mp.player_id === selectedPlayer
+        );
+      }
+
+      // TENNIS
+      if (match.sport === 'tennis') {
+        return (
+          match.tennisData.challenger.id === selectedPlayer ||
+          match.tennisData.defender.id === selectedPlayer
+        );
+      }
+
+      return false;
+    })
+  : matches;
 </script>
 
 <!-- BLOCCO FILTRO CORRETTO -->
@@ -106,7 +120,7 @@
     <p class="font-black">Nessun match trovato.</p>
   </div>
 {:else}
-  <div class="space-y-5">
+  <div class="mt-5 grid gap-3 md:grid-cols-2 space-y-5">
     <!-- MODIFICATO QUI: da matches a filteredMatches -->
     {#each filteredMatches as match (match.id)}
       <MatchCard {match} />

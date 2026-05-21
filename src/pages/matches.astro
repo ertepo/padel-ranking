@@ -3,42 +3,151 @@ import Layout from '../layouts/Layout.astro';
 import { supabase } from '../lib/supabase';
 import MatchesList from '../components/MatchesList.svelte';
 
-// Carichiamo i dati iniziali in parallelo lato server
-const [matchesResponse, playersResponse] = await Promise.all([
-  supabase
-    .from('matches')
-    .select(`
-      id,
-      created_at,
-      winner_team,
-      score,
-      team_a_avg_elo,
-      team_b_avg_elo,
-      match_type,
-      match_players (
-        id,
-        player_id,
-        team,
-        result,
-        delta,
-        players (
-          name
-        )
-      )
-    `)
-    .order('created_at', { ascending: false })
-    .range(0, 9), // Carica i primi 10 per testare subito se va, poi puoi mettere 25 o 50
+// =========================
+// PADEL MATCHES
+// =========================
 
-  supabase
-    .from('players')
-    .select('id, name')
-    .eq('active', true)
-    .order('name')
+const padelMatchesQuery = supabase
+  .from('matches')
+  .select(`
+    id,
+    created_at,
+    winner_team,
+    score,
+    team_a_avg_elo,
+    team_b_avg_elo,
+    match_type,
+    match_players (
+      id,
+      player_id,
+      team,
+      result,
+      delta,
+      players (
+        name
+      )
+    )
+  `)
+  .order('created_at', { ascending: false })
+  .range(0, 49);
+
+// =========================
+// TENNIS MATCHES
+// =========================
+
+const tennisMatchesQuery = supabase
+  .from('tennis_matches')
+  .select(`
+    id,
+    created_at,
+    score,
+    challenger_id,
+    defender_id,
+    winner_id,
+    challenger_old_position,
+    challenger_new_position,
+    defender_old_position,
+    defender_new_position,
+    challenger:players!tennis_matches_challenger_id_fkey (
+      id,
+      name
+    ),
+    defender:players!tennis_matches_defender_id_fkey (
+      id,
+      name
+    ),
+    winner:players!tennis_matches_winner_id_fkey (
+      id,
+      name
+    )
+  `)
+  .order('created_at', { ascending: false })
+  .range(0, 49);
+
+// =========================
+// PLAYERS
+// =========================
+
+const playersQuery = supabase
+  .from('players')
+  .select('id, name')
+  .eq('active', true)
+  .order('name');
+
+// =========================
+// FETCH PARALLELO
+// =========================
+
+const [
+  padelResponse,
+  tennisResponse,
+  playersResponse
+] = await Promise.all([
+  padelMatchesQuery,
+  tennisMatchesQuery,
+  playersQuery
 ]);
 
-const initialMatches = matchesResponse.data ?? [];
-const error = matchesResponse.error;
-const players = playersResponse.data ?? [];
+// =========================
+// FORMATTA MATCH TENNIS
+// =========================
+
+const tennisMatchesFormatted =
+  (tennisResponse.data || []).map(match => {
+
+    const challengerWon =
+      match.winner_id === match.challenger_id;
+
+    return {
+      id: `tennis-${match.id}`,
+      created_at: match.created_at,
+      score: match.score,
+      sport: 'tennis',
+
+      tennisData: {
+        challenger: match.challenger,
+        defender: match.defender,
+        winner: match.winner,
+        challenger_old_position:
+          match.challenger_old_position,
+        challenger_new_position:
+          match.challenger_new_position,
+        defender_old_position:
+          match.defender_old_position,
+        defender_new_position:
+          match.defender_new_position,
+        challengerWon
+      }
+    };
+  });
+
+// =========================
+// MATCHES FINALI
+// =========================
+
+const combinedMatches = [
+  ...(padelResponse.data || []).map(match => ({
+    ...match,
+    sport: 'padel'
+  })),
+
+  ...tennisMatchesFormatted
+];
+
+// Ordine globale
+combinedMatches.sort((a, b) => {
+  return (
+    new Date(b.created_at).getTime() -
+    new Date(a.created_at).getTime()
+  );
+});
+
+const error =
+  padelResponse.error ||
+  tennisResponse.error;
+
+const players =
+  playersResponse.data || [];
 ---
 
 <Layout title="Match">
@@ -59,8 +168,8 @@ const players = playersResponse.data ?? [];
 
   {/* Usiamo client:load o client:visible. Passiamo i dati iniziali a Svelte */}
   <MatchesList
-    initialMatches={initialMatches}
-    players={players}
-    client:load
-  />
+  initialMatches={combinedMatches}
+  players={players}
+  client:load
+/>
 </Layout>

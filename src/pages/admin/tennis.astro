@@ -37,17 +37,17 @@ if (Astro.request.method === "POST") {
     const body = await Astro.request.text();
     const data = new URLSearchParams(body);
 
-    const winnerId = data.get('winner_id')?.trim() || '';
-    const loserId = data.get('loser_id')?.trim() || '';
-    const score = data.get('score')?.trim() || '';
+    const winnerId = data.get("winner_id")?.trim() || "";
+    const loserId = data.get("loser_id")?.trim() || "";
+    const score = data.get("score")?.trim() || "";
     try {
         if (!winnerId || !loserId) {
             throw new Error("Entrambi i giocatori sono obbligatori.");
         }
 
         if (winnerId === loserId) {
-        throw new Error('Un giocatore non può giocare contro se stesso.');
-      }
+            throw new Error("Un giocatore non può giocare contro se stesso.");
+        }
 
         // Recupera tutto il ranking
         const { data: allPlayers, error: fetchError } = await supabase
@@ -99,9 +99,7 @@ if (Astro.request.method === "POST") {
                 newPositions[challenger.player_id] = defender.position;
 
                 newPositions[defender.player_id] = challenger.position;
-            }
-
-            else if (distance === 2) {
+            } else if (distance === 2) {
                 const playerBetween = allPlayers.find(
                     (p) => p.position === challenger.position - 1,
                 );
@@ -111,9 +109,7 @@ if (Astro.request.method === "POST") {
                 if (playerBetween) {
                     newPositions[playerBetween.player_id] = challenger.position;
                 }
-            }
-
-            else if (distance === 3) {
+            } else if (distance === 3) {
                 const playerBetween = allPlayers.find(
                     (p) => p.position === challenger.position - 1,
                 );
@@ -137,9 +133,7 @@ if (Astro.request.method === "POST") {
                     newPositions[playerBelowDefender.player_id] =
                         defender.position;
                 }
-            }
-
-            else if (distance === 4) {
+            } else if (distance === 4) {
                 newPositions[challenger.player_id] = challenger.position - 2;
 
                 newPositions[defender.player_id] = defender.position + 1;
@@ -167,9 +161,7 @@ if (Astro.request.method === "POST") {
                 if (p3 && p3.player_id !== challenger.player_id) {
                     newPositions[p3.player_id] = p3.position + 1;
                 }
-            }
-
-            else {
+            } else {
                 newPositions[challenger.player_id] = challenger.position - 2;
 
                 newPositions[defender.player_id] = defender.position + 2;
@@ -209,34 +201,25 @@ if (Astro.request.method === "POST") {
         }
 
         // vince chi è sopra
-
         else {
+            const maxPosition = allPlayers.length;
 
-          const maxPosition = allPlayers.length;
-     
-          // Se il challenger è ultimo, non scende
-          if (challenger.position === maxPosition) {
-     
-            newPositions[challenger.player_id] =
-              challenger.position;
-     
-          } else {
-     
-            const playerBelowChallenger =
-              allPlayers.find(
-                p => p.position === challenger.position + 1
-              );
-     
-            newPositions[challenger.player_id] =
-              challenger.position + 1;
-     
-            if (playerBelowChallenger) {
-              newPositions[playerBelowChallenger.player_id] =
-                challenger.position;
+            // Se il challenger è ultimo, non scende
+            if (challenger.position === maxPosition) {
+                newPositions[challenger.player_id] = challenger.position;
+            } else {
+                const playerBelowChallenger = allPlayers.find(
+                    (p) => p.position === challenger.position + 1,
+                );
+
+                newPositions[challenger.player_id] = challenger.position + 1;
+
+                if (playerBelowChallenger) {
+                    newPositions[playerBelowChallenger.player_id] =
+                        challenger.position;
+                }
             }
-          }
-     }           
-
+        }
 
         // UPDATE DATABASE
 
@@ -270,7 +253,7 @@ if (Astro.request.method === "POST") {
                 throw new Error(error.message);
             }
         }
- 
+
         // STORICO MATCH
 
         await supabase.from("tennis_matches").insert({
@@ -286,7 +269,8 @@ if (Astro.request.method === "POST") {
 
         return Astro.redirect("/admin/tennis?saved=1");
     } catch (err: any) {
-        errorMessage = err.message;
+        console.error(err);
+        errorMessage = err.message || "Errore sconosciuto";
     }
 }
 ---
@@ -322,20 +306,21 @@ if (Astro.request.method === "POST") {
         </div>
     </section>
 
-    {
-        message && (
-            <div
-                id="success-banner"
-                class="club-card bg-emerald-500 text-black p-4 mb-6 font-black"
-            >
-                {message}
-            </div>
-        )
-    }
+    {message && (
+  <div
+    id="success-banner"
+    class="fixed top-6 right-6 z-[9999] bg-emerald-500 text-black px-6 py-4 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] font-black text-lg transition-all duration-700"
+  >
+    ✅ {message}
+  </div>
+)}
 
     {
         errorMessage && (
-            <div class="club-card bg-rose-500 text-black p-4 mb-6 font-black">
+            <div
+                id="error-banner"
+                class="fixed top-6 right-6 z-[9999] bg-rose-500 text-white px-6 py-4 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] font-black text-lg transition-all duration-700"
+            >
                 ⚠️ {errorMessage}
             </div>
         )
@@ -399,18 +384,32 @@ if (Astro.request.method === "POST") {
     </form>
 
     <script is:inline>
-        const banner = document.getElementById("success-banner");
 
-        if (banner) {
-            setTimeout(() => {
-                banner.remove();
+  function setupBanner(id) {
 
-                const url = new URL(window.location);
+    const banner = document.getElementById(id);
 
-                url.searchParams.delete("saved");
+    if (!banner) return;
 
-                window.history.replaceState({}, "", url);
-            }, 3000);
-        }
-    </script>
+    setTimeout(() => {
+      banner.style.transform = 'translateX(150%)';
+      banner.style.opacity = '0';
+    }, 2200);
+
+    setTimeout(() => {
+      banner.remove();
+
+      const url = new URL(window.location);
+
+      url.searchParams.delete('saved');
+
+      window.history.replaceState({}, '', url);
+
+    }, 10000);
+  }
+
+  setupBanner('success-banner');
+  setupBanner('error-banner');
+
+</script>
 </Layout>
