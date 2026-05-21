@@ -4,7 +4,8 @@
 
 <header class="sticky top-0 z-50 bg-[var(--giallo-club)] border-b-2 border-black">
   <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
-    <svg 
+   <a href="/" aria-label="Torna alla Home">
+     <svg 
       viewBox="0 0 3227 455" 
       class="h-8  max-w-[200px] sm:max-w-[300px] md:h-10 md:max-w-none"
       version="1.1" 
@@ -36,7 +37,7 @@
             <path d="M1531.532,1335.891C1527.64,1343.168 1523.039,1350.199 1517.731,1356.984C1497.834,1382.414 1455.326,1395.129 1390.208,1395.129L1330.916,1395.129C1394.69,1375.983 1461.535,1356.228 1531.532,1335.891Z"/>
         </g>
     </g>
-</svg>
+</svg></a>
 
     <!-- Desktop -->
     <nav class="hidden md:flex items-center gap-3">

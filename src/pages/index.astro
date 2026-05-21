@@ -7,25 +7,24 @@ import Layout from "../layouts/Layout.astro";
         <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
             Poggio's<br />Championship
         </h1>
-        <button id="show-padel" class="club-btn px-5 py-3"> Padel </button>
-
-        <button id="show-tennis" class="club-btn px-5 py-3"> Tennis </button>
     </div>
 
     <div class="relative overflow-hidden">
         <div
             id="rules-slider"
-            class="flex transition-transform duration-500 ease-in-out w-[200%]"
-        >
-            <div class="w-1/2 shrink-0 px-1">
+            class="flex transition-transform duration-300 ease-in-out w-[200%]"
+        ><div class="w-1/2 shrink-0 pl-2">
                 <section class="mb-10 dotted">
+                    <button id="show-tennis" class="club-btn-violet px-5 float-right">
+                        Regolamento Tennis ►</button
+                    >
                     <p
                         class="text-sm uppercase tracking-widest font-black text-slate-600"
                     >
                         Padel Ranking 2026
                     </p>
                     <h2
-                        class="text-5xl md:text-7xl font-black leading-none text-black"
+                        class="text-4xl md:text-7xl font-black leading-none text-black mt-5"
                     >
                         Regolamento <br /> Padel
                     </h2>
@@ -162,16 +161,18 @@ import Layout from "../layouts/Layout.astro";
                 </section>
             </div>
             <!-- TENNIS -->
-            <div class="w-1/2 shrink-0 px-1">
+            <div class="w-1/2 shrink-0 pl-2">
                 <section class="mb-10 dotted">
-                    <p
+                    <button id="show-padel" class="club-btn-blue px-5 float-right">
+                        ◄ Regolamento Padel
+                    </button><p
                         class="text-sm uppercase tracking-widest font-black text-slate-600"
                     >
                         Tennis Ranking 2026
                     </p>
 
                     <h1
-                        class="text-5xl md:text-7xl font-black leading-none text-black"
+                        class="text-4xl md:text-7xl font-black leading-none text-black mt-5"
                     >
                         Regolamento<br />Tennis
                     </h1>
@@ -230,63 +231,127 @@ import Layout from "../layouts/Layout.astro";
                 </section>
 
                 <section class="club-card p-6 mb-10 bg-[var(--giallo-club)]">
-                    <h2 class="text-3xl font-black mb-5">Regole della Scala</h2>
+                    <h2 class="text-3xl font-black mb-5">Regole di ascesa</h2>
+                    <h3 class="text-2xl font-black mb-5">
+                        Vittoria dello sfidante
+                    </h3>
+                    <div class="grid gap-5 md:grid-cols-2 mb-10 font-mono">
+                        <div class="bg-white border-2 border-black">
+                            <div class="flex justify-between items-start gap-4 mb-3">
+                                <div></div>
 
+                                <div class="bg-violet-500 text-white px-3 py-2 font-black shrink-0">
+                                    Differenza = 1
+                                </div>
+                            </div>
+                            <div class="font-mono leading-tight px-4 pb-2">
+                            → swap diretto<br />
+                            ----------------------<br />
+                            1<br />
+                            2 ↱ Sfidato<br />
+                            3 &nbsp;Sfidante ↲<br />
+                            4<br />
+                            5<br />
+                        </div></div>
+
+                        <div class="bg-white border-2 border-black">
+                            <div class="flex justify-between items-start gap-4 mb-3">
+                                <div></div>
+
+                                <div class="bg-violet-600 text-white px-3 py-2 font-black shrink-0">
+                                    Differenza = 2
+                                </div>
+                            </div>
+                            <div class="font-mono leading-tight px-4 pb-2">
+                            → sfidato invariato<br />
+                            → sfidante sale di 1<br />
+                            ----------------------<br />
+                            1 - Sfidato<br />
+                            2 ↱<br />
+                            3 ↑ Sfidante <br />
+                        </div>
+</div>
+                        <div class="bg-white border-2 border-black">
+                            <div class="flex justify-between items-start gap-4 mb-3">
+                                <div></div>
+
+                                <div class="bg-violet-700 text-white px-3 py-2 font-black shrink-0">
+                                    Differenza = 3
+                                </div>
+                            </div>
+                            <div class="font-mono leading-tight px-4 pb-2">
+                            → sfidato scende di 1<br />
+                            → sfidante sale di 1<br />
+                            ----------------------<br />
+                            1 Sfidato ↓<br />
+                            2 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↲<br
+                            />
+                            3 ↱<br />
+                            4 ↑ Sfidante<br /></div>
+                        </div>
+
+                        <div class="bg-white border-2 border-black">
+                            <div class="flex justify-between items-start gap-4 mb-3">
+                                <div></div>
+
+                                <div class="bg-violet-800 text-white px-3 py-2 font-black shrink-0">
+                                    Differenza = 4
+                                </div>
+                            </div>
+
+                            <div class="font-mono leading-tight px-4 pb-2">
+                                → sfidato scende di 1<br />
+                                → sfidante sale di 2<br />
+                            ----------------------<br />
+                                1 Sfidato ↓<br />
+                                2 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↲<br
+                                />
+                                3 ↱<br />
+                                4 ↑<br />
+                                5 ↑ Sfidante
+                            </div>
+                        </div>
+
+                        <div class="bg-white border-2 border-black">
+                            <div class="flex justify-between items-start gap-4 mb-3">
+                                <div></div>
+
+                                <div class="bg-violet-900 text-white px-3 py-2 font-black shrink-0">
+                                    Differenza = 5
+                                </div>
+                            </div>
+                            <div class="font-mono leading-tight px-4 pb-2">
+                            → sfidato scende di 2<br />
+                            → sfidante sale di 2<br />
+                            ----------------------<br />
+                            1 Sfidato ↓<br />
+                            2 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br
+                            />
+                            3 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↲<br
+                            />
+                            4<br />
+                            5 ↱<br />
+                            6 ↑<br />
+                            7 ↑ Sfidante<br />
+                        </div></div>
+                    </div>
+                    <h3 class="text-2xl font-black mb-5">
+                        Vittoria dello sfidato
+                    </h3>
                     <div class="grid gap-5 md:grid-cols-2 mb-10 font-mono">
                         <div class="bg-white border-2 border-black p-4">
-                            Differenza = 1<br />
-                            → swap diretto tra challenger e defender<br />
-                            1 Defender   ↓<br />
-2 Challenger ↑<br />
-3<br />
-4<br />
-5<br />
-                        </div>
-
-                        <div class="bg-white border-2 border-black p-4">
-                            Differenza = 2<br />
-                            → challenger sale di 1<br />
-                            → defender invariato<br />
-                            1 Defender<br />
-2 ↑ Challenger<br />
-3 ↓<br />
-                        </div>
-
-                        <div class="bg-white border-2 border-black p-4">
-                            Differenza = 3<br />
-                            → challenger sale di 1<br />
-                            → defender scende di 1<br />
-                            1 Defender   ↓<br />
-2 ↑ Challenger<br />
-3 ↓<br />
-                        </div>
-
-                        <div class="bg-white border-2 border-black p-4">
-                            Differenza = 4<br />
-                            → challenger sale di 2<br />
-                            → defender scende di 1<br />
-                            1 Defender   ↓<br />
-2 ↓<br />
-3 ↑ Challenger<br />
-4 ↓<br />
-5<br />
-                        </div>
-
-                        <div class="bg-white border-2 border-black p-4">
-                            Differenza ≥ 5<br />
-                            → challenger sale di 2<br />
-                            → defender scende di 2<br />
-                            1 ↓ Defender<br />
-2 ↓<br />
-3 ↓<br />
-4<br />
-5 ↑ Challenger<br />
-6 ↑<br />
-7 ↑<br />
+                            → sfidato invariato<br />
+                            → sfidante scende di 1<br />
+                            ----------------------<br />
+                            1 - Sfidato<br />
+                            2 <br />
+                            3 ↓ Sfigato <br />
+                            4 ↳<br />
                         </div>
                     </div>
                 </section>
             </div>
+            
         </div>
 
         <script is:inline>

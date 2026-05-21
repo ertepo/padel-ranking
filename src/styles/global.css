@@ -33,7 +33,7 @@ body {
 }
 
 .ombra {
-  box-shadow: -0.5em 0.5em black;
+  box-shadow: -0.2em 0.2em black;
 }
 
 .dotted {
@@ -71,7 +71,25 @@ body {
   transition: all 120ms ease;
 }
 
-.club-btn:hover {
+.club-btn-violet {
+  background: oklch(49.486% 0.18113 295.33);
+  border: 2px solid black;
+  box-shadow: -0.35em 0.35em black;
+  color: rgb(255, 255, 255);
+  font-weight: 800;
+  transition: all 120ms ease;
+}
+
+.club-btn-blue {
+  background: rgb(25, 47, 247);
+  border: 2px solid black;
+  box-shadow: -0.35em 0.35em black;
+  color: white;
+  font-weight: 800;
+  transition: all 120ms ease;
+}
+
+:is(.club-btn,.club-btn-violet,.club-btn-blue):hover {
   background: black;
   color: white;
   box-shadow: 0 0 black;
