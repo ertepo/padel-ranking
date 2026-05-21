@@ -88,9 +88,93 @@ body {
   font-weight: 800;
   transition: all 120ms ease;
 }
+.club-btn-pastelviolet {
+  background: hsl(280, 50%, 85%);
+  border: 2px solid black;
+  box-shadow: -0.35em 0.35em black;
+  color: white;
+  font-weight: 800;
+  transition: all 120ms ease;
+}
+.club-btn-pastelorange {
+  background: hsl(25, 100%, 75%);
+  border: 2px solid black;
+  box-shadow: -0.35em 0.35em black;
+  color: rgb(0, 0, 0);
+  font-weight: 800;
+  transition: all 120ms ease;
+}
+.club-btn-pastelgreen {
+  background: hsl(150, 50%, 65%);
+  border: 2px solid black;
+  box-shadow: -0.35em 0.35em black;
+  color: rgb(0, 0, 0);
+  font-weight: 800;
+  transition: all 120ms ease;
+}
+.club-btn-pastelyellow {
+  background: hsl(50, 100%, 85%);
+  border: 2px solid black;
+  box-shadow: -0.35em 0.35em black;
+  color: rgb(0, 0, 0);
+  font-weight: 800;
+  transition: all 120ms ease;
+}
 
-:is(.club-btn,.club-btn-violet,.club-btn-blue):hover {
+.club-btn-pastelblue {
+  background: hsl(220, 60%, 65%);
+  border: 2px solid black;
+  box-shadow: -0.35em 0.35em black;
+  color: rgb(0, 0, 0);
+  font-weight: 800;
+  transition: all 120ms ease;
+}
+
+:is(.club-btn,.club-btn-violet,.club-btn-blue,.club-btn-pastelviolet,.club-btn-pastelorange,.club-btn-pastelgreen,.club-btn-pastelyellow,.club-btn-pastelblue):hover {
   background: black;
   color: white;
   box-shadow: 0 0 black;
+}
+
+/* 1. Logica strutturale condivisa per tutti gli evidenziatori */
+.highlight-teal,
+.highlight-violet,
+.highlight-yellow,
+.highlight-blue {
+  position: relative;
+  display: inline-block; 
+  z-index: 1;
+}
+
+.highlight-teal::after,
+.highlight-violet::after,
+.highlight-yellow::after,
+.highlight-blue::after {
+  content: "";
+  background-color: var(--highlight-color); /* Variabile dinamica */
+  opacity: 0.35;
+  position: absolute;
+  bottom: 0.15rem; 
+  left: 0;
+  right: 0;
+  z-index: -1;
+  height: 0.6rem;
+  width: 100%;
+}
+
+/* 2. Assegnazione dei singoli colori tramite variabili */
+.highlight-teal {
+  --highlight-color: HSL(180, 100%, 25%);
+}
+
+.highlight-violet {
+  --highlight-color: HSL(295, 100%, 25%);
+}
+
+.highlight-yellow {
+  --highlight-color: HSL(50, 100%, 50%);
+}
+
+.highlight-blue {
+  --highlight-color: HSL(220, 100%, 50%);
 }

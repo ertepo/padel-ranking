@@ -18,15 +18,11 @@ import Layout from "../layouts/Layout.astro";
                     <button id="show-tennis" class="club-btn-violet px-5 float-right">
                         Regolamento Tennis ►</button
                     >
-                    <p
-                        class="text-sm uppercase tracking-widest font-black text-slate-600"
-                    >
-                        Padel Ranking 2026
-                    </p>
+                    
                     <h2
-                        class="text-4xl md:text-7xl font-black leading-none text-black mt-5"
+                        class=" highlight-blue text-4xl md:text-7xl font-black leading-none text-black mt-5"
                     >
-                        Regolamento <br /> Padel
+                        Regolamento Padel
                     </h2>
 
                     <p
@@ -37,11 +33,11 @@ import Layout from "../layouts/Layout.astro";
                     </p>
 
                     <div class="mt-6 flex flex-wrap gap-4">
-                        <a href="/ranking/padel" class="club-btn px-5 py-3">
+                        <a href="/ranking/padel" class="club-btn-pastelyellow px-5 py-3">
                             Vedi classifica
                         </a>
 
-                        <a href="/matches" class="club-btn px-5 py-3">
+                        <a href="/matches" class="club-btn-pastelgreen px-5 py-3">
                             Storico match
                         </a>
                     </div>
@@ -94,7 +90,7 @@ import Layout from "../layouts/Layout.astro";
                         <div
                             class="bg-white border-2 border-black p-4 font-mono text-lg"
                         >
-                            Fino a 50 punti di differnza il match sarà
+                            Fino a 50 punti di differenza il match sarà
                             considerato equilibrato.<br />
                             Oltre i 50 punti di differenza l'incontro avrà dei FAVORITI
                             alla vittoria.<br />
@@ -165,17 +161,13 @@ import Layout from "../layouts/Layout.astro";
                 <section class="mb-10 dotted">
                     <button id="show-padel" class="club-btn-blue px-5 float-right">
                         ◄ Regolamento Padel
-                    </button><p
-                        class="text-sm uppercase tracking-widest font-black text-slate-600"
-                    >
-                        Tennis Ranking 2026
-                    </p>
+                    </button>
 
-                    <h1
-                        class="text-4xl md:text-7xl font-black leading-none text-black mt-5"
+                    <h2
+                        class=" highlight-violet text-4xl md:text-7xl font-black leading-none text-black mt-5"
                     >
-                        Regolamento<br />Tennis
-                    </h1>
+                        Regolamento Tennis
+                    </h2>
 
                     <p
                         class="mt-5 max-w-2xl text-lg font-semibold text-slate-700"
@@ -185,8 +177,12 @@ import Layout from "../layouts/Layout.astro";
                     </p>
 
                     <div class="mt-6 flex flex-wrap gap-4">
-                        <a href="/ranking/tennis" class="club-btn px-5 py-3">
-                            Vedi classifica tennis
+                         <a href="/ranking/tennis" class="club-btn-pastelyellow px-5 py-3">
+                            Vedi classifica
+                        </a>
+
+                        <a href="/matches" class="club-btn-pastelgreen px-5 py-3">
+                            Storico match
                         </a>
                     </div>
                 </section>
@@ -376,11 +372,11 @@ import Layout from "../layouts/Layout.astro";
             let startX = 0;
             let currentSlide = 0;
 
-            const threshold = 70;
+            const threshold = 100;
 
             slider?.addEventListener("touchstart", (e) => {
                 startX = e.touches[0].clientX;
-            });
+            }),{ passive: true };
 
             slider?.addEventListener("touchend", (e) => {
                 const endX = e.changedTouches[0].clientX;
