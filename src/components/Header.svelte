@@ -56,6 +56,12 @@
       <a href="/matches" class="club-btn px-4 py-2">
         Matches
       </a>
+      <a
+        href="https://openresa.com/tiebreak"
+        class="club-btn-pastelblue  px-4 py-2"
+      >
+        Prenota!
+      </a>
     </nav>
 
     <!-- Hamburger -->
@@ -132,6 +138,13 @@
         on:click={() => (isOpen = false)}
       >
         Match
+      </a>
+      <a
+        href="https://openresa.com/tiebreak"
+        class="club-btn-pastelblue p-4 text-center"
+        on:click={() => (isOpen = false)}
+      >
+        Prenota!
       </a>
     </div>
   </aside>

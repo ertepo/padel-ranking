@@ -77,7 +77,9 @@
         : 'border-2 border-black bg-white px-4 py-3 font-bold text-xl md:text-2xl flex flex-wrap gap-x-2'}
     >
       {#each teamA as p, i}
-        <span>{p.players.name} ({formatDelta(p.delta)})</span>
+        <span><a href={`/player/${p.player_id}`} class="font-black text-2xl break-words hover:underline">
+              {p.players.name}
+              </a> ({formatDelta(p.delta)})</span>
         {#if i < teamA.length - 1}
           <span class="text-slate-400">/</span>
         {/if}
@@ -100,7 +102,9 @@
         : 'border-2 border-black bg-white px-4 py-3 font-bold text-xl md:text-2xl flex flex-wrap gap-x-2'}
     >
       {#each teamB as p, i}
-        <span>{p.players.name} ({formatDelta(p.delta)})</span>
+        <span><a href={`/player/${p.player_id}`} class="font-black text-2xl break-words hover:underline">
+              {p.players.name}
+              </a> ({formatDelta(p.delta)})</span>
 
         {#if i < teamB.length - 1}
           <span class="text-slate-400">/</span>
@@ -169,21 +173,26 @@
     </div>
 
     <div class="px-3 py-1 font-black uppercase text-xs border-2 border-black bg-[var(--giallo-club)]">
-      Scala
+      SFIDA TENNIS
     </div>
 
   </div>
 
-  <div class="mt-5 grid gap-3 md:grid-cols-3">
+  <div class="mt-5 grid gap-3 md:grid-cols-[4fr_1fr_4fr]">
 
-    <div class="border-2 border-black bg-white p-4">
+     <div class="border-2 border-black bg-white p-4 min-w-0">
 
       <div class="text-sm uppercase font-bold text-slate-500 mb-2">
         Challenger
       </div>
 
-      <div class="font-black text-2xl">
-        {match.tennisData.challenger.name}
+      <div class="font-black text-2xl break-words">
+       <a
+  href={`/player/${match.tennisData.challenger.id}`}
+  class="font-black text-2xl break-words hover:underline"
+>
+  {match.tennisData.challenger.name}
+</a>
       </div>
 
       <div class="text-sm font-bold mt-2">
@@ -194,24 +203,29 @@
 
     </div>
 
-    <div class="flex items-center gap-3">
-      <div class="h-1 bg-black flex-1"></div>
+    <div class="flex items-center gap-3  md:max-w-1/6 ">
+      <div class="h-1 bg-black flex-1 md:hidden"></div>
 
       <span class="bg-black text-white px-3 py-1 font-black text-xs uppercase">
         vs
       </span>
 
-      <div class="h-1 bg-black flex-1"></div>
+      <div class="h-1 bg-black flex-1  md:hidden"></div>
     </div>
 
-    <div class="border-2 border-black bg-white p-4">
+    <div class="border-2 border-black bg-white p-4 min-w-0">
 
       <div class="text-sm uppercase font-bold text-slate-500 mb-2">
         Defender
       </div>
 
-      <div class="font-black text-2xl">
-        {match.tennisData.defender.name}
+      <div class="font-black text-2xl break-words">
+        <a
+  href={`/player/${match.tennisData.defender.id}`}
+  class="font-black text-2xl break-words hover:underline"
+>
+  {match.tennisData.defender.name}
+</a>
       </div>
 
       <div class="text-sm font-bold mt-2">

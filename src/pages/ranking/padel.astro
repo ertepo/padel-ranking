@@ -38,14 +38,21 @@ const { data: players, error } = await supabase
   <div class="club-card overflow-hidden">
     <div class="bg-[var(--giallo-club)] border-b-2 border-black p-4 flex justify-between items-center">
       <h2 class="text-xl font-black uppercase">
-        Ranking Live
+        CLassifica a punti
       </h2>
 
       <span class="bg-black text-white px-3 py-1 text-xs font-black uppercase">
         ELO
       </span>
     </div>
-
+    <div class="hidden md:grid grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 px-4 py-2 bg-slate-100 border-b-2 border-black font-black text-xs uppercase text-slate-600">
+      <div>Pos</div>
+      <div>Giocatore</div>
+      <div class="text-right">Punti</div>
+      <div class="text-right">Partite</div>
+      <div class="text-right">Vittorie</div>
+      <div class="text-right">Win Rate</div>
+    </div>
     <div class="divide-y-2 divide-black">
       {players?.map((player, index) => {
         const winRate =
@@ -54,9 +61,7 @@ const { data: players, error } = await supabase
             : 0;
 
         return (
-          <a
-            href={`/player/${player.player_id}`}
-            class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--giallo-club)] transition"
+          <a href={`/player/${player.player_id}`} class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--giallo-club)] transition"
           >
             <div class="text-3xl font-black text-black">
               #{index + 1}

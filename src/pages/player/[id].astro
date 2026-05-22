@@ -650,11 +650,11 @@ const tennisOpponentsOffset =
                     </p>
 
                     <p class="font-black text-black">
-                      con {partnerName}
+                      con <a href={`/player/${partnerObj.player_id}`} class="hover:underline">{partnerName}</a>
                     </p>
 
                     <p class="text-sm font-bold text-slate-600">
-                      contro {opponents[0]?.players?.name} e {opponents[1]?.players?.name}
+                      contro <a href={`/player/${opponents[0]?.player_id}`} class="hover:underline">{opponents[0]?.players?.name}</a> e <a href={`/player/${opponents[1]?.player_id}`} class="hover:underline">{opponents[1]?.players?.name}</a>
                     </p>
                   </div>
 
