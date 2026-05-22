@@ -183,7 +183,7 @@
      <div class="border-2 border-black bg-white p-4 min-w-0">
 
       <div class="text-sm uppercase font-bold text-slate-500 mb-2">
-        Challenger
+        Sfidante
       </div>
 
       <div class="font-black text-2xl break-words">
@@ -216,7 +216,7 @@
     <div class="border-2 border-black bg-white p-4 min-w-0">
 
       <div class="text-sm uppercase font-bold text-slate-500 mb-2">
-        Defender
+        Sfidato
       </div>
 
       <div class="font-black text-2xl break-words">
