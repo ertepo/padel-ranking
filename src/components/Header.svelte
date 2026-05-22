@@ -54,7 +54,7 @@
       </a>
 
       <a href="/matches" class="club-btn px-4 py-2">
-        Padel Matches
+        Matches
       </a>
     </nav>
 
