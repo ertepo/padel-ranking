@@ -52,6 +52,7 @@ const { data: matchesData } = await supabase
     matches (
       id,
       played_at,
+      created_at,
       score,
       winner_team,
       match_players (
@@ -63,13 +64,13 @@ const { data: matchesData } = await supabase
       )
     )
   `)
-  .eq('player_id', id);
-
+  .eq('player_id', id)
+  .order('created_at', { referencedTable: 'matches', ascending: false });
 const padelMatches = matchesData || [];
 
 padelMatches.sort((a, b) => {
-  const dateA = new Date(a.matches?.played_at || 0).getTime();
-  const dateB = new Date(b.matches?.played_at || 0).getTime();
+  const dateA = new Date(a.matches?.created_at || 0).getTime();
+  const dateB = new Date(b.matches?.created_at || 0).getTime();
   return dateB - dateA;
 });
 
@@ -725,7 +726,7 @@ const tennisOpponentsOffset =
                 : '';
 
             return (
-              <li class="p-4">
+              <li class={`p-4 font-black ${isWinner ? 'bg-emerald-100' : 'bg-rose-100'}`}>
 
                 <div class="flex justify-between items-center gap-4">
 
@@ -735,7 +736,7 @@ const tennisOpponentsOffset =
                     </p>
 
                     <p class="font-black text-black">
-                      contro {opponent?.name}
+                      contro <a href={`/player/${opponent?.id}`} class="hover:underline">{opponent?.name}</a>
                     </p>
                   </div>
 
