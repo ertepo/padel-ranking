@@ -1,0 +1,341 @@
+---
+import { supabase } from "../lib/supabase";
+import "../styles/global.css";
+import Layout from "../layouts/Layout.astro";
+
+// Recupera partita attiva per SSR iniziale
+const { data: activeMatch } = await supabase
+    .from("live_score")
+    .select("*")
+    .in("status", ["live", "waiting"])
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .single();
+---
+
+<Layout title="Live Score">
+  <section class="mb-6">
+    <p class="text-sm uppercase tracking-widest font-black text-slate-600">In diretta</p>
+    <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Live Score</h1>
+  </section>
+
+  <div id="livescore-public" data-match={JSON.stringify(activeMatch ?? null)}></div>
+</Layout>
+
+<style>
+  :global(#livescore-public) { font-family: inherit; }
+
+  :global(.ls-pub-card) {
+    border: 3px solid black;
+    box-shadow: 8px 8px 0 0 black;
+    background: white;
+    padding: 2rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  :global(.ls-pub-names) {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 1rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+
+  :global(.ls-pub-name) {
+    font-size: 1.4rem;
+    font-weight: 900;
+    line-height: 1.2;
+    word-break: break-word;
+  }
+
+  :global(.ls-pub-vs) {
+    font-size: 1rem;
+    font-weight: 900;
+    color: #999;
+    border: 2px solid #ddd;
+    padding: 0.25rem 0.5rem;
+  }
+
+  :global(.ls-pub-score) {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: center;
+    background: #f8f8f8;
+    border: 3px solid black;
+    padding: 1.5rem 1rem;
+    margin-bottom: 1rem;
+  }
+
+  :global(.ls-pub-points) {
+    font-size: 6rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  :global(.ls-pub-games) {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #555;
+    margin-top: 0.5rem;
+  }
+
+  :global(.ls-pub-sep) {
+    font-size: 2rem;
+    font-weight: 900;
+    color: #ccc;
+  }
+
+  :global(.ls-pub-sets) {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+  }
+
+  :global(.ls-pub-set) {
+    border: 2px solid black;
+    padding: 0.3rem 0.8rem;
+    font-weight: 900;
+    font-size: 0.85rem;
+  }
+
+  :global(.ls-pub-set-won-a) { background: #bbf7d0; }
+  :global(.ls-pub-set-won-b) { background: #fde68a; }
+
+  :global(.ls-pub-badge) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border: 2px solid black;
+    padding: 0.2rem 0.75rem;
+    font-weight: 900;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 1rem;
+  }
+  :global(.ls-pub-badge-live) {
+    background: #fef08a;
+    animation: ls-blink 1.5s infinite;
+  }
+  :global(.ls-pub-badge-waiting) { background: #e5e7eb; }
+  :global(.ls-pub-badge-finished) { background: #bbf7d0; }
+
+  @keyframes ls-blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  :global(.ls-pub-serve-dot) {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #22c55e;
+    border: 2px solid black;
+    margin-bottom: 2px;
+    vertical-align: middle;
+  }
+
+  :global(.ls-pub-winner) {
+    text-align: center;
+    padding: 2rem;
+    border: 3px solid black;
+    background: #bbf7d0;
+    margin-bottom: 1rem;
+    box-shadow: 6px 6px 0 black;
+  }
+
+  :global(.ls-pub-empty) {
+    border: 3px dashed #ccc;
+    padding: 3rem 2rem;
+    text-align: center;
+    max-width: 500px;
+    margin: 0 auto;
+  }
+
+  :global(.ls-pub-footer) {
+    text-align: center;
+    margin-top: 0.75rem;
+    font-size: 0.75rem;
+    color: #aaa;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+</style>
+
+<script>
+import { createClient } from '@supabase/supabase-js';
+
+const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+
+const POINT_LABELS = ['0', '15', '30', '40'];
+
+function formatPoints(match) {
+  const a = match.points_a;
+  const b = match.points_b;
+  if (a === 4) return { a: 'Van', b: '40' };
+  if (b === 4) return { a: '40', b: 'Van' };
+  if (a === 3 && b === 3) return { a: '40', b: '40' };
+  return {
+    a: POINT_LABELS[Math.min(a, 3)] ?? '0',
+    b: POINT_LABELS[Math.min(b, 3)] ?? '0',
+  };
+}
+
+const container = document.getElementById('livescore-public');
+let match = JSON.parse(container?.dataset.match ?? 'null');
+
+function render() {
+  if (!container) return;
+
+  if (!match || (match.status !== 'live' && match.status !== 'waiting' && match.status !== 'finished')) {
+    container.innerHTML = `
+      <div class="ls-pub-empty">
+        <p class="text-5xl mb-4">🎾</p>
+        <p class="text-2xl font-black mb-2">Nessuna partita in corso</p>
+        <p class="text-slate-500 font-medium">Torna più tardi per seguire il live score.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const sets = match.sets ?? [];
+  const pts = formatPoints(match);
+  const setsToWin = Math.ceil(match.max_sets / 2);
+  const setsWonA = sets.filter(s => s.a > s.b).length;
+  const setsWonB = sets.filter(s => s.b > s.a).length;
+  const servingA = match.serving === 'a';
+  const servingB = match.serving === 'b';
+
+  const statusLabel = { waiting: 'In attesa di inizio', live: '● Live', finished: 'Terminata' }[match.status];
+  const statusClass = `ls-pub-badge-${match.status}`;
+
+  const sportEmoji = match.sport === 'padel' ? '🏓' : '🎾';
+  const typeLabel = match.match_type === 'doubles' ? 'Doppio' : 'Singolo';
+
+  const setPills = sets.map((s, i) => {
+    const wonA = s.a > s.b;
+    const wonB = s.b > s.a;
+    return `<span class="ls-pub-set ${wonA ? 'ls-pub-set-won-a' : wonB ? 'ls-pub-set-won-b' : ''}">Set ${i+1}: <b>${s.a}</b>-<b>${s.b}</b></span>`;
+  }).join('');
+
+  const winnerHtml = match.status === 'finished' ? `
+    <div class="ls-pub-winner">
+      <p class="text-4xl mb-2">🏆</p>
+      <p class="text-3xl font-black">Vince ${match.winner === 'a' ? match.team_a_name : match.team_b_name}!</p>
+      <p class="text-lg font-bold mt-1 text-slate-600">${setsWonA}-${setsWonB} set</p>
+    </div>
+  ` : '';
+
+  container.innerHTML = `
+    <div class="ls-pub-card">
+      <div class="mb-3">
+        <span class="ls-pub-badge ${statusClass}">${statusLabel}</span>
+        <span style="font-size:0.9rem;font-weight:700;margin-left:0.5rem;color:#666">${sportEmoji} ${typeLabel}${match.match_label ? ' · ' + match.match_label : ''}</span>
+      </div>
+
+      ${winnerHtml}
+
+      <!-- Nomi -->
+      <div class="ls-pub-names mb-4">
+        <div class="ls-pub-name">
+          ${servingA ? '<span class="ls-pub-serve-dot"></span> ' : ''}${match.team_a_name}
+          <div style="font-size:1rem;color:#22c55e;font-weight:900">${setsWonA > 0 ? '●'.repeat(setsWonA) : ''}</div>
+        </div>
+        <div class="ls-pub-vs">VS</div>
+        <div class="ls-pub-name">
+          ${servingB ? '<span class="ls-pub-serve-dot"></span> ' : ''}${match.team_b_name}
+          <div style="font-size:1rem;color:#eab308;font-weight:900">${setsWonB > 0 ? '●'.repeat(setsWonB) : ''}</div>
+        </div>
+      </div>
+
+      <!-- Punteggio principale -->
+      ${match.status !== 'finished' ? `
+      <div class="ls-pub-score">
+        <div>
+          <div class="ls-pub-points" style="color:#16a34a">${pts.a}</div>
+          <div class="ls-pub-games">${match.games_a} game</div>
+        </div>
+        <div class="ls-pub-sep">:</div>
+        <div>
+          <div class="ls-pub-points" style="color:#ca8a04">${pts.b}</div>
+          <div class="ls-pub-games">${match.games_b} game</div>
+        </div>
+      </div>
+      ` : ''}
+
+      <!-- Set precedenti -->
+      ${sets.length ? `<div class="ls-pub-sets">${setPills}</div>` : ''}
+
+      <div class="ls-pub-footer">Aggiornamento in tempo reale · ${new Date().toLocaleTimeString('it-IT', {hour:'2-digit', minute:'2-digit'})}</div>
+    </div>
+  `;
+}
+
+// Realtime subscription
+function subscribeRealtime() {
+  const channel = sb.channel('live_score_public')
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'live_score' },
+      (payload) => {
+        if (payload.eventType === 'DELETE') {
+          match = null;
+        } else if (payload.new) {
+          const updated = payload.new;
+          // Mostra solo se la partita è quella attuale o se non c'era partita
+          if (!match || updated.id === match.id || ['live','waiting'].includes(updated.status)) {
+            match = updated;
+          }
+        }
+        render();
+      }
+    )
+    .subscribe();
+
+  return channel;
+}
+
+// Fallback polling ogni 5s se realtime non disponibile
+let pollingInterval = null;
+function startPolling() {
+  pollingInterval = setInterval(async () => {
+    const { data } = await sb
+      .from('live_score')
+      .select('*')
+      .in('status', ['live', 'waiting', 'finished'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    if (data) match = data;
+    render();
+  }, 5000);
+}
+
+// Init
+render();
+const channel = subscribeRealtime();
+
+// Se la connessione realtime fallisce entro 3s, attiva polling
+const rtTimeout = setTimeout(() => {
+  if (channel.state !== 'joined') {
+    console.info('[livescore] Realtime non disponibile, uso polling');
+    startPolling();
+  }
+}, 3000);
+
+// Cleanup
+window.addEventListener('beforeunload', () => {
+  sb.removeChannel(channel);
+  if (pollingInterval) clearInterval(pollingInterval);
+  clearTimeout(rtTimeout);
+});
+</script>
