@@ -1,0 +1,295 @@
+---
+import { supabase } from "../../lib/supabase";
+import "../../styles/global.css";
+import Layout from "../../layouts/Layout.astro";
+
+const adminPassword = Astro.cookies.get("admin_password");
+
+if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
+    const redirectTo = encodeURIComponent(Astro.url.pathname);
+    return Astro.redirect(`/login?redirect=${redirectTo}`);
+}
+
+const { data: existingPlayers } = await supabase
+    .from("players")
+    .select("id, name, email, phone, active")
+    .order("name", { ascending: true });
+
+let message = "";
+let errorMessage = "";
+
+if (Astro.url.searchParams.get("created") === "1") {
+    message = "Giocatore aggiunto correttamente!";
+}
+
+if (Astro.request.method === "POST") {
+    let insertedPlayerId = "";
+
+    try {
+        const body = await Astro.request.text();
+        const data = new URLSearchParams(body);
+
+        const name = data.get("name")?.trim() || "";
+        const email = data.get("email")?.trim() || null;
+        const phone = data.get("phone")?.trim() || null;
+
+        if (!name) {
+            throw new Error("Il nome del giocatore e obbligatorio.");
+        }
+
+        const { data: duplicatePlayers, error: duplicateError } = await supabase
+            .from("players")
+            .select("id")
+            .ilike("name", name)
+            .limit(1);
+
+        if (duplicateError) {
+            throw new Error("Errore nel controllo dei giocatori esistenti.");
+        }
+
+        if (duplicatePlayers && duplicatePlayers.length > 0) {
+            throw new Error("Esiste gia un giocatore con questo nome.");
+        }
+
+        const { data: insertedPlayer, error: playerError } = await supabase
+            .from("players")
+            .insert({
+                name,
+                email,
+                phone,
+                active: true,
+            })
+            .select("id")
+            .single();
+
+        if (playerError || !insertedPlayer) {
+            throw new Error(playerError?.message || "Errore nella creazione del giocatore.");
+        }
+
+        insertedPlayerId = insertedPlayer.id;
+
+        const { count, error: countError } = await supabase
+            .from("tennis_rankings")
+            .select("player_id", { count: "exact", head: true });
+
+        if (countError) {
+            throw new Error("Errore nel calcolo della posizione tennis.");
+        }
+
+        const tennisPosition = (count || 0) + 1;
+
+        const { error: padelError } = await supabase
+            .from("padel_rankings")
+            .insert({
+                player_id: insertedPlayerId,
+                current_elo: 1000,
+                matches_played: 0,
+                wins: 0,
+                losses: 0,
+            });
+
+        if (padelError) {
+            throw new Error(padelError.message);
+        }
+
+        const { error: tennisError } = await supabase
+            .from("tennis_rankings")
+            .insert({
+                player_id: insertedPlayerId,
+                position: tennisPosition,
+                previous_position: null,
+                matches_played: 0,
+                wins: 0,
+                losses: 0,
+            });
+
+        if (tennisError) {
+            throw new Error(tennisError.message);
+        }
+
+        return Astro.redirect("/admin/players?created=1");
+    } catch (err: any) {
+        if (insertedPlayerId) {
+            await supabase.from("padel_rankings").delete().eq("player_id", insertedPlayerId);
+            await supabase.from("tennis_rankings").delete().eq("player_id", insertedPlayerId);
+            await supabase.from("players").delete().eq("id", insertedPlayerId);
+        }
+
+        console.error(err);
+        errorMessage = err.message || "Errore sconosciuto";
+    }
+}
+---
+
+<Layout title="Admin Giocatori">
+    <section class="mb-8">
+        <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+            Area riservata
+        </p>
+
+        <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+            Giocatori
+        </h1>
+
+        <p class="mt-4 max-w-xl text-slate-700 font-medium">
+            Aggiungi un nuovo giocatore e inizializzalo automaticamente nelle classifiche Tennis e Padel.
+        </p>
+
+        <div class="mt-6 flex flex-wrap gap-4">
+            <a href="/admin/padel" class="club-btn px-5 py-3">
+                Admin Padel
+            </a>
+
+            <a href="/admin/tennis" class="club-btn px-5 py-3">
+                Admin Tennis
+            </a>
+        </div>
+    </section>
+
+    {
+        message && (
+            <div
+                id="success-banner"
+                class="fixed top-6 right-6 z-[9999] bg-emerald-500 text-black px-6 py-4 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] font-black text-lg transition-all duration-700"
+            >
+                {message}
+            </div>
+        )
+    }
+
+    {
+        errorMessage && (
+            <div
+                id="error-banner"
+                class="fixed top-6 right-6 z-[9999] bg-rose-500 text-white px-6 py-4 border-2 border-black shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] font-black text-lg transition-all duration-700"
+            >
+                {errorMessage}
+            </div>
+        )
+    }
+
+    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)]">
+        <form
+            method="POST"
+            action="/admin/players"
+            class="club-card p-5 md:p-6 space-y-6 bg-white"
+        >
+            <div>
+                <h2 class="text-2xl font-black mb-3 text-black">Nuovo giocatore</h2>
+
+                <label for="name" class="block text-xs uppercase tracking-widest font-black text-slate-600 mb-2">
+                    Nome
+                </label>
+
+                <input
+                    id="name"
+                    type="text"
+                    name="name"
+                    required
+                    autocomplete="name"
+                    placeholder="Es. Mario Rossi"
+                    class="w-full border-2 border-black bg-white p-3 font-bold"
+                />
+            </div>
+
+            <div class="grid gap-4 md:grid-cols-2">
+                <div>
+                    <label for="email" class="block text-xs uppercase tracking-widest font-black text-slate-600 mb-2">
+                        Email
+                    </label>
+
+                    <input
+                        id="email"
+                        type="email"
+                        name="email"
+                        autocomplete="email"
+                        placeholder="nome@email.it"
+                        class="w-full border-2 border-black bg-white p-3 font-bold"
+                    />
+                </div>
+
+                <div>
+                    <label for="phone" class="block text-xs uppercase tracking-widest font-black text-slate-600 mb-2">
+                        Telefono
+                    </label>
+
+                    <input
+                        id="phone"
+                        type="tel"
+                        name="phone"
+                        autocomplete="tel"
+                        placeholder="+39 ..."
+                        class="w-full border-2 border-black bg-white p-3 font-bold"
+                    />
+                </div>
+            </div>
+
+            <div class="grid gap-3 md:grid-cols-2">
+                <div class="border-2 border-black bg-[var(--giallo-club)] p-4">
+                    <p class="text-xs uppercase font-black opacity-70">Padel</p>
+                    <p class="font-black text-xl">1000 ELO</p>
+                </div>
+
+                <div class="border-2 border-black bg-white p-4">
+                    <p class="text-xs uppercase font-black text-slate-500">Tennis</p>
+                    <p class="font-black text-xl">Ultima posizione</p>
+                </div>
+            </div>
+
+            <button type="submit" class="club-btn w-full p-4 text-xl">
+                Aggiungi Giocatore
+            </button>
+        </form>
+
+        <aside class="club-card p-5 bg-white">
+            <h2 class="text-2xl font-black mb-4">Giocatori attivi</h2>
+
+            {
+                existingPlayers && existingPlayers.length > 0 ? (
+                    <ul class="divide-y-2 divide-black border-2 border-black">
+                        {existingPlayers.map((player) => (
+                            <li class="p-3 bg-white">
+                                <a href={`/player/${player.id}`} class="font-black hover:underline">
+                                    {player.name}
+                                </a>
+                                {(player.email || player.phone) && (
+                                    <p class="text-xs font-bold text-slate-500 mt-1">
+                                        {[player.email, player.phone].filter(Boolean).join(" - ")}
+                                    </p>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                ) : (
+                    <p class="font-bold text-slate-500">Nessun giocatore presente.</p>
+                )
+            }
+        </aside>
+    </div>
+
+    <script is:inline>
+        function setupBanner(id) {
+            const banner = document.getElementById(id);
+
+            if (!banner) return;
+
+            setTimeout(() => {
+                banner.style.transform = "translateX(150%)";
+                banner.style.opacity = "0";
+            }, 2200);
+
+            setTimeout(() => {
+                banner.remove();
+
+                const url = new URL(window.location);
+
+                url.searchParams.delete("created");
+
+                window.history.replaceState({}, "", url);
+            }, 5000);
+        }
+
+        setupBanner("success-banner");
+        setupBanner("error-banner");
+    </script>
+</Layout>
