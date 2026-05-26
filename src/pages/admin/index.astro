@@ -1,0 +1,58 @@
+---
+import "../../styles/global.css";
+import Layout from "../../layouts/Layout.astro";
+
+const adminPassword = Astro.cookies.get("admin_password");
+
+if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
+    return Astro.redirect("/login?redirect=/admin");
+}
+---
+
+<Layout title="Admin">
+    <section class="mb-8">
+        <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+            Area riservata
+        </p>
+
+        <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+            Admin
+        </h1>
+
+        <p class="mt-4 max-w-xl text-slate-700 font-medium">
+            Gestisci giocatori, classifiche e inserimento match.
+        </p>
+    </section>
+
+    <div class="grid gap-5 md:grid-cols-3">
+        <a href="/admin/players" class="club-card p-5 bg-[var(--giallo-club)] hover:bg-white transition">
+            <p class="text-xs uppercase tracking-widest font-black text-black opacity-60">
+                Anagrafica
+            </p>
+            <h2 class="text-3xl font-black mt-2">Giocatori</h2>
+            <p class="mt-3 font-bold text-slate-700">
+                Aggiungi nuovi iscritti e inizializza le classifiche.
+            </p>
+        </a>
+
+        <a href="/admin/padel" class="club-card p-5 bg-white hover:bg-[var(--giallo-club)] transition">
+            <p class="text-xs uppercase tracking-widest font-black text-slate-500">
+                Ranking
+            </p>
+            <h2 class="text-3xl font-black mt-2">Padel</h2>
+            <p class="mt-3 font-bold text-slate-700">
+                Inserisci match e aggiorna il punteggio ELO.
+            </p>
+        </a>
+
+        <a href="/admin/tennis" class="club-card p-5 bg-white hover:bg-[var(--giallo-club)] transition">
+            <p class="text-xs uppercase tracking-widest font-black text-slate-500">
+                Scala
+            </p>
+            <h2 class="text-3xl font-black mt-2">Tennis</h2>
+            <p class="mt-3 font-bold text-slate-700">
+                Registra sfide e aggiorna le posizioni.
+            </p>
+        </a>
+    </div>
+</Layout>
