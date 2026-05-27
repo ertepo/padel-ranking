@@ -12,18 +12,47 @@
   let loading = false;
   let hasMore = true;
   
-  const ITEMS_PER_PAGE = 20; // Quanti match caricare a ogni click
+  const ITEMS_PER_SPORT = 10;
+
+  function formatTennisMatch(match) {
+    return {
+      id: `tennis-${match.id}`,
+      created_at: match.created_at,
+      score: match.score,
+
+      tennisData: {
+        challenger: match.challenger,
+        defender: match.defender,
+        winner: match.winner,
+        challenger_old_position:
+          match.challenger_old_position,
+        challenger_new_position:
+          match.challenger_new_position,
+        defender_old_position:
+          match.defender_old_position,
+        defender_new_position:
+          match.defender_new_position,
+        challengerWon:
+          match.winner_id === match.challenger_id
+      }
+    };
+  }
 
   // Funzione per caricare altri match da Supabase lato client
   async function loadMoreMatches() {
     if (loading || !hasMore) return;
     loading = true;
 
-    const from = matches.length;
-    const to = from + ITEMS_PER_PAGE - 1;
+    const oldestMatch = [...matches].sort(
+      (a, b) =>
+        new Date(a.created_at).getTime() -
+        new Date(b.created_at).getTime()
+    )[0];
+
+    const oldestDate = oldestMatch?.created_at;
 
     try {
-      const { data, error } = await supabase
+      let padelQuery = supabase
         .from('matches')
         .select(`
           id,
@@ -45,15 +74,63 @@
           )
         `)
         .order('created_at', { ascending: false })
-        .range(from, to);
+        .range(0, ITEMS_PER_SPORT - 1);
 
-      if (error) throw error;
+      let tennisQuery = supabase
+        .from('tennis_matches')
+        .select(`
+          id,
+          created_at,
+          score,
+          challenger_id,
+          defender_id,
+          winner_id,
+          challenger_old_position,
+          challenger_new_position,
+          defender_old_position,
+          defender_new_position,
+          challenger:players!tennis_matches_challenger_id_fkey (
+            id,
+            name
+          ),
+          defender:players!tennis_matches_defender_id_fkey (
+            id,
+            name
+          ),
+          winner:players!tennis_matches_winner_id_fkey (
+            id,
+            name
+          )
+        `)
+        .order('created_at', { ascending: false })
+        .range(0, ITEMS_PER_SPORT - 1);
 
-      if (data && data.length > 0) {
-        matches = [...matches, ...data];
-        if (data.length < ITEMS_PER_PAGE) {
-          hasMore = false;
-        }
+      if (oldestDate) {
+        padelQuery = padelQuery.lt('created_at', oldestDate);
+        tennisQuery = tennisQuery.lt('created_at', oldestDate);
+      }
+
+      const [
+        padelResponse,
+        tennisResponse
+      ] = await Promise.all([
+        padelQuery,
+        tennisQuery
+      ]);
+
+      if (padelResponse.error) throw padelResponse.error;
+      if (tennisResponse.error) throw tennisResponse.error;
+
+      const nextMatches = [
+        ...(padelResponse.data || []),
+        ...(tennisResponse.data || []).map(formatTennisMatch)
+      ].sort((a, b) => (
+        new Date(b.created_at).getTime() -
+        new Date(a.created_at).getTime()
+      ));
+
+      if (nextMatches.length > 0) {
+        matches = [...matches, ...nextMatches];
       } else {
         hasMore = false;
       }
@@ -69,14 +146,14 @@
   ? matches.filter((match) => {
 
       // PADEL
-      if (match.sport === 'padel') {
+      if (Array.isArray(match.match_players)) {
         return match.match_players.some(
           (mp) => mp.player_id === selectedPlayer
         );
       }
 
       // TENNIS
-      if (match.sport === 'tennis') {
+      if (match.tennisData) {
         return (
           match.tennisData.challenger.id === selectedPlayer ||
           match.tennisData.defender.id === selectedPlayer

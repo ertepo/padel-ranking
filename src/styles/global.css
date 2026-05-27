@@ -1,5 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;700;800&display=swap');
 @import "tailwindcss";
+
+@font-face {
+  font-family: "Montserrat";
+  src: url("/fonts/Montserrat-Regular.ttf") format("truetype");
+  font-weight: 300 600;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Montserrat";
+  src: url("/fonts/Montserrat-Bold.ttf") format("truetype");
+  font-weight: 700 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Montserrat";
+  src: url("/fonts/Montserrat-Black.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
 
 :root {
   --giallo-club: #ffcc00;
@@ -65,16 +88,28 @@ body {
 .club-btn {
   background: white;
   border: 2px solid black;
-  box-shadow: -0.35em 0.35em black;
+  box-shadow:
+    -1px 1px 0 0 #000,
+    -2px 2px 0 0 #000,
+    -3px 3px 0 0 #000,
+    -4px 4px 0 0 #000,
+    -5px 5px 0 0 #000,
+    -6px 6px 0 0 #000;
   color: black;
   font-weight: 800;
-  transition: all 120ms ease;
+  transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, color 120ms ease;
 }
 
 .club-btn-violet {
   background: oklch(49.486% 0.18113 295.33);
   border: 2px solid black;
-  box-shadow: -0.35em 0.35em black;
+  box-shadow:
+    -1px 1px 0 0 #000,
+    -2px 2px 0 0 #000,
+    -3px 3px 0 0 #000,
+    -4px 4px 0 0 #000,
+    -5px 5px 0 0 #000,
+    -6px 6px 0 0 #000;
   color: rgb(255, 255, 255);
   font-weight: 800;
   transition: all 120ms ease;
@@ -83,7 +118,13 @@ body {
 .club-btn-blue {
   background: rgb(25, 47, 247);
   border: 2px solid black;
-  box-shadow: -0.35em 0.35em black;
+  box-shadow:
+    -1px 1px 0 0 #000,
+    -2px 2px 0 0 #000,
+    -3px 3px 0 0 #000,
+    -4px 4px 0 0 #000,
+    -5px 5px 0 0 #000,
+    -6px 6px 0 0 #000;
   color: white;
   font-weight: 800;
   transition: all 120ms ease;
@@ -91,7 +132,13 @@ body {
 .club-btn-pastelviolet {
   background: hsl(280, 50%, 85%);
   border: 2px solid black;
-  box-shadow: -0.35em 0.35em black;
+  box-shadow:
+    -1px 1px 0 0 #000,
+    -2px 2px 0 0 #000,
+    -3px 3px 0 0 #000,
+    -4px 4px 0 0 #000,
+    -5px 5px 0 0 #000,
+    -6px 6px 0 0 #000;
   color: white;
   font-weight: 800;
   transition: all 120ms ease;
@@ -99,7 +146,13 @@ body {
 .club-btn-pastelorange {
   background: hsl(25, 100%, 75%);
   border: 2px solid black;
-  box-shadow: -0.35em 0.35em black;
+  box-shadow:
+    -1px 1px 0 0 #000,
+    -2px 2px 0 0 #000,
+    -3px 3px 0 0 #000,
+    -4px 4px 0 0 #000,
+    -5px 5px 0 0 #000,
+    -6px 6px 0 0 #000;
   color: rgb(0, 0, 0);
   font-weight: 800;
   transition: all 120ms ease;
@@ -107,7 +160,13 @@ body {
 .club-btn-pastelgreen {
   background: hsl(150, 50%, 65%);
   border: 2px solid black;
-  box-shadow: -0.35em 0.35em black;
+  box-shadow:
+    -1px 1px 0 0 #000,
+    -2px 2px 0 0 #000,
+    -3px 3px 0 0 #000,
+    -4px 4px 0 0 #000,
+    -5px 5px 0 0 #000,
+    -6px 6px 0 0 #000;
   color: rgb(0, 0, 0);
   font-weight: 800;
   transition: all 120ms ease;
@@ -115,7 +174,13 @@ body {
 .club-btn-pastelyellow {
   background: hsl(50, 100%, 85%);
   border: 2px solid black;
-  box-shadow: -0.35em 0.35em black;
+  box-shadow:
+    -1px 1px 0 0 #000,
+    -2px 2px 0 0 #000,
+    -3px 3px 0 0 #000,
+    -4px 4px 0 0 #000,
+    -5px 5px 0 0 #000,
+    -6px 6px 0 0 #000;
   color: rgb(0, 0, 0);
   font-weight: 800;
   transition: all 120ms ease;
@@ -124,7 +189,13 @@ body {
 .club-btn-pastelblue {
   background: hsl(220, 60%, 65%);
   border: 2px solid black;
-  box-shadow: -0.35em 0.35em black;
+  box-shadow:
+    -1px 1px 0 0 #000,
+    -2px 2px 0 0 #000,
+    -3px 3px 0 0 #000,
+    -4px 4px 0 0 #000,
+    -5px 5px 0 0 #000,
+    -6px 6px 0 0 #000;
   color: rgb(0, 0, 0);
   font-weight: 800;
   transition: all 120ms ease;
@@ -157,8 +228,9 @@ body {
   bottom: 0.15rem; 
   left: 0;
   right: 0;
+  transform: skewY(-5deg);
   z-index: -1;
-  height: 0.6rem;
+  height: .6rem;
   width: 100%;
 }
 

@@ -102,7 +102,6 @@ const tennisMatchesFormatted =
       id: `tennis-${match.id}`,
       created_at: match.created_at,
       score: match.score,
-      sport: 'tennis',
 
       tennisData: {
         challenger: match.challenger,
@@ -126,10 +125,7 @@ const tennisMatchesFormatted =
 // =========================
 
 const combinedMatches = [
-  ...(padelResponse.data || []).map(match => ({
-    ...match,
-    sport: 'padel'
-  })),
+  ...(padelResponse.data || []),
 
   ...tennisMatchesFormatted
 ];
@@ -150,7 +146,10 @@ const players =
   playersResponse.data || [];
 ---
 
-<Layout title="Match">
+<Layout
+  title="Storico Match"
+  description="Consulta lo storico dei match di tennis e padel del circolo Tie-Break Poggio San Vicino, con risultati, giocatori e aggiornamenti delle classifiche."
+>
   <section class="mb-8">
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">
       Storico

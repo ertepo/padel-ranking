@@ -4,6 +4,8 @@ import netlify from '@astrojs/netlify';
 import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
+  site: 'https://tie-break.it',
+
   output: 'server',
 
   adapter: netlify(),

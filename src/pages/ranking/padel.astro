@@ -17,6 +17,7 @@ const { data: players, error } = await supabase
     )
   `,
     )
+    .eq("active", true)
     .order("current_elo", { ascending: false });
 
 const { data: lastMatches } = await supabase
@@ -40,7 +41,10 @@ for (const row of lastMatches || []) {
 }
 ---
 
-<Layout title="Classifica Padel">
+<Layout
+    title="Classifica Padel"
+    description="Classifica padel aggiornata del circolo Tie-Break Poggio San Vicino, con punteggi ELO, partite giocate, vittorie e win rate."
+>
     <section class="mb-8">
         <p class="text-sm uppercase tracking-widest font-black text-slate-600">
             Padel Ranking
@@ -63,13 +67,15 @@ for (const row of lastMatches || []) {
         <div
             class="bg-[var(--giallo-club)] border-b-2 border-black p-4 flex justify-between items-center"
         >
-            <h2 class="text-xl font-black uppercase">CLassifica a punti</h2>
+            <h2 class="text-xl font-black uppercase">Classifica a punti</h2>
 
-            <span
-                class="bg-black text-white px-3 py-1 text-xs font-black uppercase"
+            <button
+                id="toggle-zero-matches"
+                type="button"
+                class="club-btn px-3 py-1 text-xs uppercase"
             >
-                ELO
-            </span>
+                Nascondi inattivi
+            </button>
         </div>
         <div
             class="hidden md:grid grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 px-4 py-2 bg-slate-100 border-b-2 border-black font-black text-xs uppercase text-slate-600"
@@ -94,6 +100,8 @@ for (const row of lastMatches || []) {
                     return (
                         <a
                             href={`/player/${player.player_id}`}
+                            data-ranking-row
+                            data-matches-played={player.matches_played}
                             class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--giallo-club)] transition"
                         >
                             <div class="text-3xl font-black text-black">
@@ -145,4 +153,23 @@ for (const row of lastMatches || []) {
             }
         </div>
     </div>
+
+    <script is:inline>
+        const toggleZeroMatchesButton = document.getElementById("toggle-zero-matches");
+        const rankingRows = Array.from(document.querySelectorAll("[data-ranking-row]"));
+        let hideZeroMatches = false;
+
+        toggleZeroMatchesButton?.addEventListener("click", () => {
+            hideZeroMatches = !hideZeroMatches;
+
+            rankingRows.forEach((row) => {
+                const matchesPlayed = Number(row.dataset.matchesPlayed || 0);
+                row.hidden = hideZeroMatches && matchesPlayed === 0;
+            });
+
+            toggleZeroMatchesButton.textContent = hideZeroMatches
+                ? "Mostra tutti"
+                : "Nascondi inattivi";
+        });
+    </script>
 </Layout>

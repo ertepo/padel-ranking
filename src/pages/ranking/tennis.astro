@@ -12,10 +12,14 @@ const { data: players, error } = await supabase
       name
     )
   `)
+  .eq('active', true)
   .order('position', { ascending: true });
 ---
 
-<Layout title="Classifica Tennis">
+<Layout
+  title="Classifica Tennis"
+  description="Classifica tennis a scala del circolo Tie-Break Poggio San Vicino, con posizioni, partite giocate, vittorie, sconfitte e win rate."
+>
   <section class="mb-8">
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">
       Tennis Ranking
@@ -38,9 +42,13 @@ const { data: players, error } = await supabase
         Classifica a Scala
       </h2>
 
-      <span class="bg-black text-white px-3 py-1 text-xs font-black uppercase">
-        SFIDA
-      </span>
+      <button
+        id="toggle-zero-matches"
+        type="button"
+        class="club-btn px-3 py-1 text-xs uppercase"
+      >
+        Nascondi Inattivi
+      </button>
     </div>
 
     {/* Header desktop */}
@@ -71,6 +79,8 @@ const { data: players, error } = await supabase
         return (
           <a
             href={`/player/${player.player_id}`}
+            data-ranking-row
+            data-matches-played={player.matches_played}
             class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--giallo-club)] transition"
           >
 
@@ -137,4 +147,23 @@ const { data: players, error } = await supabase
       })}
     </div>
   </div>
+
+  <script is:inline>
+    const toggleZeroMatchesButton = document.getElementById("toggle-zero-matches");
+    const rankingRows = Array.from(document.querySelectorAll("[data-ranking-row]"));
+    let hideZeroMatches = false;
+
+    toggleZeroMatchesButton?.addEventListener("click", () => {
+      hideZeroMatches = !hideZeroMatches;
+
+      rankingRows.forEach((row) => {
+        const matchesPlayed = Number(row.dataset.matchesPlayed || 0);
+        row.hidden = hideZeroMatches && matchesPlayed === 0;
+      });
+
+      toggleZeroMatchesButton.textContent = hideZeroMatches
+        ? "Mostra tutti"
+        : "Nascondi Inattivi";
+    });
+  </script>
 </Layout>

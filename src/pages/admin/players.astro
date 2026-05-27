@@ -86,6 +86,7 @@ if (Astro.request.method === "POST") {
                 matches_played: 0,
                 wins: 0,
                 losses: 0,
+                active: true,
             });
 
         if (padelError) {
@@ -101,6 +102,7 @@ if (Astro.request.method === "POST") {
                 matches_played: 0,
                 wins: 0,
                 losses: 0,
+                active: true,
             });
 
         if (tennisError) {
@@ -121,7 +123,7 @@ if (Astro.request.method === "POST") {
 }
 ---
 
-<Layout title="Admin Giocatori">
+<Layout title="Admin Giocatori" noindex={true}>
     <section class="mb-8">
         <p class="text-sm uppercase tracking-widest font-black text-slate-600">
             Area riservata

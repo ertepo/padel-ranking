@@ -1,8 +1,8 @@
 <script>
   export let match;
 
-  const isPadel = match.sport === 'padel';
-  const isTennis = match.sport === 'tennis';
+  const isPadel = Array.isArray(match.match_players);
+  const isTennis = Boolean(match.tennisData);
 
   // =========================
   // PADEL

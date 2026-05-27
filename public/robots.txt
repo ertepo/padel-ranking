@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /login
+
+Sitemap: https://tie-break.it/sitemap-index.xml
