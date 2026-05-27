@@ -48,7 +48,7 @@ const { data: players, error } = await supabase
         type="button"
         class="club-btn px-3 py-1 text-xs uppercase"
       >
-        Nascondi Inattivi
+        Mostra inattivi
       </button>
     </div>
 
@@ -152,19 +152,24 @@ const { data: players, error } = await supabase
   <script is:inline>
     const toggleZeroMatchesButton = document.getElementById("toggle-zero-matches");
     const rankingRows = Array.from(document.querySelectorAll("[data-ranking-row]"));
-    let hideZeroMatches = false;
+    let hideZeroMatches = true;
 
-    toggleZeroMatchesButton?.addEventListener("click", () => {
-      hideZeroMatches = !hideZeroMatches;
-
+    function updateZeroMatchesVisibility() {
       rankingRows.forEach((row) => {
         const matchesPlayed = Number(row.dataset.matchesPlayed || 0);
         row.hidden = hideZeroMatches && matchesPlayed === 0;
       });
 
       toggleZeroMatchesButton.textContent = hideZeroMatches
-        ? "Mostra tutti"
-        : "Nascondi Inattivi";
+        ? "Mostra inattivi"
+        : "Nascondi inattivi";
+    }
+
+    updateZeroMatchesVisibility();
+
+    toggleZeroMatchesButton?.addEventListener("click", () => {
+      hideZeroMatches = !hideZeroMatches;
+      updateZeroMatchesVisibility();
     });
   </script>
 </Layout>

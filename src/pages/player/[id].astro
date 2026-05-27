@@ -23,50 +23,76 @@ if (playerError || !playerData) {
    PADEL RANKING
 ========================================================= */
 
-const { data: padelData } = await supabase
-  .from('padel_rankings')
-  .select('*')
-  .eq('player_id', id)
-  .single();
+const [
+  padelResponse,
+  tennisResponse,
+  padelMatchesResponse,
+  tennisMatchesResponse
+] = await Promise.all([
+  supabase
+    .from('padel_rankings')
+    .select('player_id,current_elo,matches_played,wins,losses,active')
+    .eq('player_id', id)
+    .maybeSingle(),
 
-/* =========================================================
-   TENNIS RANKING
-========================================================= */
+  supabase
+    .from('tennis_rankings')
+    .select('player_id,position,previous_position,matches_played,wins,losses,active')
+    .eq('player_id', id)
+    .maybeSingle(),
 
-const { data: tennisData } = await supabase
-  .from('tennis_rankings')
-  .select('*')
-  .eq('player_id', id)
-  .single();
+  supabase
+    .from('match_players')
+    .select(`
+      result,
+      delta,
+      team,
+      matches (
+        id,
+        played_at,
+        created_at,
+        score,
+        winner_team,
+        match_players (
+          team,
+          player_id,
+          players (
+            name
+          )
+        )
+      )
+    `)
+    .eq('player_id', id)
+    .order('created_at', { referencedTable: 'matches', ascending: false }),
 
-/* =========================================================
-   MATCHES PADEL
-========================================================= */
-
-const { data: matchesData } = await supabase
-  .from('match_players')
-  .select(`
-    result,
-    delta,
-    team,
-    matches (
+  supabase
+    .from('tennis_matches')
+    .select(`
       id,
       played_at,
       created_at,
       score,
-      winner_team,
-      match_players (
-        team,
-        player_id,
-        players (
-          name
-        )
+      challenger:challenger_id (
+        id,
+        name
+      ),
+      defender:defender_id (
+        id,
+        name
+      ),
+      winner:winner_id (
+        id,
+        name
       )
-    )
-  `)
-  .eq('player_id', id)
-  .order('created_at', { referencedTable: 'matches', ascending: false });
-const padelMatches = matchesData || [];
+    `)
+    .or(`challenger_id.eq.${id},defender_id.eq.${id}`)
+    .order('played_at', { ascending: false })
+]);
+
+const padelData = padelResponse.data;
+const tennisData = tennisResponse.data;
+
+const padelMatches = padelMatchesResponse.data || [];
 
 padelMatches.sort((a, b) => {
   const dateA = new Date(a.matches?.created_at || 0).getTime();
@@ -74,31 +100,7 @@ padelMatches.sort((a, b) => {
   return dateB - dateA;
 });
 
-/* =========================================================
-   MATCHES TENNIS
-========================================================= */
-
-const { data: tennisMatchesData } = await supabase
-  .from('tennis_matches')
-  .select(`
-    *,
-    challenger:challenger_id (
-      id,
-      name
-    ),
-    defender:defender_id (
-      id,
-      name
-    ),
-    winner:winner_id (
-      id,
-      name
-    )
-  `)
-  .or(`challenger_id.eq.${id},defender_id.eq.${id}`)
-  .order('played_at', { ascending: false });
-
-const tennisMatches = tennisMatchesData || [];
+const tennisMatches = tennisMatchesResponse.data || [];
 
 /* =========================================================
    STATS PADEL
@@ -115,28 +117,26 @@ const padelWinPercentage =
     : 0;
 
 /* =========================================================
-   AVVERSARI UNICI PADEL
+   COMPAGNI UNICI PADEL
 ========================================================= */
 
-const matchIds = padelMatches
-  .map(m => m.matches?.id)
-  .filter(Boolean);
+const uniquePadelPartners = new Set();
 
-let uniqueOpponentsCount = 0;
+for (const item of padelMatches) {
+  const allParticipants =
+    item.matches?.match_players || [];
 
-if (matchIds.length > 0) {
-  const { data: allPlayersInMatches } = await supabase
-    .from('match_players')
-    .select('player_id')
-    .in('match_id', matchIds)
-    .not('player_id', 'eq', id);
-
-  const opponentIds =
-    allPlayersInMatches?.map(p => p.player_id) || [];
-
-  uniqueOpponentsCount =
-    new Set(opponentIds).size;
+  allParticipants
+    .filter(p =>
+      p.team === item.team &&
+      p.player_id &&
+      p.player_id !== id
+    )
+    .forEach(p => uniquePadelPartners.add(p.player_id));
 }
+
+const uniquePartnersCount =
+  uniquePadelPartners.size;
 
 /* =========================================================
    STATS TENNIS
@@ -209,7 +209,7 @@ const strokeDashoffsetTotal =
 
 const strokeDashoffsetUnique =
   circumference -
-  (Math.min(uniqueOpponentsCount, uniquePlayersGoal) /
+  (Math.min(uniquePartnersCount, uniquePlayersGoal) /
     uniquePlayersGoal) *
     circumference;
 
@@ -233,7 +233,7 @@ const tennisOpponentsOffset =
   description={`Statistiche, ranking e cronologia match di ${playerData.name} nel circolo Tie-Break Poggio San Vicino.`}
 >
 
-  <main class="max-w-5xl mx-auto px-4 py-8">
+  <div class="max-w-5xl mx-auto px-4 py-8">
 
     <!-- ===================================================== -->
     <!-- HEADER -->
@@ -474,7 +474,7 @@ const tennisOpponentsOffset =
               </svg>
 
               <div class="absolute inset-0 flex flex-col items-center justify-center font-black text-black">
-                <span class="text-xl">{uniqueOpponentsCount}</span>
+                <span class="text-xl">{uniquePartnersCount}</span>
                 <span class="opacity-50">/ {uniquePlayersGoal}</span>
               </div>
 
@@ -482,11 +482,11 @@ const tennisOpponentsOffset =
 
             <div>
               <h3 class="text-lg font-black text-black">
-                Avversari Diversi
+                Compagni Diversi
               </h3>
 
               <p class="text-xs text-slate-600 font-bold">
-                Minimo {uniquePlayersGoal} avversari.
+                Minimo {uniquePlayersGoal} compagni.
               </p>
             </div>
           </div>
@@ -654,7 +654,11 @@ const tennisOpponentsOffset =
                     </p>
 
                     <p class="font-black text-black">
-                      con <a href={`/player/${partnerObj.player_id}`} class="hover:underline">{partnerName}</a>
+                      con {partnerObj ? (
+                        <a href={`/player/${partnerObj.player_id}`} class="hover:underline">{partnerName}</a>
+                      ) : (
+                        <span>{partnerName}</span>
+                      )}
                     </p>
 
                     <p class="text-sm font-bold text-slate-600">
@@ -768,6 +772,6 @@ const tennisOpponentsOffset =
 
     </section>
 
-  </main>
+  </div>
 
 </Layout>
