@@ -6,6 +6,7 @@ import Footer from '../components/Footer.astro';
 const {
   title = 'Tie-Break Poggio San Vicino',
   description = 'Circolo tennis e padel a Poggio San Vicino: classifiche, tornei, match e attività sportive per la comunità.',
+  image = '/images/og/og-image.png',
   noindex = false,
 } = Astro.props;
 
@@ -14,7 +15,7 @@ const fullTitle = title.includes('Tie-Break')
   ? title
   : `${title} | ${siteName}`;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
-const ogImageUrl = new URL('/og-image.png', Astro.site).toString();
+const ogImageUrl = new URL(image, Astro.site).toString();
 ---
 
 <html lang="it">
