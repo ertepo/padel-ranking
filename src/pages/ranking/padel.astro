@@ -75,7 +75,7 @@ for (const row of lastMatches || []) {
                 type="button"
                 class="club-btn px-3 py-1 text-xs uppercase"
             >
-                Mostra inattivi
+                Nascondi inattivi
             </button>
         </div>
         <div
@@ -158,7 +158,7 @@ for (const row of lastMatches || []) {
     <script is:inline>
         const toggleZeroMatchesButton = document.getElementById("toggle-zero-matches");
         const rankingRows = Array.from(document.querySelectorAll("[data-ranking-row]"));
-        let hideZeroMatches = true;
+        let hideZeroMatches = false;
 
         function updateZeroMatchesVisibility() {
             rankingRows.forEach((row) => {
@@ -170,8 +170,6 @@ for (const row of lastMatches || []) {
                 ? "Mostra inattivi"
                 : "Nascondi inattivi";
         }
-
-        updateZeroMatchesVisibility();
 
         toggleZeroMatchesButton?.addEventListener("click", () => {
             hideZeroMatches = !hideZeroMatches;
