@@ -1,0 +1,147 @@
+---
+import Layout from '../layouts/Layout.astro';
+
+const { tournament } = Astro.props;
+---
+
+<Layout
+  title={tournament.name}
+  description={`${tournament.name}: squadre iscritte, gironi e risultati del torneo di padel Tie-Break Poggio San Vicino.`}
+  image={tournament.image}
+>
+  <section class="mb-10">
+    <a href="/" class="club-btn inline-block px-4 py-2 mb-6">
+      Torna alla home
+    </a>
+
+    <div class="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] lg:items-end">
+      <div>
+        <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-4">
+          Grande Slam estivo di padel
+        </p>
+
+        <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+          {tournament.name}
+        </h1>
+
+        <p class="mt-5 text-2xl font-black text-[var(--blu-bilanciato)]">
+          {tournament.date}
+        </p>
+
+        {tournament.description && (
+          <p class="mt-5 max-w-2xl text-lg font-semibold leading-relaxed text-slate-700">
+            {tournament.description}
+          </p>
+        )}
+      </div>
+
+      <div class="club-card bg-white p-5">
+        <img
+          src={tournament.image}
+          alt={tournament.name}
+          class="aspect-[16/9] w-full border-2 border-black bg-white object-contain p-3"
+        />
+      </div>
+    </div>
+  </section>
+
+  <section class="mb-10">
+    <div class="mb-5">
+      <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
+        Iscrizioni
+      </p>
+
+      <h2 class="text-4xl md:text-5xl font-black leading-none text-black">
+        Squadre iscritte
+      </h2>
+    </div>
+
+    <div class="grid gap-5 md:grid-cols-2">
+      {tournament.registrationDays.map((day) => (
+        <article class="club-card p-5 bg-white">
+          <h3 class="text-3xl font-black leading-none text-black">
+            {day.name}
+          </h3>
+
+          <ul class="mt-5 divide-y-2 divide-black border-2 border-black bg-white">
+            {day.teams.map((team) => (
+              <li class="grid grid-cols-2 gap-3 p-3 font-black text-lg">
+                <span>{team[0]}</span>
+                <span>{team[1]}</span>
+              </li>
+            ))}
+          </ul>
+        </article>
+      ))}
+    </div>
+  </section>
+
+  <section>
+    <div class="mb-5">
+      <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
+        Tabellone
+      </p>
+
+      <h2 class="text-4xl md:text-5xl font-black leading-none text-black">
+        Gironi e risultati
+      </h2>
+    </div>
+
+    <div class="grid gap-5 md:grid-cols-2">
+      {tournament.groups.map((group) => (
+        <article class="club-card p-5 !bg-gradient-to-br !from-blue-500 !to-red-500">
+          <div class="flex items-center justify-between gap-4 border-b-2 border-black pb-4">
+            <h3 class="text-3xl font-black leading-none text-black">
+              {group.name}
+            </h3>
+
+            <span class="bg-[var(--giallo-club)] border-2 border-black px-3 py-1 text-xs font-black uppercase">
+              {group.date}
+            </span>
+          </div>
+
+          <div class="mt-5">
+            <p class="text-xs uppercase tracking-widest font-black text-white mb-3">
+              Squadre
+            </p>
+
+            <ul class="divide-y-2 divide-black border-2 border-black bg-white">
+              {group.teams.map((team) => (
+                <li class="grid grid-cols-2 gap-3 p-3 font-black">
+                  <span>{team[0]}</span>
+                  <span>{team[1]}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div class="mt-6">
+            <p class="text-xs uppercase tracking-widest font-black text-white mb-3">
+              Risultati
+            </p>
+
+            <ul class="space-y-3">
+              {group.matches.map((match) => (
+                <li class="border-2 border-black bg-slate-50 p-3">
+                  <div class="grid gap-2 md:grid-cols-[1fr_auto_1fr] md:items-center">
+                    <p class={`font-black border-2 border-transparent p-2 ${match.winner === 'A' ? 'border-black bg-[var(--giallo-club)]' : ''}`}>
+                      {match.teamA}
+                    </p>
+
+                    <p class="bg-black text-white px-3 py-1 text-center text-sm font-black uppercase">
+                      {match.score || 'da giocare'}
+                    </p>
+
+                    <p class={`font-black border-2 border-transparent p-2 md:text-right ${match.winner === 'B' ? 'border-black bg-[var(--giallo-club)]' : ''}`}>
+                      {match.teamB}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </article>
+      ))}
+    </div>
+  </section>
+</Layout>

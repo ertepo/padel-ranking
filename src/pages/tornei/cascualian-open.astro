@@ -1,0 +1,111 @@
+---
+import TournamentPage from '../../components/TournamentPage.astro';
+
+const tournament = {
+  name: 'Cascualian Open',
+  date: '29 maggio - 2 giugno',
+  image: '/images/tournaments/cascualian_open.svg',
+  description:
+    'Primo appuntamento del Grande Slam estivo di padel Tie-Break. Squadre, gironi e risultati aggiornati a mano.',
+  registrationDays: [
+    {
+      name: 'Domenica',
+      teams: [
+        ['SARGENTI', 'BELTRANI'],
+        ['MORESCHINI', 'CIRILLO'],
+        ['DURANTI', 'CHIARABERTA'],
+        ['SCALONI', 'ONCINI'],
+      ],
+    },
+    {
+      name: 'Lunedì',
+      teams: [
+        ['ANTONELLI', 'MATTIOLI'],
+        ['NOCELLI', 'MARCHEGIANI'],
+        ['GIOVAGNONI', 'VIRGILI'],
+      ],
+    },
+  ],
+  groups: [
+    {
+      name: 'Girone A',
+      date: 'Domenica 31 maggio',
+      teams: [
+        ['SARGENTI', 'BELTRANI'],
+        ['MORESCHINI', 'CIRILLO'],
+        ['DURANTI', 'CHIARABERTA'],
+        ['SCALONI', 'ONCINI'],
+      ],
+      matches: [
+        {
+          teamA: 'SARGENTI / BELTRANI',
+          teamB: 'MORESCHINI / CIRILLO',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: 'SARGENTI / BELTRANI',
+          teamB: 'DURANTI / CHIARABERTA',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: 'SARGENTI / BELTRANI',
+          teamB: 'SCALONI / ONCINI',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: 'MORESCHINI / CIRILLO',
+          teamB: 'DURANTI / CHIARABERTA',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: 'MORESCHINI / CIRILLO',
+          teamB: 'SCALONI / ONCINI',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: 'DURANTI / CHIARABERTA',
+          teamB: 'SCALONI / ONCINI',
+          score: '',
+          winner: '',
+        },
+      ],
+    },
+    {
+      name: 'Girone B',
+      date: 'Lunedì 01 giugno',
+      teams: [
+        ['ANTONELLI', 'MATTIOLI'],
+        ['NOCELLI', 'MARCHEGIANI'],
+        ['GIOVAGNONI', 'VIRGILI'],
+      ],
+      matches: [
+        {
+          teamA: 'ANTONELLI / MATTIOLI',
+          teamB: 'NOCELLI / MARCHEGIANI',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: 'NOCELLI / MARCHEGIANI',
+          teamB: 'GIOVAGNONI / VIRGILI',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: 'GIOVAGNONI / VIRGILI',
+          teamB: 'ANTONELLI / MATTIOLI',
+          score: '',
+          winner: '',
+        },
+      ],
+    },
+  ],
+};
+---
+
+<TournamentPage tournament={tournament} />
