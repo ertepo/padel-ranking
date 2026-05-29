@@ -2,7 +2,22 @@
   export let theme = 'neutral';
 
   let isOpen = false;
+  let isRankingOpen = false;
+  let desktopRankingContainer;
+
+  function closeDesktopRankingOnOutsideClick(event) {
+    const isDesktop = window.innerWidth >= 768;
+    const clickedOutside =
+      desktopRankingContainer &&
+      !desktopRankingContainer.contains(event.target);
+
+    if (isDesktop && clickedOutside) {
+      isRankingOpen = false;
+    }
+  }
 </script>
+
+<svelte:window on:click={closeDesktopRankingOnOutsideClick} />
 
 <header
   class="sticky top-0 z-50 border-b-2 border-black"
@@ -11,6 +26,7 @@
   <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
    <a href="/" aria-label="Torna alla Home">
      <svg 
+     fill="white"
       viewBox="0 0 3227 455" 
       class="h-8  max-w-[200px] sm:max-w-[300px] md:h-10 md:max-w-none"
       version="1.1" 
@@ -50,20 +66,63 @@
         Home
       </a>
 
-      <a href="/ranking/tennis" class="club-btn px-4 py-2">
-        Tennis Ranking
-      </a>
+      <div class="relative" bind:this={desktopRankingContainer}>
+        <button
+          type="button"
+          class="club-btn flex items-center gap-2 px-4 py-2"
+          aria-expanded={isRankingOpen}
+          aria-controls="desktop-ranking-menu"
+          on:click={() => (isRankingOpen = !isRankingOpen)}
+        >
+          Campionati
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            class={`transition-transform ${isRankingOpen ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          >
+            <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
+          </svg>
+        </button>
 
-      <a href="/ranking/padel" class="club-btn px-4 py-2">
-        Padel Ranking
-      </a>
+        {#if isRankingOpen}
+          <div
+            id="desktop-ranking-menu"
+            class="absolute right-0 top-full mt-3 flex min-w-56 flex-col gap-3 border-2 border-black bg-white p-5 pl-6 club-card ombra"
+          >
+            <a
+              href="/ranking/tennis"
+              class="club-btn-violet px-4 py-2"
+              on:click={() => (isRankingOpen = false)}
+            >
+              Tennis Ranking
+            </a>
 
-      <a href="/matches" class="club-btn px-4 py-2">
+            <a
+              href="/ranking/padel"
+              class="club-btn-blue
+              
+              
+              
+               px-4 py-2"
+              on:click={() => (isRankingOpen = false)}
+            >
+              Padel Ranking
+            </a>
+      <a href="/matches" class="club-btn-yellow px-4 py-2 !text-black">
         Matches
       </a>
+          </div>
+        {/if}
+      </div>
+
+      
       <a
         href="https://openresa.com/tiebreak"
-        class="club-btn-pastelblue  px-4 py-2"
+        class="club-btn-pastelgreen  px-4 py-2"
       >
         Prenota!
       </a>
@@ -121,32 +180,62 @@
         Home
       </a>
 
-      <a
-        href="/ranking/tennis"
-        class="club-btn p-4 text-center"
-        on:click={() => (isOpen = false)}
+      <button
+        type="button"
+        class="club-btn flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap p-4 text-center"
+        aria-expanded={isRankingOpen}
+        aria-controls="mobile-ranking-menu"
+        on:click={() => (isRankingOpen = !isRankingOpen)}
       >
-        Tennis Ranking
-      </a>
+        Campionati<svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class={`shrink-0 transition-transform ${isRankingOpen ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        >
+          <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
+        </svg>
+      </button>
 
-      <a
-        href="/ranking/padel"
-        class="club-btn p-4 text-center"
-        on:click={() => (isOpen = false)}
-      >
-        Padel Ranking
-      </a>
+      {#if isRankingOpen}
+        <div id="mobile-ranking-menu" class="flex flex-col gap-3 pl-4">
+          <a
+            href="/ranking/tennis"
+            class="club-btn p-4 text-center"
+            on:click={() => {
+              isRankingOpen = false;
+              isOpen = false;
+            }}
+          >
+            Tennis Ranking
+          </a>
 
-      <a
+          <a
+            href="/ranking/padel"
+            class="club-btn p-4 text-center"
+            on:click={() => {
+              isRankingOpen = false;
+              isOpen = false;
+            }}
+          >
+            Padel Ranking
+          </a>
+          <a
         href="/matches"
         class="club-btn p-4 text-center"
         on:click={() => (isOpen = false)}
       >
         Match
       </a>
+        </div>
+      {/if}
+
       <a
         href="https://openresa.com/tiebreak"
-        class="club-btn-pastelblue p-4 text-center"
+        class="club-btn-pastelgreen p-4 text-center"
         on:click={() => (isOpen = false)}
       >
         Prenota!

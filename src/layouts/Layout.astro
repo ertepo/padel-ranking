@@ -19,15 +19,15 @@ const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
 const ogImageUrl = new URL(image, Astro.site).toString();
 const themeColors = {
   neutral: {
-    accent: 'var(--giallo-club)',
+    accent: 'linear-gradient(164deg, #6d42bb 0%, #6d42bb 50%, #2563eb 50%, #2563eb 100%)',
     contrast: '#000',
   },
   padel: {
-    accent: 'var(--blu-padel)',
+    accent: 'linear-gradient(164deg, var(--blu-padel) 0%, var(--blu-padel) 49%, #ffffff 49%, #ffffff 52%, var(--rosso-padel) 52%, var(--rosso-padel) 100%)',
     contrast: '#fff',
   },
   tennis: {
-    accent: 'var(--viola-tennis)',
+    accent: 'linear-gradient(164deg, var(--viola-tennis) 0%, var(--viola-tennis) 49%, #ffffff 49%, #ffffff 52%, var(--verde-tennis) 52%, var(--verde-tennis) 100%)',
     contrast: '#fff',
   },
 };

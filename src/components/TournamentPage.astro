@@ -2,6 +2,7 @@
 import Layout from '../layouts/Layout.astro';
 
 const { tournament } = Astro.props;
+const registeredTeams = tournament.registrationDays.flatMap((day) => day.teams);
 ---
 
 <Layout
@@ -36,11 +37,11 @@ const { tournament } = Astro.props;
         )}
       </div>
 
-      <div class="club-card bg-white p-5">
+      <div class="stamp">
         <img
           src={tournament.image}
           alt={tournament.name}
-          class="aspect-[16/9] w-full border-2 border-black bg-white object-contain p-3"
+          class="aspect-[16/9] w-full bg-white object-contain p-5"
         />
       </div>
     </div>
@@ -57,24 +58,16 @@ const { tournament } = Astro.props;
       </h2>
     </div>
 
-    <div class="grid gap-5 md:grid-cols-2">
-      {tournament.registrationDays.map((day) => (
-        <article class="club-card p-5 bg-white">
-          <h3 class="text-3xl font-black leading-none text-black">
-            {day.name}
-          </h3>
-
-          <ul class="mt-5 divide-y-2 divide-black border-2 border-black bg-white">
-            {day.teams.map((team) => (
-              <li class="grid grid-cols-2 gap-3 p-3 font-black text-lg">
-                <span>{team[0]}</span>
-                <span>{team[1]}</span>
-              </li>
-            ))}
-          </ul>
-        </article>
-      ))}
-    </div>
+    <article class="club-card p-5 bg-white">
+      <ul class="grid gap-3 md:grid-cols-2">
+        {registeredTeams.map((team) => (
+          <li class="grid grid-cols-2 gap-3 border-2 border-black bg-white p-3 font-black text-lg">
+            <span>{team[0]}</span>
+            <span>{team[1]}</span>
+          </li>
+        ))}
+      </ul>
+    </article>
   </section>
 
   <section>

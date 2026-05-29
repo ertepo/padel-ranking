@@ -28,7 +28,9 @@
   --giallo-club: #ffcc00;
   --blu-bilanciato: #0076ca;
   --blu-padel: #005ad8;
-  --viola-tennis: oklch(49.486% 0.18113 295.33);
+  --viola-tennis: #6d42bb;
+  --verde-tennis: #318a5d;
+  --rosso-padel: #dc2828;
   --text-color: rgb(30, 30, 30);
 }
 
@@ -73,6 +75,27 @@ body {
   box-shadow: -0.5em 0.5em black;
 }
 
+.stamp {
+    --stamp-hole: 0.30rem;
+    --stamp-step: 1rem;
+
+    padding: 0.65rem;
+    background: #fff;
+    filter: drop-shadow(0 0 0 #000);
+    -webkit-mask:
+      radial-gradient(circle at 0 50%, transparent var(--stamp-hole), #000 calc(var(--stamp-hole) + 1px)) left / 100% var(--stamp-step) repeat-y,
+      radial-gradient(circle at 100% 50%, transparent var(--stamp-hole), #000 calc(var(--stamp-hole) + 1px)) right / 100% var(--stamp-step) repeat-y,
+      radial-gradient(circle at 50% 0, transparent var(--stamp-hole), #000 calc(var(--stamp-hole) + 1px)) top / var(--stamp-step) 100% repeat-x,
+      radial-gradient(circle at 50% 100%, transparent var(--stamp-hole), #000 calc(var(--stamp-hole) + 1px)) bottom / var(--stamp-step) 100% repeat-x;
+    -webkit-mask-composite: source-in, source-in, source-in;
+    mask:
+      radial-gradient(circle at 0 50%, transparent var(--stamp-hole), #000 calc(var(--stamp-hole) + 1px)) left / 100% var(--stamp-step) repeat-y,
+      radial-gradient(circle at 100% 50%, transparent var(--stamp-hole), #000 calc(var(--stamp-hole) + 1px)) right / 100% var(--stamp-step) repeat-y,
+      radial-gradient(circle at 50% 0, transparent var(--stamp-hole), #000 calc(var(--stamp-hole) + 1px)) top / var(--stamp-step) 100% repeat-x,
+      radial-gradient(circle at 50% 100%, transparent var(--stamp-hole), #000 calc(var(--stamp-hole) + 1px)) bottom / var(--stamp-step) 100% repeat-x;
+    mask-composite: intersect;
+  }
+
 .club-btn {
   background: white;
   border: 2px solid black;
@@ -102,9 +125,23 @@ body {
   font-weight: 800;
   transition: all 120ms ease;
 }
+.club-btn-yellow {
+  background: var(--giallo-club);
+  border: 2px solid black;
+  box-shadow:
+    -1px 1px 0 0 #000,
+    -2px 2px 0 0 #000,
+    -3px 3px 0 0 #000,
+    -4px 4px 0 0 #000,
+    -5px 5px 0 0 #000,
+    -6px 6px 0 0 #000;
+  color: rgb(255, 255, 255);
+  font-weight: 800;
+  transition: all 120ms ease;
+}
 
 .club-btn-blue {
-  background: rgb(25, 47, 247);
+  background: var(--blu-padel);
   border: 2px solid black;
   box-shadow:
     -1px 1px 0 0 #000,

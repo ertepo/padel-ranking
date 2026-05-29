@@ -39,7 +39,7 @@ const { data: players, error } = await supabase
   )}
 
   <div class="club-card overflow-hidden">
-    <div class="bg-[var(--theme-accent)] text-[var(--theme-accent-contrast)] border-b-2 border-black p-4 flex justify-between items-center">
+    <div class="bg-[var(--giallo-club)] border-b-2 border-black p-4 flex justify-between items-center">
       <h2 class="text-xl font-black uppercase">
         Classifica a Scala
       </h2>
@@ -83,7 +83,7 @@ const { data: players, error } = await supabase
             href={`/player/${player.player_id}`}
             data-ranking-row
             data-matches-played={player.matches_played}
-            class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--theme-accent)] transition"
+            class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--giallo-club)] transition"
           >
 
             {/* Posizione */}
