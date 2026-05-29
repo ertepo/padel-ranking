@@ -1,0 +1,227 @@
+---
+const { rounds = [] } = Astro.props;
+const firstRoundMatchCount = Math.max(rounds[0]?.matches?.length || 0, 1);
+
+const getMatchTop = (roundIndex, matchIndex) => {
+  const spread = 2 ** roundIndex;
+  return spread * matchIndex + (spread - 1) / 2;
+};
+
+const preparedRounds = rounds.map((round, roundIndex) => {
+  const isLastRound = roundIndex === rounds.length - 1;
+  const longestLabel = round.matches.reduce((longest, match) => {
+    const teamA = match.teamA || 'Da definire';
+    const teamB = match.teamB || 'Da definire';
+
+    return Math.max(longest, teamA.length, teamB.length);
+  }, round.name.length);
+  const roundWidth = Math.min(Math.max(18, longestLabel * 0.7 + 5), 34);
+
+  const matches = round.matches.map((match, matchIndex) => ({
+    ...match,
+    top: getMatchTop(roundIndex, matchIndex),
+    hasInput: roundIndex > 0,
+  }));
+
+  const connectors = isLastRound
+    ? []
+    : rounds[roundIndex + 1].matches.map((_, nextMatchIndex) => {
+        const firstSourceTop = getMatchTop(roundIndex, nextMatchIndex * 2);
+        const secondSourceTop = getMatchTop(roundIndex, nextMatchIndex * 2 + 1);
+
+        return {
+          top: firstSourceTop,
+          height: secondSourceTop - firstSourceTop,
+        };
+      });
+
+  return {
+    ...round,
+    matches,
+    connectors,
+    isLastRound,
+    roundWidth,
+  };
+});
+---
+
+<section class="mt-12">
+  <div class="mb-5">
+    <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
+      Eliminazione diretta
+    </p>
+
+    <h2 class="text-4xl md:text-5xl font-black leading-none text-black">
+      Tabellone finale
+    </h2>
+  </div>
+
+  <div class="overflow-x-auto pb-5">
+    <div class="bracket-board" style={`--slot-count: ${firstRoundMatchCount};`}>
+      {preparedRounds.map((round) => (
+        <section class="bracket-round" style={`--round-width: ${round.roundWidth}rem;`}>
+          <div class="bracket-title">
+            <h3>{round.name}</h3>
+          </div>
+
+          <div class="bracket-lane">
+            {round.connectors.map((connector) => (
+              <span
+                class="bracket-connector"
+                style={`--connector-top: ${connector.top}; --connector-height: ${connector.height};`}
+                aria-hidden="true"
+              />
+            ))}
+
+            {round.matches.map((match) => (
+              <article
+                class={`bracket-match ${match.hasInput ? 'bracket-match-input' : ''} ${round.isLastRound ? 'bracket-match-final' : ''}`}
+                style={`--match-top: ${match.top};`}
+              >
+                <div class={`bracket-team ${match.winner === 'A' ? 'bracket-winner' : ''}`}>
+                  <p>{match.teamA || 'Da definire'}</p>
+                  <span>{match.scoreA}</span>
+                </div>
+
+                <div class={`bracket-team ${match.winner === 'B' ? 'bracket-winner' : ''}`}>
+                  <p>{match.teamB || 'Da definire'}</p>
+                  <span>{match.scoreB}</span>
+                </div>
+              </article>
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
+  </div>
+</section>
+
+<style>
+  .bracket-board {
+    --match-h: 5.7rem;
+    --match-gap: 1.15rem;
+    --match-step: calc(var(--match-h) + var(--match-gap));
+    --connector-w: 2.25rem;
+
+    display: flex;
+    gap: calc(var(--connector-w) * 2);
+    min-width: max-content;
+    padding: 0 4rem 0.5rem 0;
+  }
+
+  .bracket-round {
+    flex: 0 0 var(--round-width);
+    width: var(--round-width);
+  }
+
+  .bracket-title {
+    margin-bottom: 1rem;
+    border: 2px solid #000;
+    background: var(--giallo-club);
+    padding: 0.75rem 1rem;
+    box-shadow: 4px 4px 0 0 #000;
+  }
+
+  .bracket-title h3 {
+    margin: 0;
+    color: #000;
+    font-size: 1.15rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .bracket-lane {
+    position: relative;
+    height: calc((var(--slot-count) * var(--match-step)) - var(--match-gap));
+  }
+
+  .bracket-match {
+    position: absolute;
+    top: calc(var(--match-top) * var(--match-step));
+    left: 0;
+    width: max-content;
+    min-width: 100%;
+    height: var(--match-h);
+    border: 2px solid #000;
+    background: #fff;
+    box-shadow: 4px 4px 0 0 #000;
+  }
+
+  .bracket-match::after,
+  .bracket-match-input::before,
+  .bracket-connector::after {
+    content: "";
+    position: absolute;
+    height: 2px;
+    background: #000;
+  }
+
+  .bracket-match::after {
+    top: 50%;
+    right: calc(var(--connector-w) * -1);
+    width: var(--connector-w);
+    transform: translateY(-50%);
+  }
+
+  .bracket-match-input::before {
+    top: 50%;
+    left: calc(var(--connector-w) * -1);
+    width: var(--connector-w);
+    transform: translateY(-50%);
+  }
+
+  .bracket-match-final::after {
+    display: none;
+  }
+
+  .bracket-connector {
+    position: absolute;
+    top: calc((var(--connector-top) * var(--match-step)) + (var(--match-h) / 2));
+    right: calc(var(--connector-w) * -1);
+    width: 2px;
+    height: calc(var(--connector-height) * var(--match-step));
+    background: #000;
+  }
+
+  .bracket-connector::after {
+    top: 50%;
+    right: calc(var(--connector-w) * -1);
+    width: var(--connector-w);
+    transform: translateY(-50%);
+  }
+
+  .bracket-team {
+    display: grid;
+    grid-template-columns: max-content minmax(1.35rem, auto);
+    gap: 0.75rem;
+    align-items: center;
+    min-height: calc((var(--match-h) - 2px) / 2);
+    padding: 0.65rem 0.75rem;
+  }
+
+  .bracket-team + .bracket-team {
+    border-top: 2px solid #000;
+  }
+
+  .bracket-team p {
+    margin: 0;
+    color: #000;
+    font-size: 0.9rem;
+    font-weight: 900;
+    line-height: 1.15;
+    min-width: max-content;
+    white-space: nowrap;
+  }
+
+  .bracket-team span {
+    min-width: 1.35rem;
+    color: #000;
+    font-size: 0.95rem;
+    font-weight: 900;
+    text-align: right;
+  }
+
+  .bracket-winner {
+    background: var(--giallo-club);
+  }
+</style>

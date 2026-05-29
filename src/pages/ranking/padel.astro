@@ -45,6 +45,7 @@ for (const row of lastMatches || []) {
     title="Classifica Padel"
     image="/images/og/og-image-padel-ranking.png"
     description="Classifica padel aggiornata del circolo Tie-Break Poggio San Vicino, con punteggi ELO, partite giocate, vittorie e win rate."
+    headerTheme="padel"
 >
     <section class="mb-8">
         <p class="text-sm uppercase tracking-widest font-black text-slate-600">
@@ -66,7 +67,7 @@ for (const row of lastMatches || []) {
 
     <div class="club-card overflow-hidden">
         <div
-            class="bg-[var(--giallo-club)] border-b-2 border-black p-4 flex justify-between items-center"
+            class="bg-[var(--theme-accent)] text-[var(--theme-accent-contrast)] border-b-2 border-black p-4 flex justify-between items-center"
         >
             <h2 class="text-xl font-black uppercase">Classifica a punti</h2>
 
@@ -103,7 +104,7 @@ for (const row of lastMatches || []) {
                             href={`/player/${player.player_id}`}
                             data-ranking-row
                             data-matches-played={player.matches_played}
-                            class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--giallo-club)] transition"
+                            class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--theme-accent)] transition"
                         >
                             <div class="text-3xl font-black text-black">
                                 #{index + 1}

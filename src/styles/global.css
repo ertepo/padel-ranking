@@ -27,6 +27,8 @@
 :root {
   --giallo-club: #ffcc00;
   --blu-bilanciato: #0076ca;
+  --blu-padel: #005ad8;
+  --viola-tennis: oklch(49.486% 0.18113 295.33);
   --text-color: rgb(30, 30, 30);
 }
 

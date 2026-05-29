@@ -8,6 +8,7 @@ const {
   description = 'Circolo tennis e padel a Poggio San Vicino: classifiche, tornei, match e attività sportive per la comunità.',
   image = '/images/og/og-image.png',
   noindex = false,
+  headerTheme = 'neutral',
 } = Astro.props;
 
 const siteName = 'Tie-Break Poggio San Vicino';
@@ -16,6 +17,22 @@ const fullTitle = title.includes('Tie-Break')
   : `${title} | ${siteName}`;
 const canonicalUrl = new URL(Astro.url.pathname, Astro.site).toString();
 const ogImageUrl = new URL(image, Astro.site).toString();
+const themeColors = {
+  neutral: {
+    accent: 'var(--giallo-club)',
+    contrast: '#000',
+  },
+  padel: {
+    accent: 'var(--blu-padel)',
+    contrast: '#fff',
+  },
+  tennis: {
+    accent: 'var(--viola-tennis)',
+    contrast: '#fff',
+  },
+};
+const currentTheme = themeColors[headerTheme] || themeColors.neutral;
+const themeStyle = `--theme-accent: ${currentTheme.accent}; --theme-accent-contrast: ${currentTheme.contrast};`;
 ---
 
 <html lang="it">
@@ -70,8 +87,8 @@ const ogImageUrl = new URL(image, Astro.site).toString();
     <meta name="twitter:image" content={ogImageUrl} />
   </head>
 
-  <body>
-    <Header client:load />
+  <body style={themeStyle}>
+    <Header theme={headerTheme} client:load />
 
     <main class="max-w-5xl mx-auto px-4 py-8">
       <slot />

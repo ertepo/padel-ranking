@@ -7,7 +7,8 @@ const { tournament } = Astro.props;
 <Layout
   title={tournament.name}
   description={`${tournament.name}: squadre iscritte, gironi e risultati del torneo di padel Tie-Break Poggio San Vicino.`}
-  image={tournament.image}
+  image={tournament.ogImage || tournament.image}
+  headerTheme="padel"
 >
   <section class="mb-10">
     <a href="/" class="club-btn inline-block px-4 py-2 mb-6">
@@ -144,4 +145,6 @@ const { tournament } = Astro.props;
       ))}
     </div>
   </section>
+
+  <slot />
 </Layout>

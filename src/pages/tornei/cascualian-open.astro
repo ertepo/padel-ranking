@@ -1,10 +1,12 @@
 ---
 import TournamentPage from '../../components/TournamentPage.astro';
+import TournamentBracket from '../../components/TournamentBracket.astro';
 
 const tournament = {
   name: 'Cascualian Open',
   date: '29 maggio - 2 giugno',
   image: '/images/tournaments/cascualian_open.svg',
+  ogImage: '/images/og/og-image-cascualian-open.png',
   description:
     'Primo appuntamento del Grande Slam estivo di padel Tie-Break. Squadre, gironi e risultati aggiornati a mano.',
   registrationDays: [
@@ -106,6 +108,75 @@ const tournament = {
     },
   ],
 };
+
+const bracketRounds = [
+  {
+    name: 'Quarti',
+    matches: [
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+    ],
+  },
+  {
+    name: 'Semifinali',
+    matches: [
+      {
+        teamA: 'Vincente quarto 1',
+        teamB: 'Vincente quarto 2',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Vincente quarto 3',
+        teamB: 'Vincente quarto 4',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+    ],
+  },
+  {
+    name: 'Finale',
+    matches: [
+      {
+        teamA: 'Vincente semifinale 1',
+        teamB: 'Vincente semifinale 2',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+    ],
+  },
+];
 ---
 
-<TournamentPage tournament={tournament} />
+<TournamentPage tournament={tournament}>
+  <TournamentBracket rounds={bracketRounds} />
+</TournamentPage>

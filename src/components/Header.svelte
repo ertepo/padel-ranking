@@ -1,8 +1,13 @@
 <script>
+  export let theme = 'neutral';
+
   let isOpen = false;
 </script>
 
-<header class="sticky top-0 z-50 bg-[var(--giallo-club)] border-b-2 border-black">
+<header
+  class="sticky top-0 z-50 border-b-2 border-black"
+  style="background: var(--theme-accent);"
+>
   <div class="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
    <a href="/" aria-label="Torna alla Home">
      <svg 
