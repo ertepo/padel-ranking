@@ -99,3 +99,19 @@ Contributions are welcome! Feel free to open issues or submit pull requests.
 ## 📄 License
 
 This project is open source.
+# Disponibilita campi OpenResa
+
+La pagina `/prenotazioni` mostra una griglia pubblica in sola lettura. Il browser
+interroga `/api/openresa/slots`, mentre il server Astro contatta OpenResa senza
+esporre il token ai visitatori.
+
+Configurare su Netlify:
+
+```dotenv
+OPENRESA_API_TOKEN=...
+OPENRESA_API_BASE_URL=https://openresa.com/api/v1
+OPENRESA_BOOKING_URL=https://openresa.com/tiebreak
+```
+
+Senza `OPENRESA_API_TOKEN` la pagina usa automaticamente dati dimostrativi.
+L'adattatore invia il token server-side tramite l'header `X-API-Key`.

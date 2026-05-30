@@ -1,0 +1,23 @@
+---
+import Layout from '../layouts/Layout.astro';
+import CourtAvailability from '../components/CourtAvailability.svelte';
+---
+
+<Layout
+  title="Disponibilita campi"
+  description="Consulta gli orari disponibili dei campi da tennis e padel del Tie-Break Poggio San Vicino e completa la prenotazione su OpenResa."
+>
+  <section class="mb-8">
+    <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+      Tennis e padel
+    </p>
+    <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+      Disponibilita<br />campi
+    </h1>
+    <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
+      Controlla quando i campi sono liberi. Seleziona uno slot disponibile per completare la prenotazione su OpenResa.
+    </p>
+  </section>
+
+  <CourtAvailability client:load />
+</Layout>

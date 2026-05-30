@@ -121,10 +121,10 @@
 
       
       <a
-        href="https://openresa.com/tiebreak"
+        href="/prenotazioni"
         class="club-btn-pastelgreen  px-4 py-2"
       >
-        Prenota!
+        Campi
       </a>
     </nav>
 
@@ -234,11 +234,11 @@
       {/if}
 
       <a
-        href="https://openresa.com/tiebreak"
+        href="/prenotazioni"
         class="club-btn-pastelgreen p-4 text-center"
         on:click={() => (isOpen = false)}
       >
-        Prenota!
+        Disponibilita campi
       </a>
     </div>
   </aside>
