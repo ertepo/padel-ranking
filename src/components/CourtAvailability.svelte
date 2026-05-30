@@ -51,6 +51,11 @@
   const slotsForCourt = (courtId: string) =>
     availability?.slots.filter((slot) => slot.courtId === courtId) || [];
 
+  const skeletonSlots = (courtId: string) => {
+    const count = slotsForCourt(courtId).length;
+    return Array.from({ length: count || 6 });
+  };
+
   const unavailableLabel = (slot: Slot) =>
     slot.status === 'closed' || slot.status === 'closed_slot' ? 'Chiuso' : 'Occupato';
 
@@ -103,7 +108,7 @@
       on:click={() => dateInput.showPicker()}
       aria-label="Scegli una data"
     >
-      <span class="block text-xs uppercase tracking-widest text-slate-500">Disponibilita</span>
+      <span class="block text-xs uppercase tracking-widest text-slate-500">Disponibilità</span>
       <span class="mt-1 flex items-center justify-center gap-2 text-lg sm:text-xl">
         <span class="truncate">{displayDate()}</span>
         <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
@@ -111,7 +116,7 @@
         </svg>
       </span>
       <span class="mt-1 block text-[0.65rem] uppercase tracking-widest text-slate-500">
-        Cambia data
+        {loading && availability ? 'Aggiornamento...' : 'Cambia data'}
       </span>
       <input
         class="sr-only"
@@ -135,8 +140,22 @@
     </p>
   {/if}
 
-  {#if loading}
-    <p class="club-card p-6 text-lg font-black">Caricamento disponibilita...</p>
+  {#if loading && !availability}
+    <div class="grid gap-6 md:grid-cols-2" aria-label="Caricamento disponibilita">
+      {#each Array.from({ length: 2 }) as _}
+        <article class="club-card overflow-hidden">
+          <div class="border-b-2 border-black bg-slate-300 p-4">
+            <div class="h-3 w-20 animate-pulse bg-slate-400"></div>
+            <div class="mt-3 h-7 w-36 animate-pulse bg-slate-400"></div>
+          </div>
+          <div class="flex flex-col gap-3 p-4">
+            {#each Array.from({ length: 6 }) as _}
+              <div class="min-h-[4.5rem] animate-pulse border-2 border-slate-300 bg-slate-200"></div>
+            {/each}
+          </div>
+        </article>
+      {/each}
+    </div>
   {:else if error}
     <p class="club-card p-6 font-bold text-red-700">{error}</p>
   {:else if !availability?.courts.length}
@@ -150,7 +169,7 @@
               court.sport === 'padel'
                 ? 'bg-[var(--blu-padel)]'
                 : court.sport === 'tennis'
-                  ? 'bg-[var(--verde-tennis)]'
+                  ? 'bg-[var(--viola-tennis)]'
                   : 'bg-[var(--giallo-club)] !text-black'
             }`}
           >
@@ -164,25 +183,31 @@
           </header>
 
           <div class="flex flex-col gap-3 p-4">
-            {#each slotsForCourt(court.id) as slot}
-              {#if slot.available}
-                <a
-                  class="flex min-h-[4.5rem] flex-col justify-center border-2 border-black bg-green-200 p-3 text-center shadow-[-3px_3px_black] transition hover:translate-x-[-2px] hover:translate-y-[2px] hover:bg-green-300 hover:shadow-[-1px_1px_black]"
-                  href={availability.bookingUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  aria-label={`Prenota ${court.name} dalle ${displayTime(slot.start)} alle ${displayTime(slot.end)}`}
-                >
-                  <strong class="text-lg">{displayTime(slot.start)}</strong>
-                  <span class="text-xs font-extrabold uppercase">Disponibile</span>
-                </a>
-              {:else}
-                <div class="flex min-h-[4.5rem] flex-col justify-center border-2 border-black bg-slate-200 p-3 text-center text-slate-500" aria-label={`${court.name} occupato dalle ${displayTime(slot.start)} alle ${displayTime(slot.end)}`}>
-                  <strong class="text-lg">{displayTime(slot.start)}</strong>
-                  <span class="text-xs font-extrabold uppercase">{unavailableLabel(slot)}</span>
-                </div>
-              {/if}
-            {/each}
+            {#if loading}
+              {#each skeletonSlots(court.id) as _}
+                <div class="min-h-[4.5rem] animate-pulse border-2 border-slate-300 bg-slate-200"></div>
+              {/each}
+            {:else}
+              {#each slotsForCourt(court.id) as slot}
+                {#if slot.available}
+                  <a
+                    class="flex min-h-[4.5rem] flex-col justify-center border-2 border-black bg-green-200 p-3 text-center shadow-[-3px_3px_black] transition hover:translate-x-[-2px] hover:translate-y-[2px] hover:bg-green-300 hover:shadow-[-1px_1px_black]"
+                    href={availability.bookingUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    aria-label={`Prenota ${court.name} dalle ${displayTime(slot.start)} alle ${displayTime(slot.end)}`}
+                  >
+                    <strong class="text-lg">{displayTime(slot.start)}</strong>
+                    <span class="text-xs font-extrabold uppercase">Disponibile</span>
+                  </a>
+                {:else}
+                  <div class="flex min-h-[4.5rem] flex-col justify-center border-2 border-black bg-slate-200 p-3 text-center text-slate-500" aria-label={`${court.name} occupato dalle ${displayTime(slot.start)} alle ${displayTime(slot.end)}`}>
+                    <strong class="text-lg">{displayTime(slot.start)}</strong>
+                    <span class="text-xs font-extrabold uppercase">{unavailableLabel(slot)}</span>
+                  </div>
+                {/if}
+              {/each}
+            {/if}
           </div>
         </article>
       {/each}

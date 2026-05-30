@@ -226,7 +226,7 @@ body {
   transition: all 120ms ease;
 }
 
-:is(.club-btn,.club-btn-violet,.club-btn-blue,.club-btn-pastelviolet,.club-btn-pastelorange,.club-btn-pastelgreen,.club-btn-pastelyellow,.club-btn-pastelblue):hover {
+:is(.club-btn,.club-btn-yellow,.club-btn-violet,.club-btn-blue,.club-btn-pastelviolet,.club-btn-pastelorange,.club-btn-pastelgreen,.club-btn-pastelyellow,.club-btn-pastelblue):hover {
   background: black;
   color: white;
   box-shadow: 0 0 black;
