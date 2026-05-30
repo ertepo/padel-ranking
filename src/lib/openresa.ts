@@ -137,7 +137,7 @@ export function normalizeAvailability(
     .filter((slot) => slot.courtId && slot.start && slot.end);
 
   return {
-    bookingUrl: import.meta.env.OPENRESA_BOOKING_URL || DEFAULT_BOOKING_URL,
+    bookingUrl: DEFAULT_BOOKING_URL,
     courts,
     slots,
   };
@@ -167,7 +167,7 @@ export function createDemoAvailability(date: string): PublicAvailability {
   ];
 
   return {
-    bookingUrl: import.meta.env.OPENRESA_BOOKING_URL || DEFAULT_BOOKING_URL,
+    bookingUrl: DEFAULT_BOOKING_URL,
     courts,
     slots: [
       ...createDemoSlots(date, 'padel-1', [10, 11, 16, 19]),
@@ -181,7 +181,7 @@ export async function fetchOpenResaAvailability(date: string): Promise<PublicAva
   const token = import.meta.env.OPENRESA_API_TOKEN;
   if (!token) return createDemoAvailability(date);
 
-  const apiBaseUrl = import.meta.env.OPENRESA_API_BASE_URL || DEFAULT_API_BASE_URL;
+  const apiBaseUrl = DEFAULT_API_BASE_URL;
   const headers = {
     Accept: 'application/json',
     'X-API-Key': token,
