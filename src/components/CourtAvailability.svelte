@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+
   type Court = {
     id: string;
     name: string;
@@ -36,6 +38,7 @@
   let availability: Availability | null = null;
   let error = '';
   let loading = true;
+  let dateInput: HTMLInputElement;
 
   const displayDate = () => new Intl.DateTimeFormat('it-IT', {
     weekday: 'long',
@@ -78,28 +81,51 @@
     loadAvailability();
   }
 
-  loadAvailability();
+  onMount(() => {
+    loadAvailability();
+
+    const refreshInterval = window.setInterval(loadAvailability, 60_000);
+    return () => window.clearInterval(refreshInterval);
+  });
 </script>
 
 <section aria-busy={loading}>
-  <div class="mb-7 flex flex-col gap-4 border-2 border-black bg-white p-4 sm:flex-row sm:items-center sm:justify-between">
-    <button class="club-btn px-4 py-3" type="button" on:click={() => shiftDay(-1)}>
-      Giorno prima
+  <div class="sticky top-[4.6rem] z-40 mb-7 grid min-h-[5.5rem] w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-2 border-black bg-white px-4 py-3 shadow-[0_4px_0_rgb(0_0_0_/_15%)] md:top-[4.75rem]">
+    <button class="club-btn-yellow grid h-12 w-12 place-items-center !text-black" type="button" on:click={() => shiftDay(-1)} aria-label="Giorno precedente">
+      <svg class="h-6 w-6 rotate-90" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
+      </svg>
     </button>
 
-    <label class="text-center font-black capitalize">
-      <span class="block text-xs uppercase tracking-widest text-slate-500">Giorno selezionato</span>
-      <span class="mt-1 block text-xl">{displayDate()}</span>
+    <button
+      class="club-btn min-w-0 px-3 py-2 text-center font-black capitalize"
+      type="button"
+      on:click={() => dateInput.showPicker()}
+      aria-label="Scegli una data"
+    >
+      <span class="block text-xs uppercase tracking-widest text-slate-500">Disponibilita</span>
+      <span class="mt-1 flex items-center justify-center gap-2 text-lg sm:text-xl">
+        <span class="truncate">{displayDate()}</span>
+        <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M7 3V6M17 3V6M4 9H20M5 5H19C19.5523 5 20 5.44772 20 6V19C20 19.5523 19.5523 20 19 20H5C4.44772 20 4 19.5523 4 19V6C4 5.44772 4.44772 5 5 5Z" stroke="currentColor" stroke-width="2" stroke-linecap="square" />
+        </svg>
+      </span>
+      <span class="mt-1 block text-[0.65rem] uppercase tracking-widest text-slate-500">
+        Cambia data
+      </span>
       <input
-        class="mt-2 border-2 border-black bg-white px-3 py-2 text-sm font-bold"
+        class="sr-only"
         type="date"
         bind:value={selectedDate}
+        bind:this={dateInput}
         on:change={loadAvailability}
       />
-    </label>
+    </button>
 
-    <button class="club-btn px-4 py-3" type="button" on:click={() => shiftDay(1)}>
-      Giorno dopo
+    <button class="club-btn-yellow grid h-12 w-12 place-items-center !text-black" type="button" on:click={() => shiftDay(1)} aria-label="Giorno successivo">
+      <svg class="h-6 w-6 -rotate-90" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
+      </svg>
     </button>
   </div>
 
@@ -119,7 +145,15 @@
     <div class="grid gap-6 md:grid-cols-2">
       {#each availability.courts as court}
         <article class="club-card overflow-hidden">
-          <header class:padel={court.sport === 'padel'} class:tennis={court.sport === 'tennis'} class="court-header">
+          <header
+            class={`border-b-2 border-black p-4 text-white ${
+              court.sport === 'padel'
+                ? 'bg-[var(--blu-padel)]'
+                : court.sport === 'tennis'
+                  ? 'bg-[var(--verde-tennis)]'
+                  : 'bg-[var(--giallo-club)] !text-black'
+            }`}
+          >
             <p class="text-xs uppercase tracking-widest opacity-75">{court.sport}</p>
             <h2 class="text-2xl font-black">{court.name}</h2>
             {#if court.surface || court.inoutdoor}
@@ -129,23 +163,23 @@
             {/if}
           </header>
 
-          <div class="grid grid-cols-2 gap-3 p-4 sm:grid-cols-3">
+          <div class="flex flex-col gap-3 p-4">
             {#each slotsForCourt(court.id) as slot}
               {#if slot.available}
                 <a
-                  class="slot available"
+                  class="flex min-h-[4.5rem] flex-col justify-center border-2 border-black bg-green-200 p-3 text-center shadow-[-3px_3px_black] transition hover:translate-x-[-2px] hover:translate-y-[2px] hover:bg-green-300 hover:shadow-[-1px_1px_black]"
                   href={availability.bookingUrl}
                   target="_blank"
                   rel="noreferrer"
                   aria-label={`Prenota ${court.name} dalle ${displayTime(slot.start)} alle ${displayTime(slot.end)}`}
                 >
-                  <strong>{displayTime(slot.start)}</strong>
-                  <span>Disponibile</span>
+                  <strong class="text-lg">{displayTime(slot.start)}</strong>
+                  <span class="text-xs font-extrabold uppercase">Disponibile</span>
                 </a>
               {:else}
-                <div class="slot occupied" aria-label={`${court.name} occupato dalle ${displayTime(slot.start)} alle ${displayTime(slot.end)}`}>
-                  <strong>{displayTime(slot.start)}</strong>
-                  <span>{unavailableLabel(slot)}</span>
+                <div class="flex min-h-[4.5rem] flex-col justify-center border-2 border-black bg-slate-200 p-3 text-center text-slate-500" aria-label={`${court.name} occupato dalle ${displayTime(slot.start)} alle ${displayTime(slot.end)}`}>
+                  <strong class="text-lg">{displayTime(slot.start)}</strong>
+                  <span class="text-xs font-extrabold uppercase">{unavailableLabel(slot)}</span>
                 </div>
               {/if}
             {/each}
@@ -155,58 +189,3 @@
     </div>
   {/if}
 </section>
-
-<style>
-  .court-header {
-    border-bottom: 2px solid black;
-    background: var(--giallo-club);
-    padding: 1rem;
-  }
-
-  .court-header.padel {
-    background: var(--blu-padel);
-    color: white;
-  }
-
-  .court-header.tennis {
-    background: var(--verde-tennis);
-    color: white;
-  }
-
-  .slot {
-    display: flex;
-    min-height: 4.5rem;
-    flex-direction: column;
-    justify-content: center;
-    border: 2px solid black;
-    padding: 0.65rem;
-    text-align: center;
-    transition: transform 120ms ease, box-shadow 120ms ease;
-  }
-
-  .slot strong {
-    font-size: 1.1rem;
-  }
-
-  .slot span {
-    font-size: 0.7rem;
-    font-weight: 800;
-    text-transform: uppercase;
-  }
-
-  .available {
-    background: hsl(150, 50%, 82%);
-    box-shadow: -3px 3px black;
-  }
-
-  .available:hover {
-    transform: translate(-2px, 2px);
-    background: hsl(150, 50%, 65%);
-    box-shadow: -1px 1px black;
-  }
-
-  .occupied {
-    background: #e2e8f0;
-    color: #64748b;
-  }
-</style>

@@ -11,7 +11,7 @@ export const GET: APIRoute = async ({ url }) => {
   try {
     const availability = await fetchOpenResaAvailability(date);
     return Response.json(availability, {
-      headers: { 'Cache-Control': 'public, max-age=60, s-maxage=120' },
+      headers: { 'Cache-Control': 'no-store' },
     });
   } catch (error) {
     console.error('OpenResa availability request failed', error);
