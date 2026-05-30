@@ -25,7 +25,7 @@ const tournament = {
         ['ANTONELLI', 'MATTIOLI'],
         ['NOCELLI', 'MARCHEGIANI'],
         ['GIOVAGNONI', 'VIRGILI'],
-        ['cercasi coppia'],
+        ['DAVID', 'PIERSIGILLI'],
       ],
     },
   ],
@@ -85,6 +85,7 @@ const tournament = {
         ['ANTONELLI', 'MATTIOLI'],
         ['NOCELLI', 'MARCHEGIANI'],
         ['GIOVAGNONI', 'VIRGILI'],
+        ['DAVID', 'PIERSIGILLI'],
       ],
       matches: [
         {
@@ -94,8 +95,8 @@ const tournament = {
           winner: '',
         },
         {
-          teamA: 'NOCELLI / MARCHEGIANI',
-          teamB: 'GIOVAGNONI / VIRGILI',
+          teamA: 'GIOVAGNONI / VIRGILI',
+          teamB: 'DAVID / PIERSIGILLI',
           score: '',
           winner: '',
         },
@@ -105,13 +106,31 @@ const tournament = {
           score: '',
           winner: '',
         },
+        {
+          teamA: 'NOCELLI / MARCHEGIANI',
+          teamB: 'DAVID / PIERSIGILLI',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: 'ANTONELLI / MATTIOLI',
+          teamB: 'DAVID / PIERSIGILLI',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: 'NOCELLI / MARCHEGIANI',
+          teamB: 'GIOVAGNONI / VIRGILI',
+          score: '',
+          winner: '',
+        },
       ],
     },
   ],
 };
 
 const bracketRounds = [
-  {
+  /*{
     name: 'Quarti',
     matches: [
       {
@@ -143,7 +162,7 @@ const bracketRounds = [
         winner: '',
       },
     ],
-  },
+  },*/
   {
     name: 'Semifinali',
     matches: [
@@ -179,5 +198,6 @@ const bracketRounds = [
 ---
 
 <TournamentPage tournament={tournament}>
+  <TournamentBracket rounds={bracketRounds} />
   <TournamentBracket rounds={bracketRounds} />
 </TournamentPage>
