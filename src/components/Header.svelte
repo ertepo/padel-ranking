@@ -66,6 +66,10 @@
         Home
       </a>
 
+      <a href="/tornei/cascualian-open" class="club-btn-yellow px-4 py-2">
+        Torneo Padel
+      </a>
+
       <div class="relative" bind:this={desktopRankingContainer}>
         <button
           type="button"
@@ -93,6 +97,13 @@
             id="desktop-ranking-menu"
             class="absolute right-0 top-full mt-3 flex min-w-56 flex-col gap-3 border-2 border-black bg-white p-5 pl-6 club-card ombra"
           >
+          <a
+              href="/#regolamento"
+              class="club-btn-pastelyellow px-4 py-2"
+              on:click={() => (isRankingOpen = false)}
+            >
+              Regolamento
+            </a>
             <a
               href="/ranking/tennis"
               class="club-btn-violet px-4 py-2"
@@ -115,6 +126,7 @@
       <a href="/matches" class="club-btn-yellow px-4 py-2 !text-black">
         Matches
       </a>
+            
           </div>
         {/if}
       </div>
@@ -124,7 +136,7 @@
         href="/prenotazioni"
         class="club-btn-pastelgreen  px-4 py-2"
       >
-        Campi
+        Prenotazioni
       </a>
     </nav>
 
@@ -180,6 +192,14 @@
         Home
       </a>
 
+      <a
+        href="/tornei/cascualian-open"
+        class="club-btn-yellow p-4 text-center"
+        on:click={() => (isOpen = false)}
+      >
+        Torneo Padel
+      </a>
+
       <button
         type="button"
         class="club-btn flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap p-4 text-center"
@@ -203,6 +223,15 @@
       {#if isRankingOpen}
         <div id="mobile-ranking-menu" class="flex flex-col gap-3 pl-4">
           <a
+            href="/#regolamento"
+            class="club-btn-pastelyellow p-4 text-center"
+            on:click={() => {
+              isRankingOpen = false;
+              isOpen = false;
+            }}
+          >
+            Regolamento
+          </a><a
             href="/ranking/tennis"
             class="club-btn p-4 text-center"
             on:click={() => {
@@ -230,6 +259,7 @@
       >
         Match
       </a>
+          
         </div>
       {/if}
 

@@ -135,7 +135,7 @@ body {
     -4px 4px 0 0 #000,
     -5px 5px 0 0 #000,
     -6px 6px 0 0 #000;
-  color: rgb(255, 255, 255);
+  color: rgb(0, 0, 0);
   font-weight: 800;
   transition: all 120ms ease;
 }
