@@ -43,38 +43,38 @@ const tournament = {
         {
           teamA: 'SARGENTI / BELTRANI',
           teamB: 'MORESCHINI / CIRILLO',
-          score: '',
-          winner: '',
+          score: '14 - 04',
+          winner: 'B',
         },
         {
           teamA: 'SARGENTI / BELTRANI',
           teamB: 'DURANTI / CHIARABERTA',
-          score: '',
-          winner: '',
+          score: '41 - 41',
+          winner: 'A',
         },
         {
           teamA: 'SARGENTI / BELTRANI',
           teamB: 'SCALONI / ONCINI',
-          score: '',
-          winner: '',
+          score: '24 - 14',
+          winner: 'B',
         },
         {
           teamA: 'MORESCHINI / CIRILLO',
           teamB: 'DURANTI / CHIARABERTA',
-          score: '',
-          winner: '',
+          score: '41 - 40',
+          winner: 'A',
         },
         {
           teamA: 'MORESCHINI / CIRILLO',
           teamB: 'SCALONI / ONCINI',
-          score: '',
-          winner: '',
+          score: '53 - 54',
+          winner: 'A',
         },
         {
           teamA: 'DURANTI / CHIARABERTA',
           teamB: 'SCALONI / ONCINI',
-          score: '',
-          winner: '',
+          score: '14 - 24',
+          winner: 'B',
         },
       ],
     },
@@ -129,7 +129,7 @@ const tournament = {
   ],
 };
 
-const bracketRounds = [
+const bracketRoundsGOLD = [
   /*{
     name: 'Quarti',
     matches: [
@@ -165,17 +165,18 @@ const bracketRounds = [
   },*/
   {
     name: 'Semifinali',
+    surname: 'GOLD',
     matches: [
       {
-        teamA: 'Vincente quarto 1',
-        teamB: 'Vincente quarto 2',
+        teamA: 'MORESCHINI / CIRILLO',
+        teamB: 'Secondi girone B',
         scoreA: '',
         scoreB: '',
         winner: '',
       },
       {
-        teamA: 'Vincente quarto 3',
-        teamB: 'Vincente quarto 4',
+        teamA: 'Primi girone B',
+        teamB: 'SCALONI / ONCINI',
         scoreA: '',
         scoreB: '',
         winner: '',
@@ -195,9 +196,78 @@ const bracketRounds = [
     ],
   },
 ];
+
+const bracketRoundsSILVER = [
+  /*{
+    name: 'Quarti',
+    matches: [
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+    ],
+  },*/
+  {
+    name: 'Semifinali SILVER',
+    surname: 'SILVER',
+    matches: [
+      {
+        teamA: 'SARGENTI / BELTRANI',
+        teamB: 'Quarti girone B',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Terzi girone B',
+        teamB: 'DURANTI / CHIARABERTA',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+    ],
+  },
+  {
+    name: 'Finale',
+    matches: [
+      {
+        teamA: 'Vincente semifinale 1',
+        teamB: 'Vincente semifinale 2',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+    ],
+  },
+];
+
 ---
 
 <TournamentPage tournament={tournament}>
-  <TournamentBracket rounds={bracketRounds} />
-  <TournamentBracket rounds={bracketRounds} />
+  <TournamentBracket rounds={bracketRoundsGOLD} />
+  <TournamentBracket rounds={bracketRoundsSILVER} />
 </TournamentPage>
