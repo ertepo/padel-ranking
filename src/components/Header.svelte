@@ -62,7 +62,7 @@
 
     <!-- Desktop -->
     <nav class="hidden md:flex items-center gap-3">
-      <a href="/" class="club-btn-yellow px-4 py-2">
+      <a href="/" class="club-btn px-4 py-2">
         Home
       </a>
 
