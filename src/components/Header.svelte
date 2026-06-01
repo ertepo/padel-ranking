@@ -6,7 +6,7 @@
   let desktopRankingContainer;
 
   function closeDesktopRankingOnOutsideClick(event) {
-    const isDesktop = window.innerWidth >= 768;
+    const isDesktop = window.innerWidth >= 1024;
     const clickedOutside =
       desktopRankingContainer &&
       !desktopRankingContainer.contains(event.target);
@@ -61,7 +61,7 @@
 </svg></a>
 
     <!-- Desktop -->
-    <nav class="hidden md:flex items-center gap-3">
+    <nav class="hidden lg:flex items-center gap-3">
       <a href="/" class="club-btn px-4 py-2">
         Home
       </a>
@@ -142,7 +142,7 @@
 
     <!-- Hamburger -->
     <button
-      class="md:hidden relative w-10 h-10"
+      class="lg:hidden relative w-10 h-10"
       on:click={() => (isOpen = !isOpen)}
       aria-label="Menu"
     >
@@ -171,7 +171,7 @@
   <!-- Overlay -->
   {#if isOpen}
     <button
-      class="fixed inset-0 bg-black/40 md:hidden"
+      class="fixed inset-0 bg-black/40 lg:hidden"
       on:click={() => (isOpen = false)}
       aria-label="Close menu"
     ></button>
@@ -179,7 +179,7 @@
 
   <!-- Drawer -->
   <aside
-    class={`fixed top-0 right-0 h-full w-72 bg-white border-l-2 border-black shadow-2xl transition-transform duration-300 z-50 md:hidden ${
+    class={`fixed top-0 right-0 h-full w-72 bg-white border-l-2 border-black shadow-2xl transition-transform duration-300 z-50 lg:hidden ${
       isOpen ? 'translate-x-0' : 'translate-x-full'
     }`}
   >
