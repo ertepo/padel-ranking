@@ -1,0 +1,381 @@
+---
+import { supabase } from '../lib/supabase';
+import '../styles/global.css';
+
+const { data: activeMatch } = await supabase
+  .from('live_score')
+  .select('*')
+  .in('status', ['live', 'waiting'])
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .single();
+---
+
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Maxischermo Live Score | Tie-Break</title>
+  </head>
+
+  <body>
+    <main id="scoreboard" data-match={JSON.stringify(activeMatch ?? null)}></main>
+  </body>
+</html>
+
+<style>
+  :global(*) {
+    box-sizing: border-box;
+  }
+
+  :global(html),
+  :global(body) {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    background: #050505;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  :global(#scoreboard) {
+    width: 100vw;
+    height: 100vh;
+    font-family: Montserrat, Arial, sans-serif;
+  }
+
+  :global(.board) {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    width: 100%;
+    height: 100%;
+    padding: clamp(1rem, 3vw, 3rem);
+    background: #050505;
+  }
+
+  :global(.board-top) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 1rem;
+    border-bottom: clamp(3px, 0.5vw, 7px) solid #fff;
+    padding-bottom: clamp(0.75rem, 2vh, 1.5rem);
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  :global(.board-brand) {
+    font-size: clamp(1rem, 3vw, 2rem);
+  }
+
+  :global(.board-meta) {
+    color: #ffcc00;
+    font-size: clamp(0.85rem, 2vw, 1.5rem);
+    text-align: right;
+  }
+
+  :global(.board-sets) {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: clamp(0.4rem, 1vw, 0.8rem);
+  }
+
+  :global(.board-teams) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    min-height: 0;
+  }
+
+  :global(.board-team) {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    align-items: center;
+    min-width: 0;
+    padding: clamp(1rem, 3vw, 3rem);
+    text-align: center;
+  }
+
+  :global(.board-team-a) {
+    border-right: clamp(3px, 0.5vw, 7px) solid #fff;
+  }
+
+  :global(.board-team-serving) {
+    box-shadow: inset 0 0 0 clamp(0.45rem, 1vw, 1rem) #22c55e;
+  }
+
+  :global(.board-name) {
+    min-width: 0;
+    font-size: clamp(1.4rem, 4.5vw, 4.5rem);
+    font-weight: 900;
+    line-height: 1.05;
+    overflow-wrap: anywhere;
+    text-transform: uppercase;
+  }
+
+  :global(.board-points) {
+    align-self: center;
+    font-size: clamp(8rem, 31vw, 32rem);
+    font-weight: 900;
+    letter-spacing: 0;
+    line-height: 0.8;
+  }
+
+  :global(.board-team-a .board-points) {
+    color: #4ade80;
+  }
+
+  :global(.board-team-b .board-points) {
+    color: #facc15;
+  }
+
+  :global(.board-games) {
+    font-size: clamp(2rem, 7vw, 7rem);
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  :global(.board-games span) {
+    color: #999;
+    font-size: 0.36em;
+    vertical-align: 0.3em;
+  }
+
+  :global(.board-set) {
+    border: clamp(2px, 0.25vw, 4px) solid #fff;
+    padding: 0.35em 0.7em;
+    font-size: clamp(1rem, 3vw, 2.5rem);
+    font-weight: 900;
+  }
+
+  :global(.board-empty) {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 2rem;
+    background: #050505;
+    color: #fff;
+    text-align: center;
+  }
+
+  :global(.board-empty h1) {
+    margin: 0;
+    font-size: clamp(3rem, 12vw, 10rem);
+    font-weight: 900;
+    line-height: 0.95;
+    text-transform: uppercase;
+  }
+
+  :global(.board-empty p) {
+    margin: 1rem 0 0;
+    color: #ffcc00;
+    font-size: clamp(1rem, 4vw, 2.5rem);
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  @media (orientation: portrait) {
+    :global(.board-teams) {
+      grid-template-columns: 1fr;
+      grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    :global(.board-team-a) {
+      border-right: 0;
+      border-bottom: clamp(3px, 0.5vw, 7px) solid #fff;
+    }
+
+    :global(.board-team) {
+      grid-template-columns: minmax(0, 1fr) auto;
+      grid-template-rows: auto auto;
+      gap: 0.5rem 1rem;
+      text-align: left;
+    }
+
+    :global(.board-name) {
+      align-self: end;
+      font-size: clamp(1.8rem, 6vw, 4rem);
+    }
+
+    :global(.board-points) {
+      grid-row: 1 / 3;
+      grid-column: 2;
+      font-size: clamp(9rem, 35vw, 22rem);
+    }
+
+    :global(.board-games) {
+      align-self: start;
+      font-size: clamp(3rem, 12vw, 7rem);
+    }
+  }
+</style>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  const sb = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  );
+
+  const POINT_LABELS = ['0', '15', '30', '40'];
+  const container = document.getElementById('scoreboard');
+  let match = JSON.parse(container?.dataset.match ?? 'null');
+
+  function usesMatchTiebreakThird(currentMatch) {
+    return ['match_tiebreak_third', 'short_sets_match_tiebreak_third'].includes(currentMatch.scoring_mode);
+  }
+
+  function usesShortSets(currentMatch) {
+    return currentMatch.scoring_mode === 'short_sets_match_tiebreak_third';
+  }
+
+  function isMatchTiebreak(currentMatch) {
+    return usesMatchTiebreakThird(currentMatch) && Number(currentMatch.max_sets) === 3 && (currentMatch.sets ?? []).length === 2;
+  }
+
+  function isSetTiebreak(currentMatch) {
+    const tiebreakAt = usesShortSets(currentMatch) ? 4 : 6;
+    return currentMatch.games_a === tiebreakAt && currentMatch.games_b === tiebreakAt;
+  }
+
+  function formatPoints(currentMatch) {
+    if (isMatchTiebreak(currentMatch) || isSetTiebreak(currentMatch)) {
+      return {
+        a: String(currentMatch.points_a),
+        b: String(currentMatch.points_b),
+      };
+    }
+
+    const a = currentMatch.points_a;
+    const b = currentMatch.points_b;
+
+    if (a >= 3 && b >= 3) {
+      if (a === b) return { a: '40', b: '40' };
+      if (a > b) return { a: 'V', b: '-' };
+      return { a: '-', b: 'V' };
+    }
+
+    return {
+      a: POINT_LABELS[a] ?? '0',
+      b: POINT_LABELS[b] ?? '0',
+    };
+  }
+
+  function render() {
+    if (!container) return;
+
+    if (!match || !['live', 'waiting', 'finished'].includes(match.status)) {
+      container.innerHTML = `
+        <section class="board-empty">
+          <div>
+            <h1>Tie-Break</h1>
+            <p>In attesa della prossima partita</p>
+          </div>
+        </section>
+      `;
+      return;
+    }
+
+    const points = formatPoints(match);
+    const sets = match.sets ?? [];
+    const matchTiebreak = isMatchTiebreak(match);
+    const setPills = sets
+      .map((set, index) => `<span class="board-set">SET ${index + 1}: ${set.a}-${set.b}</span>`)
+      .join('');
+    const statusLabel = {
+      waiting: 'In attesa',
+      live: 'Live',
+      finished: 'Terminata',
+    }[match.status];
+    const matchMeta = [
+      statusLabel,
+      match.sport === 'padel' ? 'Padel' : 'Tennis',
+      match.match_label,
+    ].filter(Boolean).join(' / ');
+
+    container.innerHTML = `
+      <section class="board">
+        <header class="board-top">
+          <span class="board-brand">Tie-Break</span>
+          <div class="board-sets">
+            ${setPills || '<span class="board-set">Primo set</span>'}
+          </div>
+          <span class="board-meta">${matchMeta}</span>
+        </header>
+
+        <div class="board-teams">
+          <article class="board-team board-team-a ${match.serving === 'a' ? 'board-team-serving' : ''}">
+            <h1 class="board-name">
+              ${match.team_a_name}
+            </h1>
+            <div class="board-points">${points.a}</div>
+            <div class="board-games">${matchTiebreak ? 'MATCH <span>TIE-BREAK</span>' : `${match.games_a} <span>game</span>`}</div>
+          </article>
+
+          <article class="board-team board-team-b ${match.serving === 'b' ? 'board-team-serving' : ''}">
+            <h1 class="board-name">
+              ${match.team_b_name}
+            </h1>
+            <div class="board-points">${points.b}</div>
+            <div class="board-games">${matchTiebreak ? 'MATCH <span>TIE-BREAK</span>' : `${match.games_b} <span>game</span>`}</div>
+          </article>
+        </div>
+
+      </section>
+    `;
+  }
+
+  function subscribeRealtime() {
+    return sb.channel('live_score_screen')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'live_score' },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            match = null;
+          } else if (payload.new) {
+            const updated = payload.new;
+            if (!match || updated.id === match.id || ['live', 'waiting'].includes(updated.status)) {
+              match = updated;
+            }
+          }
+          render();
+        },
+      )
+      .subscribe();
+  }
+
+  let pollingInterval = null;
+
+  function startPolling() {
+    pollingInterval = setInterval(async () => {
+      const { data } = await sb
+        .from('live_score')
+        .select('*')
+        .in('status', ['live', 'waiting', 'finished'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      match = data ?? null;
+      render();
+    }, 5000);
+  }
+
+  render();
+  const channel = subscribeRealtime();
+
+  const realtimeTimeout = setTimeout(() => {
+    if (channel.state !== 'joined') startPolling();
+  }, 3000);
+
+  window.addEventListener('beforeunload', () => {
+    sb.removeChannel(channel);
+    if (pollingInterval) clearInterval(pollingInterval);
+    clearTimeout(realtimeTimeout);
+  });
+</script>

@@ -33,6 +33,7 @@ const { data: activeMatch } = await supabase
         <div class="mt-6 flex flex-wrap gap-4">
             <a href="/admin/tennis" class="club-btn px-5 py-3">← Admin Tennis</a>
             <a href="/livescore" target="_blank" class="club-btn px-5 py-3">👁 Apri vista pubblica</a>
+            <a href="/livescore-screen" target="_blank" class="club-btn px-5 py-3">▣ Apri maxischermo</a>
         </div>
     </section>
 
@@ -49,8 +50,25 @@ const { data: activeMatch } = await supabase
 
     const POINT_LABELS = ["0", "15", "30", "40"];
 
+    function usesMatchTiebreakThird(match) {
+        return ["match_tiebreak_third", "short_sets_match_tiebreak_third"].includes(match.scoring_mode);
+    }
+
+    function usesShortSets(match) {
+        return match.scoring_mode === "short_sets_match_tiebreak_third";
+    }
+
+    function isMatchTiebreak(match) {
+        return usesMatchTiebreakThird(match) && Number(match.max_sets) === 3 && (match.sets ?? []).length === 2;
+    }
+
+    function isSetTiebreak(match) {
+        const tiebreakAt = usesShortSets(match) ? 4 : 6;
+        return match.games_a === tiebreakAt && match.games_b === tiebreakAt;
+    }
+
     function formatPoints(match) {
-        if (match.games_a === 6 && match.games_b === 6) {
+        if (isMatchTiebreak(match) || isSetTiebreak(match)) {
             return { a: String(match.points_a), b: String(match.points_b) };
         }
         const a = match.points_a;
@@ -129,6 +147,14 @@ const { data: activeMatch } = await supabase
                 </div>
             </div>
             <div class="mb-4">
+                <label class="text-xs font-black uppercase tracking-widest text-slate-500">Sistema di punteggio</label>
+                <select id="scoring_mode" class="w-full border-2 border-black p-2 font-bold mt-1">
+                    <option value="standard">Set regolari</option>
+                    <option value="match_tiebreak_third">Terzo set: match tie-break a 10</option>
+                    <option value="short_sets_match_tiebreak_third">Set corti a 4 game + terzo set tie-break a 10</option>
+                </select>
+            </div>
+            <div class="mb-4">
                 <label class="text-xs font-black uppercase tracking-widest text-slate-500">Etichetta partita (opz.)</label>
                 <input id="match_label" type="text" placeholder="Es. Semifinale" class="w-full border-2 border-black p-2 font-bold mt-1" />
             </div>
@@ -155,6 +181,7 @@ const { data: activeMatch } = await supabase
         const statusLabel = { waiting: "In attesa", live: "Live", finished: "Terminata" }[match.status] ?? match.status;
         const servingA = match.serving === "a";
         const servingB = match.serving === "b";
+        const matchTiebreak = isMatchTiebreak(match);
 
         const setPills = sets.map((s, i) =>
             `<span class="border-2 border-black px-3 py-1 text-sm font-black ${s.a > s.b ? "bg-green-200" : "bg-white"}">Set ${i + 1}: ${s.a}–${s.b}</span>`
@@ -171,7 +198,7 @@ const { data: activeMatch } = await supabase
                     <span class="font-bold">${match.sport === "padel" ? "🏓" : "🎾"} ${match.match_type === "doubles" ? "Doppio" : "Singolo"}</span>
                     ${match.match_label ? `<span class="text-slate-500 italic font-medium">${match.match_label}</span>` : ""}
                 </div>
-                <p class="text-sm text-slate-500">Set: ${setsA}–${setsB} (vince a ${setsToWin})</p>
+                <p class="text-sm text-slate-500">Set: ${setsA}–${setsB} (vince a ${setsToWin})${matchTiebreak ? " · Match tie-break a 10" : ""}</p>
                 ${sets.length ? `<div class="flex gap-2 flex-wrap mt-2">${setPills}</div>` : ""}
             </div>
 
@@ -184,7 +211,7 @@ const { data: activeMatch } = await supabase
                             ${match.team_a_name}
                         </div>
                         <div class="text-7xl font-black leading-none text-green-600 my-2">${pts.a}</div>
-                        <div class="text-2xl font-black text-slate-400">${match.games_a} game</div>
+                        <div class="text-2xl font-black text-slate-400">${matchTiebreak ? "MATCH TIE-BREAK" : `${match.games_a} game`}</div>
                     </div>
                     <div class="text-2xl font-black text-slate-300">VS</div>
                     <div>
@@ -193,7 +220,7 @@ const { data: activeMatch } = await supabase
                             ${match.team_b_name}
                         </div>
                         <div class="text-7xl font-black leading-none text-yellow-500 my-2">${pts.b}</div>
-                        <div class="text-2xl font-black text-slate-400">${match.games_b} game</div>
+                        <div class="text-2xl font-black text-slate-400">${matchTiebreak ? "MATCH TIE-BREAK" : `${match.games_b} game`}</div>
                     </div>
                 </div>
 
@@ -259,9 +286,12 @@ const { data: activeMatch } = await supabase
                 match_type: document.getElementById("match_type")?.value,
                 team_a_name: teamA,
                 team_b_name: teamB,
-                max_sets: parseInt(document.getElementById("max_sets")?.value ?? "3"),
+                max_sets: ["match_tiebreak_third", "short_sets_match_tiebreak_third"].includes(document.getElementById("scoring_mode")?.value)
+                    ? 3
+                    : parseInt(document.getElementById("max_sets")?.value ?? "3"),
                 match_label: document.getElementById("match_label")?.value.trim() || null,
                 golden_point: document.getElementById("golden_point")?.value === "true",
+                scoring_mode: document.getElementById("scoring_mode")?.value ?? "standard",
                 serving: servingSelected,
                 status: "waiting",
             }).select().single();
@@ -334,13 +364,34 @@ const { data: activeMatch } = await supabase
 
         let { points_a, points_b, games_a, games_b, sets, current_set, serving, status, winner } = match;
         const setsToWin = Math.ceil(match.max_sets / 2);
-        const isTiebreak = games_a === 6 && games_b === 6;
+        const shortSets = match.scoring_mode === "short_sets_match_tiebreak_third";
+        const matchTiebreak = ["match_tiebreak_third", "short_sets_match_tiebreak_third"].includes(match.scoring_mode) && Number(match.max_sets) === 3 && (sets ?? []).length === 2;
+        const tiebreakAt = shortSets ? 4 : 6;
+        const isTiebreak = !matchTiebreak && games_a === tiebreakAt && games_b === tiebreakAt;
         const goldenPoint = match.golden_point;
 
         let gameWon = false;
         let gameWinner = null;
 
-        if (isTiebreak) {
+        if (matchTiebreak) {
+            if (who === "a") points_a++;
+            else points_b++;
+
+            const totalPoints = points_a + points_b;
+            if (totalPoints === 1 || (totalPoints > 1 && totalPoints % 2 === 1)) {
+                serving = serving === "a" ? "b" : "a";
+            }
+
+            if ((points_a >= 10 || points_b >= 10) && Math.abs(points_a - points_b) >= 2) {
+                sets = [...(sets ?? []), { a: points_a, b: points_b, matchTiebreak: true }];
+                points_a = 0;
+                points_b = 0;
+                current_set++;
+                winner = sets.filter((s) => s.a > s.b).length > sets.filter((s) => s.b > s.a).length ? "a" : "b";
+                status = "finished";
+                showToast(`🏆 Vince ${winner === "a" ? match.team_a_name : match.team_b_name}!`);
+            }
+        } else if (isTiebreak) {
             if (who === "a") points_a++;
             else points_b++;
 
@@ -352,8 +403,6 @@ const { data: activeMatch } = await supabase
             if ((points_a >= 7 || points_b >= 7) && Math.abs(points_a - points_b) >= 2) {
                 gameWon = true;
                 gameWinner = points_a > points_b ? "a" : "b";
-                if (gameWinner === "a") games_a++;
-                else games_b++;
                 points_a = 0;
                 points_b = 0;
             }
@@ -379,16 +428,19 @@ const { data: activeMatch } = await supabase
             }
         }
 
-        if (gameWon) {
+        if (!matchTiebreak && gameWon) {
             if (gameWinner === "a") games_a++;
             else games_b++;
 
             if (!isTiebreak) serving = serving === "a" ? "b" : "a";
 
-            const setWon =
-                ((games_a >= 6 || games_b >= 6) && Math.abs(games_a - games_b) >= 2) ||
-                (games_a === 7 && games_b === 6) ||
-                (games_b === 7 && games_a === 6);
+            const setWon = shortSets
+                ? ((games_a >= 4 || games_b >= 4) && Math.abs(games_a - games_b) >= 2) ||
+                    (games_a === 5 && games_b === 4) ||
+                    (games_b === 5 && games_a === 4)
+                : ((games_a >= 6 || games_b >= 6) && Math.abs(games_a - games_b) >= 2) ||
+                    (games_a === 7 && games_b === 6) ||
+                    (games_b === 7 && games_a === 6);
 
             if (setWon) {
                 sets = [...(sets ?? []), { a: games_a, b: games_b }];

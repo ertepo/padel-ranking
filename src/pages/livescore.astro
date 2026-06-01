@@ -181,9 +181,26 @@ const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 const POINT_LABELS = ['0', '15', '30', '40'];
 
+function usesMatchTiebreakThird(match) {
+  return ['match_tiebreak_third', 'short_sets_match_tiebreak_third'].includes(match.scoring_mode);
+}
+
+function usesShortSets(match) {
+  return match.scoring_mode === 'short_sets_match_tiebreak_third';
+}
+
+function isMatchTiebreak(match) {
+  return usesMatchTiebreakThird(match) && Number(match.max_sets) === 3 && (match.sets ?? []).length === 2;
+}
+
+function isSetTiebreak(match) {
+  const tiebreakAt = usesShortSets(match) ? 4 : 6;
+  return match.games_a === tiebreakAt && match.games_b === tiebreakAt;
+}
+
 function formatPoints(match) {
 
-  const isTiebreak = match.games_a === 6 && match.games_b === 6;
+  const isTiebreak = isMatchTiebreak(match) || isSetTiebreak(match);
 
   // ── TIEBREAK ─────────────────────
   if (isTiebreak) {
@@ -253,7 +270,8 @@ function render() {
   const setsWonB = sets.filter(s => s.b > s.a).length;
   const servingA = match.serving === 'a';
   const servingB = match.serving === 'b';
-  const isTiebreak = match.games_a === 6 && match.games_b === 6;
+  const matchTiebreak = isMatchTiebreak(match);
+  const isTiebreak = matchTiebreak || isSetTiebreak(match);
 
   const statusLabel = { waiting: 'In attesa di inizio', live: '● Live', finished: 'Terminata' }[match.status];
   const statusClass = `ls-pub-badge-${match.status}`;
@@ -303,16 +321,16 @@ function render() {
         <div>
           <div class="ls-pub-points" style="color:#16a34a">${pts.a}</div>
           <div class="ls-pub-games">
-  ${match.games_a} game
-  ${isTiebreak ? '<div style="font-size:0.8rem;color:#dc2626">TIE-BREAK</div>' : ''}
+  ${matchTiebreak ? '' : `${match.games_a} game`}
+  ${isTiebreak ? `<div style="font-size:0.8rem;color:#dc2626">${matchTiebreak ? 'MATCH TIE-BREAK' : 'TIE-BREAK'}</div>` : ''}
 </div>
         </div>
         <div class="ls-pub-sep">:</div>
         <div>
           <div class="ls-pub-points" style="color:#ca8a04">${pts.b}</div>
           <div class="ls-pub-games">
-  ${match.games_b} game
-  ${isTiebreak ? '<div style="font-size:0.8rem;color:#dc2626">TIE-BREAK</div>' : ''}
+  ${matchTiebreak ? '' : `${match.games_b} game`}
+  ${isTiebreak ? `<div style="font-size:0.8rem;color:#dc2626">${matchTiebreak ? 'MATCH TIE-BREAK' : 'TIE-BREAK'}</div>` : ''}
 </div>
         </div>
       </div>
