@@ -51,6 +51,23 @@
   const slotsForCourt = (courtId: string) =>
     availability?.slots.filter((slot) => slot.courtId === courtId) || [];
 
+  const minutesFromMidnight = (value: string) => {
+    const [hours, minutes] = displayTime(value).split(':').map(Number);
+    return hours * 60 + minutes;
+  };
+
+  const timelineStart = () =>
+    Math.min(...(availability?.slots.map((slot) => minutesFromMidnight(slot.start)) || [0]));
+
+  const timelineRow = (slot: Slot) =>
+    Math.floor((minutesFromMidnight(slot.start) - timelineStart()) / 15) + 1;
+
+  const timelineSpan = (slot: Slot) =>
+    Math.max(Math.round((minutesFromMidnight(slot.end) - minutesFromMidnight(slot.start)) / 15), 1);
+
+  const timelineStyle = (slot: Slot) =>
+    `grid-row: ${timelineRow(slot)} / span ${timelineSpan(slot)};`;
+
   const skeletonSlots = (courtId: string) => {
     const count = slotsForCourt(courtId).length;
     return Array.from({ length: count || 6 });
@@ -165,7 +182,7 @@
       {#each availability.courts as court}
         <article class="club-card overflow-hidden">
           <header
-            class={`border-b-2 border-black p-4 text-white ${
+            class={`border-b-2 border-black p-4 text-white md:min-h-[7.25rem] ${
               court.sport === 'padel'
                 ? 'bg-[var(--blu-padel)]'
                 : court.sport === 'tennis'
@@ -182,7 +199,7 @@
             {/if}
           </header>
 
-          <div class="flex flex-col gap-3 p-4">
+          <div class="flex flex-col gap-3 p-4 md:grid md:auto-rows-[1.25rem] md:gap-0">
             {#if loading}
               {#each skeletonSlots(court.id) as _}
                 <div class="min-h-[4.5rem] animate-pulse border-2 border-slate-300 bg-slate-200"></div>
@@ -191,7 +208,8 @@
               {#each slotsForCourt(court.id) as slot}
                 {#if slot.available}
                   <a
-                    class="flex min-h-[4.5rem] flex-col justify-center border-2 border-black bg-green-200 p-3 text-center shadow-[-3px_3px_black] transition hover:translate-x-[-2px] hover:translate-y-[2px] hover:bg-green-300 hover:shadow-[-1px_1px_black]"
+                    class="flex min-h-[4.5rem] flex-col justify-center border-2 border-black bg-green-200 p-3 text-center shadow-[-3px_3px_black] transition hover:translate-x-[-2px] hover:translate-y-[2px] hover:bg-green-300 hover:shadow-[-1px_1px_black] md:min-h-0"
+                    style={timelineStyle(slot)}
                     href={availability.bookingUrl}
                     target="_blank"
                     rel="noreferrer"
@@ -201,7 +219,7 @@
                     <span class="text-xs font-extrabold uppercase">Disponibile</span>
                   </a>
                 {:else}
-                  <div class="flex min-h-[4.5rem] flex-col justify-center border-2 border-black bg-slate-200 p-3 text-center text-slate-500" aria-label={`${court.name} occupato dalle ${displayTime(slot.start)} alle ${displayTime(slot.end)}`}>
+                  <div class="flex min-h-[4.5rem] flex-col justify-center border-2 border-black bg-slate-200 p-3 text-center text-slate-500 md:min-h-0" style={timelineStyle(slot)} aria-label={`${court.name} occupato dalle ${displayTime(slot.start)} alle ${displayTime(slot.end)}`}>
                     <strong class="text-lg">{displayTime(slot.start)}</strong>
                     <span class="text-xs font-extrabold uppercase">{unavailableLabel(slot)}</span>
                   </div>
