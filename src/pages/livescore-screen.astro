@@ -105,7 +105,7 @@ const { data: activeMatch } = await supabase
   :global(.board-team-serving::after) {
     content: "";
     position: absolute;
-    inset: clamp(0.45rem, 0.1vw, 1rem);
+    inset: clamp(0rem, 0.2vw, 1rem);
     border: clamp(0.35rem, 0.75vw, 0.75rem) dashed #c8ff00;
     pointer-events: none;
   }
@@ -304,7 +304,7 @@ const { data: activeMatch } = await supabase
     }[match.status];
     const matchMeta = [
       statusLabel,
-      match.sport === 'padel' ? 'Padel' : 'Tennis',
+    /*  match.sport === 'padel' ? 'Padel' : 'Tennis',*/
       match.match_label,
     ].filter(Boolean).join(' / ');
 
