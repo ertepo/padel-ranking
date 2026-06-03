@@ -1,6 +1,7 @@
 ---
 import { supabase } from '../../lib/supabase';
 import Layout from '../../layouts/Layout.astro';
+import EloChart from '../../components/EloChart.svelte';
 import '../../styles/global.css';
 
 const { id } = Astro.params;
@@ -46,6 +47,8 @@ const [
     .select(`
       result,
       delta,
+      elo_before,
+      elo_after,
       team,
       matches (
         id,
@@ -137,6 +140,44 @@ for (const item of padelMatches) {
 
 const uniquePartnersCount =
   uniquePadelPartners.size;
+
+/* =========================================================
+   ANDAMENTO ELO PADEL
+========================================================= */
+
+const padelMatchesAscending = [...padelMatches].sort((a, b) => {
+  const dateA = new Date(a.matches?.created_at || 0).getTime();
+  const dateB = new Date(b.matches?.created_at || 0).getTime();
+  return dateA - dateB;
+});
+
+const eloChartPoints =
+  padelMatchesAscending.length > 0
+    ? [
+        {
+          label: 'Inizio',
+          elo: Number(padelMatchesAscending[0].elo_before || 1000),
+          detail: 'ELO iniziale',
+        },
+        ...padelMatchesAscending.map((item) => {
+          const matchDate =
+            item.matches?.played_at ||
+            item.matches?.created_at;
+          const label = matchDate
+            ? new Date(matchDate).toLocaleDateString('it-IT', {
+                day: '2-digit',
+                month: '2-digit',
+              })
+            : 'Match';
+
+          return {
+            label,
+            elo: Number(item.elo_after || item.elo_before || 1000),
+            detail: `${item.result === 'win' ? 'Vittoria' : 'Sconfitta'} ${item.delta > 0 ? '+' : ''}${item.delta}`,
+          };
+        }),
+      ]
+    : [];
 
 /* =========================================================
    STATS TENNIS
@@ -388,6 +429,32 @@ const tennisOpponentsOffset =
         </div>
       )}
     </section>
+
+    <!-- ===================================================== -->
+    <!-- ANDAMENTO ELO PADEL -->
+    <!-- ===================================================== -->
+
+    {padelData && (
+      <section class="club-card p-6 bg-white mb-10">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="bg-[var(--giallo-club)] border-2 border-black text-black px-3 py-1 text-xs font-black uppercase">
+            Padel
+          </span>
+
+          <h2 class="text-2xl font-black text-black">
+            Andamento ELO
+          </h2>
+        </div>
+
+        {eloChartPoints.length < 2 ? (
+          <p class="text-slate-500 font-bold italic">
+            Il grafico comparirà dopo la prima partita.
+          </p>
+        ) : (
+          <EloChart points={eloChartPoints} client:load />
+        )}
+      </section>
+    )}
 
     <!-- ===================================================== -->
     <!-- TARGET -->
