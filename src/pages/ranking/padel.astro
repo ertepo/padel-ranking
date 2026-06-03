@@ -39,6 +39,20 @@ for (const row of lastMatches || []) {
         lastMatchMap[row.player_id] = row.elo_after - row.elo_before;
     }
 }
+
+const activePlayers = players || [];
+const rankedPlayers = activePlayers
+    .filter((player) => player.matches_played > 0)
+    .sort((a, b) => {
+        if (b.current_elo !== a.current_elo) {
+            return b.current_elo - a.current_elo;
+        }
+
+        return a.players.name.localeCompare(b.players.name, "it");
+    });
+const debutPlayers = activePlayers
+    .filter((player) => player.matches_played === 0)
+    .sort((a, b) => a.players.name.localeCompare(b.players.name, "it"));
 ---
 
 <Layout
@@ -91,7 +105,7 @@ for (const row of lastMatches || []) {
         </div>
         <div class="divide-y-2 divide-black">
             {
-                players?.map((player, index) => {
+                rankedPlayers.map((player, index) => {
                     const winRate =
                         player.matches_played > 0
                             ? Math.round(
@@ -153,12 +167,80 @@ for (const row of lastMatches || []) {
                     );
                 })
             }
+
+            {debutPlayers.length > 0 && (
+                <div
+                    data-zero-matches-section
+                    class="bg-slate-100 px-4 py-3 text-xs font-black uppercase tracking-widest text-slate-600"
+                >
+                    In attesa di debutto
+                </div>
+            )}
+
+            {
+                debutPlayers.map((player) => {
+                    const eloDelta = lastMatchMap[player.player_id] ?? 0;
+                    return (
+                        <a
+                            href={`/player/${player.player_id}`}
+                            data-ranking-row
+                            data-zero-matches-player
+                            data-matches-played={player.matches_played}
+                            class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_6rem_5rem_5rem_5rem] gap-3 items-center p-4 bg-white hover:bg-[var(--giallo-club)] transition"
+                        >
+                            <div class="text-3xl font-black text-slate-400">
+                                NC
+                            </div>
+
+                            <div>
+                                <div class="font-black text-xl text-black flex items-center gap-2">
+                                    <span>
+                                        {eloDelta > 0 && (
+                                            <span class="text-green-600">
+                                                ▲
+                                            </span>
+                                        )}
+                                        {eloDelta < 0 && (
+                                            <span class="text-red-600">▼</span>
+                                        )}
+                                        {eloDelta === 0 && (
+                                            <span class="text-gray-400">–</span>
+                                        )}
+                                    </span>
+                                    {player.players.name}
+                                </div>
+
+                                <div class="text-sm font-bold text-slate-600 md:hidden">
+                                    In attesa della prima partita
+                                </div>
+                            </div>
+
+                            <div class="text-right font-black text-2xl text-black">
+                                {player.current_elo}
+                            </div>
+
+                            <div class="hidden md:block text-right font-bold">
+                                0
+                            </div>
+
+                            <div class="hidden md:block text-right font-bold">
+                                0V
+                            </div>
+
+                            <div class="hidden md:block text-right font-bold">
+                                -
+                            </div>
+                        </a>
+                    );
+                })
+            }
         </div>
     </div>
 
     <script is:inline>
         const toggleZeroMatchesButton = document.getElementById("toggle-zero-matches");
         const rankingRows = Array.from(document.querySelectorAll("[data-ranking-row]"));
+        const zeroMatchesSection = document.querySelector("[data-zero-matches-section]");
         let hideZeroMatches = false;
 
         function updateZeroMatchesVisibility() {
@@ -166,6 +248,10 @@ for (const row of lastMatches || []) {
                 const matchesPlayed = Number(row.dataset.matchesPlayed || 0);
                 row.hidden = hideZeroMatches && matchesPlayed === 0;
             });
+
+            if (zeroMatchesSection) {
+                zeroMatchesSection.hidden = hideZeroMatches;
+            }
 
             toggleZeroMatchesButton.textContent = hideZeroMatches
                 ? "Mostra inattivi"
