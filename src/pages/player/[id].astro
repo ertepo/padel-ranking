@@ -157,7 +157,7 @@ const eloChartPoints =
         {
           label: 'Inizio',
           elo: Number(padelMatchesAscending[0].elo_before || 1000),
-          detail: 'ELO iniziale',
+          detail: ['ELO iniziale'],
         },
         ...padelMatchesAscending.map((item) => {
           const matchDate =
@@ -169,11 +169,35 @@ const eloChartPoints =
                 month: '2-digit',
               })
             : 'Match';
+          const allParticipants =
+            item.matches?.match_players || [];
+          const partnerObj =
+            allParticipants.find(
+              (participant) =>
+                participant.team === item.team &&
+                participant.player_id !== id
+            );
+          const opponents =
+            allParticipants.filter(
+              (participant) => participant.team !== item.team
+            );
+          const partnerName =
+            partnerObj?.players?.name || 'Compagno';
+          const opponentNames =
+            opponents
+              .map((opponent) => opponent.players?.name)
+              .filter(Boolean)
+              .join(' / ');
 
           return {
             label,
             elo: Number(item.elo_after || item.elo_before || 1000),
-            detail: `${item.result === 'win' ? 'Vittoria' : 'Sconfitta'} ${item.delta > 0 ? '+' : ''}${item.delta}`,
+            detail: [
+              `${item.result === 'win' ? 'Vittoria' : 'Sconfitta'} ${item.delta > 0 ? '+' : ''}${item.delta}`,
+              `con ${partnerName}`,
+              opponentNames ? `contro ${opponentNames}` : null,
+              item.matches?.score ? `score ${item.matches.score}` : null,
+            ].filter(Boolean),
           };
         }),
       ]

@@ -12,8 +12,25 @@ if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
 
 const { data: existingPlayers } = await supabase
     .from("players")
-    .select("id, name, email, phone, active")
+    .select(`
+        id,
+        name,
+        email,
+        phone,
+        active,
+        padel_rankings (
+            active
+        ),
+        tennis_rankings (
+            active
+        )
+    `)
     .order("name", { ascending: true });
+
+const rankingIsActive = (ranking) => {
+    const row = Array.isArray(ranking) ? ranking[0] : ranking;
+    return row?.active !== false;
+};
 
 let message = "";
 let errorMessage = "";
@@ -22,12 +39,87 @@ if (Astro.url.searchParams.get("created") === "1") {
     message = "Giocatore aggiunto correttamente!";
 }
 
+if (Astro.url.searchParams.get("updated") === "1") {
+    message = "Stato giocatore aggiornato!";
+}
+
+if (Astro.url.searchParams.get("tennis_reordered") === "1") {
+    message = "Classifica tennis riformattata!";
+}
+
 if (Astro.request.method === "POST") {
     let insertedPlayerId = "";
 
     try {
         const body = await Astro.request.text();
         const data = new URLSearchParams(body);
+        const intent = data.get("intent") || "create-player";
+
+        if (intent === "reorder-tennis-ranking") {
+            const { data: tennisRows, error: tennisRowsError } = await supabase
+                .from("tennis_rankings")
+                .select("player_id, position")
+                .eq("active", true)
+                .order("position", { ascending: true });
+
+            if (tennisRowsError) {
+                throw new Error(tennisRowsError.message);
+            }
+
+            for (const [index, row] of (tennisRows || []).entries()) {
+                const newPosition = index + 1;
+
+                if (row.position === newPosition) {
+                    continue;
+                }
+
+                const { error: updatePositionError } = await supabase
+                    .from("tennis_rankings")
+                    .update({
+                        position: newPosition,
+                    })
+                    .eq("player_id", row.player_id);
+
+                if (updatePositionError) {
+                    throw new Error(updatePositionError.message);
+                }
+            }
+
+            return Astro.redirect("/admin/players?tennis_reordered=1");
+        }
+
+        if (intent === "update-player-activity") {
+            const playerIds = data.getAll("player_id").map(String).filter(Boolean);
+
+            if (playerIds.length === 0) {
+                throw new Error("Nessun giocatore da aggiornare.");
+            }
+
+            for (const playerId of playerIds) {
+                const padelActive = data.get(`padel_active_${playerId}`) === "on";
+                const tennisActive = data.get(`tennis_active_${playerId}`) === "on";
+
+                const { error: padelUpdateError } = await supabase
+                    .from("padel_rankings")
+                    .update({ active: padelActive })
+                    .eq("player_id", playerId);
+
+                if (padelUpdateError) {
+                    throw new Error(padelUpdateError.message);
+                }
+
+                const { error: tennisUpdateError } = await supabase
+                    .from("tennis_rankings")
+                    .update({ active: tennisActive })
+                    .eq("player_id", playerId);
+
+                if (tennisUpdateError) {
+                    throw new Error(tennisUpdateError.message);
+                }
+            }
+
+            return Astro.redirect("/admin/players?updated=1");
+        }
 
         const name = data.get("name")?.trim() || "";
         const email = data.get("email")?.trim() || null;
@@ -176,6 +268,8 @@ if (Astro.request.method === "POST") {
             action="/admin/players"
             class="club-card p-5 md:p-6 space-y-6 bg-white"
         >
+            <input type="hidden" name="intent" value="create-player" />
+
             <div>
                 <h2 class="text-2xl font-black mb-3 text-black">Nuovo giocatore</h2>
 
@@ -244,24 +338,76 @@ if (Astro.request.method === "POST") {
         </form>
 
         <aside class="club-card p-5 bg-white">
-            <h2 class="text-2xl font-black mb-4">Giocatori attivi</h2>
+            <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <h2 class="text-2xl font-black">Giocatori</h2>
+
+                <div class="flex flex-wrap gap-2">
+                    <form method="POST" action="/admin/players">
+                        <input type="hidden" name="intent" value="reorder-tennis-ranking" />
+                        <button type="submit" class="club-btn px-3 py-2 text-xs uppercase">
+                            Riformatta tennis
+                        </button>
+                    </form>
+
+                    {existingPlayers && existingPlayers.length > 0 && (
+                        <button
+                            type="submit"
+                            form="players-activity-form"
+                            class="club-btn px-3 py-2 text-xs uppercase"
+                        >
+                            Salva modifiche
+                        </button>
+                    )}
+                </div>
+            </div>
 
             {
                 existingPlayers && existingPlayers.length > 0 ? (
-                    <ul class="divide-y-2 divide-black border-2 border-black">
-                        {existingPlayers.map((player) => (
-                            <li class="p-3 bg-white">
-                                <a href={`/player/${player.id}`} class="font-black hover:underline">
-                                    {player.name}
-                                </a>
-                                {(player.email || player.phone) && (
-                                    <p class="text-xs font-bold text-slate-500 mt-1">
-                                        {[player.email, player.phone].filter(Boolean).join(" - ")}
-                                    </p>
-                                )}
-                            </li>
-                        ))}
-                    </ul>
+                    <form
+                        id="players-activity-form"
+                        method="POST"
+                        action="/admin/players"
+                        class="divide-y-2 divide-black border-2 border-black"
+                    >
+                        <input type="hidden" name="intent" value="update-player-activity" />
+
+                        {existingPlayers.map((player) => {
+                            const padelActive = rankingIsActive(player.padel_rankings);
+                            const tennisActive = rankingIsActive(player.tennis_rankings);
+
+                            return (
+                                <div class="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 bg-white p-2">
+                                    <input type="hidden" name="player_id" value={player.id} />
+
+                                    <div class="min-w-0">
+                                        <a href={`/player/${player.id}`} class="block truncate text-sm font-black hover:underline">
+                                            {player.name}
+                                        </a>
+                                    </div>
+
+                                    <label class="flex items-center gap-1 text-xs font-black uppercase">
+                                        T:
+                                        <input
+                                            type="checkbox"
+                                            name={`tennis_active_${player.id}`}
+                                            checked={tennisActive}
+                                            class="h-4 w-4 accent-[var(--viola-tennis)]"
+                                        />
+                                    </label>
+
+                                    <label class="flex items-center gap-1 text-xs font-black uppercase">
+                                        P:
+                                        <input
+                                            type="checkbox"
+                                            name={`padel_active_${player.id}`}
+                                            checked={padelActive}
+                                            class="h-4 w-4 accent-[var(--blu-padel)]"
+                                        />
+                                    </label>
+                                </div>
+                            );
+                        })}
+                    </form>
                 ) : (
                     <p class="font-bold text-slate-500">Nessun giocatore presente.</p>
                 )

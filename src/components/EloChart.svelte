@@ -5,7 +5,7 @@
   type EloPoint = {
     label: string;
     elo: number;
-    detail?: string;
+    detail?: string[];
   };
 
   export let points: EloPoint[] = [];
@@ -50,9 +50,10 @@
               title: (items) => items[0]?.label || '',
               label: (item) => {
                 const point = points[item.dataIndex];
-                return point?.detail
-                  ? `${point.elo} ELO - ${point.detail}`
-                  : `${point?.elo ?? item.parsed.y} ELO`;
+                return [
+                  `${point?.elo ?? item.parsed.y} ELO`,
+                  ...(point?.detail || []),
+                ];
               },
             },
           },
