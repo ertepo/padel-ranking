@@ -19,11 +19,13 @@
       id: `tennis-${match.id}`,
       created_at: match.created_at,
       score: match.score,
+      note: match.note,
 
       tennisData: {
         challenger: match.challenger,
         defender: match.defender,
         winner: match.winner,
+        best_player: match.best_player,
         challenger_old_position:
           match.challenger_old_position,
         challenger_new_position:
@@ -59,9 +61,15 @@
           created_at,
           winner_team,
           score,
+          note,
+          best_player_id,
           team_a_avg_elo,
           team_b_avg_elo,
           match_type,
+          best_player:players!matches_best_player_id_fkey (
+            id,
+            name
+          ),
           match_players (
             id,
             player_id,
@@ -82,6 +90,8 @@
           id,
           created_at,
           score,
+          note,
+          best_player_id,
           challenger_id,
           defender_id,
           winner_id,
@@ -98,6 +108,10 @@
             name
           ),
           winner:players!tennis_matches_winner_id_fkey (
+            id,
+            name
+          ),
+          best_player:players!tennis_matches_best_player_id_fkey (
             id,
             name
           )

@@ -96,10 +96,10 @@ const themeStyle = `--theme-accent: ${currentTheme.accent}; --theme-accent-contr
     <meta name="twitter:image" content={ogImageUrl} />
   </head>
 
-  <body style={themeStyle}>
+  <body style={themeStyle} class="min-h-screen flex flex-col">
     <Header theme={headerTheme} accent={currentTheme.accent} contrast={currentTheme.contrast} logoSrc={currentTheme.logo} client:load />
 
-    <main class={fullBleed ? 'w-full' : 'max-w-5xl mx-auto px-4 py-8'}>
+    <main class={fullBleed ? 'w-full flex-1' : 'max-w-5xl mx-auto w-full flex-1 px-4 py-8'}>
       <slot />
     </main>
 

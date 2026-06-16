@@ -1,5 +1,6 @@
 ---
-import '../styles/global.css';
+import Layout from '../layouts/Layout.astro';
+
 let error = '';
 
 if (Astro.request.method === 'POST') {
@@ -32,31 +33,49 @@ if (Astro.request.method === 'POST') {
 }
 ---
 
-<html lang="it">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="robots" content="noindex, nofollow" />
-    <title>Login | Tie-Break Poggio San Vicino</title>
-  </head>
+<Layout
+  title="Login Admin"
+  description="Accesso riservato all'area amministrativa Tie-Break Poggio San Vicino."
+  noindex={true}
+>
+  <section class="mx-auto max-w-xl">
+    <div class="mb-8">
+      <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
+        Area riservata
+      </p>
 
-  <body>
-    <h1>Admin Login</h1>
+      <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+        Admin Login
+      </h1>
+    </div>
 
-    {
-      error && <p>{error}</p>
-    }
+    <article class="club-card bg-[var(--giallo-club)] p-5 md:p-6">
+      <form method="POST" class="grid gap-5">
+        <div>
+          <label for="password" class="block text-xs uppercase tracking-widest font-black text-black opacity-60 mb-2">
+            Password
+          </label>
 
-    <form method="POST">
-      <input
-        type="password"
-        name="password"
-        placeholder="Password"
-      />
+          <input
+            id="password"
+            type="password"
+            name="password"
+            placeholder="Inserisci password admin"
+            class="w-full border-2 border-black bg-white p-4 text-xl font-black outline-none"
+            required
+          />
+        </div>
 
-      <button type="submit">
-        Login
-      </button>
-    </form>
-  </body>
-</html>
+        {error && (
+          <p class="border-2 border-black bg-white p-3 font-black text-red-700">
+            {error}
+          </p>
+        )}
+
+        <button type="submit" class="club-btn w-full px-5 py-4 text-xl">
+          Entra
+        </button>
+      </form>
+    </article>
+  </section>
+</Layout>

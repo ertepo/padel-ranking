@@ -50,9 +50,15 @@ if (normalizedSport === 'padel') {
       played_at,
       winner_team,
       score,
+      note,
+      best_player_id,
       team_a_avg_elo,
       team_b_avg_elo,
       match_type,
+      best_player:players!matches_best_player_id_fkey (
+        id,
+        name
+      ),
       match_players (
         id,
         player_id,
@@ -86,6 +92,8 @@ if (normalizedSport === 'padel') {
       description: `Risultato padel Tie-Break: ${teamAName} vs ${teamBName}, ${match.score || 'punteggio non disponibile'}. Vincitori: ${winnerName}.`,
       date: match.played_at || match.created_at,
       score: match.score || 'N/D',
+      note: match.note,
+      bestPlayer: match.best_player,
       winnerName,
       teamA,
       teamB,
@@ -104,6 +112,8 @@ if (normalizedSport === 'tennis') {
       created_at,
       played_at,
       score,
+      note,
+      best_player_id,
       challenger_id,
       defender_id,
       winner_id,
@@ -120,6 +130,10 @@ if (normalizedSport === 'tennis') {
         name
       ),
       winner:players!tennis_matches_winner_id_fkey (
+        id,
+        name
+      ),
+      best_player:players!tennis_matches_best_player_id_fkey (
         id,
         name
       )
@@ -139,6 +153,8 @@ if (normalizedSport === 'tennis') {
       description: `Risultato tennis Tie-Break: ${match.challenger?.name} vs ${match.defender?.name}, ${match.score || 'punteggio non disponibile'}. Vincitore: ${match.winner?.name}.`,
       date: match.played_at || match.created_at,
       score: match.score || 'N/D',
+      note: match.note,
+      bestPlayer: match.best_player,
       challenger: match.challenger,
       defender: match.defender,
       winner: match.winner,
@@ -148,6 +164,10 @@ if (normalizedSport === 'tennis') {
       defenderNewPosition: match.defender_new_position,
     };
   }
+}
+
+if (pageData?.note) {
+  pageData.description = `${pageData.description} "${pageData.note}"`;
 }
 
 if (error || !match || !pageData) {
@@ -299,6 +319,27 @@ const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${sh
         </div>
       )}
     </div>
+
+    {(pageData.bestPlayer || pageData.note) && (
+      <div class="grid gap-3 border-t-2 border-black bg-white p-5 md:grid-cols-2">
+        {pageData.bestPlayer && (
+          <div class="border-2 border-black bg-[var(--giallo-club)] p-4">
+            <p class="text-xs font-black uppercase tracking-widest text-black opacity-60">
+              Best player
+            </p>
+            <p class="text-2xl font-black">
+              {pageData.bestPlayer.name}
+            </p>
+          </div>
+        )}
+
+        {pageData.note && (
+          <blockquote class="border-2 border-black bg-white p-4 text-2xl font-black leading-snug">
+            "{pageData.note}"
+          </blockquote>
+        )}
+      </div>
+    )}
   </article>
 
   <div class="mt-8 flex flex-wrap gap-4">

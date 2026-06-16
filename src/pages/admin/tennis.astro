@@ -40,6 +40,8 @@ if (Astro.request.method === "POST") {
     const winnerId = data.get("winner_id")?.trim() || "";
     const loserId = data.get("loser_id")?.trim() || "";
     const score = data.get("score")?.trim() || "";
+    const note = data.get("note")?.trim() || null;
+    const bestPlayerId = data.get("best_player_id")?.trim() || null;
     try {
         if (!winnerId || !loserId) {
             throw new Error("Entrambi i giocatori sono obbligatori.");
@@ -47,6 +49,10 @@ if (Astro.request.method === "POST") {
 
         if (winnerId === loserId) {
             throw new Error("Un giocatore non può giocare contro se stesso.");
+        }
+
+        if (bestPlayerId && ![winnerId, loserId].includes(bestPlayerId)) {
+            throw new Error("Il best player deve essere uno dei giocatori del match.");
         }
 
         // Recupera tutto il ranking
@@ -265,6 +271,8 @@ if (Astro.request.method === "POST") {
             defender_old_position: defender.position,
             challenger_new_position: newPositions[challenger.player_id],
             defender_new_position: newPositions[defender.player_id],
+            note,
+            best_player_id: bestPlayerId,
         });
 
         return Astro.redirect("/admin/tennis?saved=1");
@@ -382,6 +390,33 @@ if (Astro.request.method === "POST") {
             />
         </div>
 
+        <div>
+            <h2 class="text-2xl font-black mb-3 text-black">Nota partita</h2>
+            <textarea
+                name="note"
+                rows="3"
+                placeholder="Es. Citazione, sfotto, momento epico..."
+                class="w-full border-2 border-black bg-white p-3 font-bold"
+            ></textarea>
+            <fieldset class="mt-5 border-2 border-black bg-[var(--giallo-club)] p-3">
+                <legend class="px-2 text-sm font-black uppercase tracking-widest">
+                    Best player del match
+                </legend>
+
+                <div class="grid gap-2">
+                    <label class="flex items-center gap-3 border-2 border-black bg-white p-3 font-black">
+                        <input type="radio" name="best_player_id" data-best-player-radio="winner_id" disabled />
+                        <span data-best-player-label="winner_id">Seleziona vincitore</span>
+                    </label>
+
+                    <label class="flex items-center gap-3 border-2 border-black bg-white p-3 font-black">
+                        <input type="radio" name="best_player_id" data-best-player-radio="loser_id" disabled />
+                        <span data-best-player-label="loser_id">Seleziona sconfitto</span>
+                    </label>
+                </div>
+            </fieldset>
+        </div>
+
         <button type="submit" class="club-btn w-full p-4 text-xl">
             Registra Match Tennis
         </button>
@@ -414,6 +449,32 @@ if (Astro.request.method === "POST") {
 
   setupBanner('success-banner');
   setupBanner('error-banner');
+
+  function syncBestPlayerRadio(selectName) {
+    const select = document.querySelector(`[name="${selectName}"]`);
+    const radio = document.querySelector(`[data-best-player-radio="${selectName}"]`);
+    const label = document.querySelector(`[data-best-player-label="${selectName}"]`);
+
+    if (!select || !radio || !label) return;
+
+    if (!select.value) {
+      radio.checked = false;
+      radio.disabled = true;
+      radio.value = '';
+      label.textContent = select.options[0]?.text || 'Seleziona giocatore';
+      return;
+    }
+
+    radio.disabled = false;
+    radio.value = select.value;
+    label.textContent = select.options[select.selectedIndex].text;
+  }
+
+  ['winner_id', 'loser_id'].forEach((selectName) => {
+    const select = document.querySelector(`[name="${selectName}"]`);
+    select?.addEventListener('change', () => syncBestPlayerRadio(selectName));
+    syncBestPlayerRadio(selectName);
+  });
 
 </script>
 </Layout>

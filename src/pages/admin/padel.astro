@@ -47,13 +47,19 @@ if (Astro.request.method === "POST") {
         const b1Id = data.get("b1_id")?.trim() || "";
         const b2Id = data.get("b2_id")?.trim() || "";
         const winner = (data.get("winner") || "") as "A" | "B";
-        const score = data.get("score") || "";
+        const score = data.get("score")?.trim() || "";
+        const note = data.get("note")?.trim() || null;
+        const bestPlayerId = data.get("best_player_id")?.trim() || null;
 
         if (!a1Id || !a2Id || !b1Id || !b2Id || !winner) {
             throw new Error("Compila tutti i campi.");
         }
 
         const inputIds = [a1Id, a2Id, b1Id, b2Id];
+
+        if (bestPlayerId && !inputIds.includes(bestPlayerId)) {
+            throw new Error("Il best player deve essere uno dei giocatori del match.");
+        }
 
         // Controllo duplicati basato sugli ID univoci
         if (new Set(inputIds).size !== 4) {
@@ -121,6 +127,8 @@ if (Astro.request.method === "POST") {
                 match_type: elo.matchType,
                 elo_delta_winner: elo.winnerDelta,
                 elo_delta_loser: elo.loserDelta,
+                note,
+                best_player_id: bestPlayerId,
             })
             .select()
             .single();
@@ -255,39 +263,43 @@ if (Astro.request.method === "POST") {
             </div>
 
             <div class="grid gap-3 md:grid-cols-2">
-                <select
-                    name="a1_id"
-                    required
-                    class="w-full border-2 border-black bg-white p-3 font-bold"
-                >
-                    <option value="" disabled selected
-                        >Seleziona Giocatore A1...</option
+                <div>
+                    <select
+                        name="a1_id"
+                        required
+                        class="w-full border-2 border-black bg-white p-3 font-bold"
                     >
-                    {
-                        players?.map((player) => (
-                            <option value={player.player_id}>
-                                {player.players.name} ({player.current_elo} ELO)
-                            </option>
-                        ))
-                    }
-                </select>
+                        <option value="" disabled selected
+                            >Seleziona Giocatore A1...</option
+                        >
+                        {
+                            players?.map((player) => (
+                                <option value={player.player_id}>
+                                    {player.players.name} ({player.current_elo} ELO)
+                                </option>
+                            ))
+                        }
+                    </select>
+                </div>
 
-                <select
-                    name="a2_id"
-                    required
-                    class="w-full border-2 border-black bg-white p-3 font-bold"
-                >
-                    <option value="" disabled selected
-                        >Seleziona Giocatore A2...</option
+                <div>
+                    <select
+                        name="a2_id"
+                        required
+                        class="w-full border-2 border-black bg-white p-3 font-bold"
                     >
-                    {
-                        players?.map((player) => (
-                            <option value={player.player_id}>
-                                {player.players.name} ({player.current_elo} ELO)
-                            </option>
-                        ))
-                    }
-                </select>
+                        <option value="" disabled selected
+                            >Seleziona Giocatore A2...</option
+                        >
+                        {
+                            players?.map((player) => (
+                                <option value={player.player_id}>
+                                    {player.players.name} ({player.current_elo} ELO)
+                                </option>
+                            ))
+                        }
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -312,39 +324,43 @@ if (Astro.request.method === "POST") {
             </div>
 
             <div class="grid gap-3 md:grid-cols-2">
-                <select
-                    name="b1_id"
-                    required
-                    class="w-full border-2 border-black bg-white p-3 font-bold"
-                >
-                    <option value="" disabled selected
-                        >Seleziona Giocatore B1...</option
+                <div>
+                    <select
+                        name="b1_id"
+                        required
+                        class="w-full border-2 border-black bg-white p-3 font-bold"
                     >
-                    {
-                        players?.map((player) => (
-                            <option value={player.player_id}>
-                                {player.players.name} ({player.current_elo} ELO)
-                            </option>
-                        ))
-                    }
-                </select>
+                        <option value="" disabled selected
+                            >Seleziona Giocatore B1...</option
+                        >
+                        {
+                            players?.map((player) => (
+                                <option value={player.player_id}>
+                                    {player.players.name} ({player.current_elo} ELO)
+                                </option>
+                            ))
+                        }
+                    </select>
+                </div>
 
-                <select
-                    name="b2_id"
-                    required
-                    class="w-full border-2 border-black bg-white p-3 font-bold"
-                >
-                    <option value="" disabled selected
-                        >Seleziona Giocatore B2...</option
+                <div>
+                    <select
+                        name="b2_id"
+                        required
+                        class="w-full border-2 border-black bg-white p-3 font-bold"
                     >
-                    {
-                        players?.map((player) => (
-                            <option value={player.player_id}>
-                                {player.players.name} ({player.current_elo} ELO)
-                            </option>
-                        ))
-                    }
-                </select>
+                        <option value="" disabled selected
+                            >Seleziona Giocatore B2...</option
+                        >
+                        {
+                            players?.map((player) => (
+                                <option value={player.player_id}>
+                                    {player.players.name} ({player.current_elo} ELO)
+                                </option>
+                            ))
+                        }
+                    </select>
+                </div>
             </div>
         </div>
 
@@ -370,6 +386,43 @@ if (Astro.request.method === "POST") {
                     class="w-full border-2 border-black bg-white p-3 font-bold"
                 />
             </div>
+        </div>
+
+        <div>
+            <h2 class="text-2xl font-black mb-3 text-black">Nota partita</h2>
+            <textarea
+                name="note"
+                rows="3"
+                placeholder="Es. Citazione, sfotto, momento epico..."
+                class="w-full border-2 border-black bg-white p-3 font-bold"
+            ></textarea>
+            <fieldset class="mt-5 border-2 border-black bg-[var(--giallo-club)] p-3">
+                <legend class="px-2 text-sm font-black uppercase tracking-widest">
+                    Best player del match
+                </legend>
+
+                <div class="grid gap-2">
+                    <label class="flex items-center gap-3 border-2 border-black bg-white p-3 font-black">
+                        <input type="radio" name="best_player_id" data-best-player-radio="a1_id" disabled />
+                        <span data-best-player-label="a1_id">Seleziona Giocatore A1</span>
+                    </label>
+
+                    <label class="flex items-center gap-3 border-2 border-black bg-white p-3 font-black">
+                        <input type="radio" name="best_player_id" data-best-player-radio="a2_id" disabled />
+                        <span data-best-player-label="a2_id">Seleziona Giocatore A2</span>
+                    </label>
+
+                    <label class="flex items-center gap-3 border-2 border-black bg-white p-3 font-black">
+                        <input type="radio" name="best_player_id" data-best-player-radio="b1_id" disabled />
+                        <span data-best-player-label="b1_id">Seleziona Giocatore B1</span>
+                    </label>
+
+                    <label class="flex items-center gap-3 border-2 border-black bg-white p-3 font-black">
+                        <input type="radio" name="best_player_id" data-best-player-radio="b2_id" disabled />
+                        <span data-best-player-label="b2_id">Seleziona Giocatore B2</span>
+                    </label>
+                </div>
+            </fieldset>
         </div>
 
         <button type="submit" class="club-btn w-full p-4 text-xl">
@@ -401,5 +454,31 @@ if (Astro.request.method === "POST") {
 
         setupBanner("success-banner");
         setupBanner("error-banner");
+
+        function syncBestPlayerRadio(selectName) {
+            const select = document.querySelector(`[name="${selectName}"]`);
+            const radio = document.querySelector(`[data-best-player-radio="${selectName}"]`);
+            const label = document.querySelector(`[data-best-player-label="${selectName}"]`);
+
+            if (!select || !radio || !label) return;
+
+            if (!select.value) {
+                radio.checked = false;
+                radio.disabled = true;
+                radio.value = "";
+                label.textContent = select.options[0]?.text || "Seleziona giocatore";
+                return;
+            }
+
+            radio.disabled = false;
+            radio.value = select.value;
+            label.textContent = select.options[select.selectedIndex].text;
+        }
+
+        ["a1_id", "a2_id", "b1_id", "b2_id"].forEach((selectName) => {
+            const select = document.querySelector(`[name="${selectName}"]`);
+            select?.addEventListener("change", () => syncBestPlayerRadio(selectName));
+            syncBestPlayerRadio(selectName);
+        });
     </script>
 </Layout>

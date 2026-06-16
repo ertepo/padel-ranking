@@ -154,6 +154,27 @@
 
   </div>
 
+  {#if match.note || match.best_player}
+    <div class="mt-5 grid gap-3 md:grid-cols-2">
+      {#if match.best_player}
+        <div class="border-2 border-black bg-[var(--giallo-club)] px-3 py-2">
+          <p class="text-xs uppercase font-bold text-black opacity-60">
+            Best player
+          </p>
+          <p class="font-black text-xl">
+            {match.best_player.name}
+          </p>
+        </div>
+      {/if}
+
+      {#if match.note}
+        <blockquote class="border-2 border-black bg-white px-3 py-2 font-black">
+          "{match.note}"
+        </blockquote>
+      {/if}
+    </div>
+  {/if}
+
   <div class="mt-5 flex justify-end">
     <a href={getMatchUrl()} class="club-btn px-4 py-2">
       Apri match
@@ -273,6 +294,27 @@
     </div>
 
   </div>
+
+  {#if match.note || match.tennisData.best_player}
+    <div class="mt-5 grid gap-3 md:grid-cols-2">
+      {#if match.tennisData.best_player}
+        <div class="border-2 border-black bg-[var(--giallo-club)] px-3 py-2">
+          <p class="text-xs uppercase font-bold text-black opacity-60">
+            Best player
+          </p>
+          <p class="font-black text-xl">
+            {match.tennisData.best_player.name}
+          </p>
+        </div>
+      {/if}
+
+      {#if match.note}
+        <blockquote class="border-2 border-black bg-white px-3 py-2 font-black">
+          "{match.note}"
+        </blockquote>
+      {/if}
+    </div>
+  {/if}
 
   <div class="mt-5 flex justify-end">
     <a href={getMatchUrl()} class="club-btn px-4 py-2">
