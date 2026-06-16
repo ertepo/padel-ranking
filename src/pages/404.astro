@@ -1,0 +1,21 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout
+  title="404 | Tie-Break Poggio San Vicino"
+  description="Pagina non trovata."
+  noindex={true}
+  fullBleed={true}
+>
+  <div class="flex min-h-[calc(100svh-9rem)] items-center justify-center">
+    <picture class="block w-full">
+      <source media="(min-width: 768px)" srcset="/images/404-w.svg" />
+      <img
+        src="/images/404.svg"
+        alt="404"
+        class="block h-auto max-h-[calc(100svh-9rem)] w-full object-contain"
+      />
+    </picture>
+  </div>
+</Layout>

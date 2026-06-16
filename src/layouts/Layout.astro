@@ -9,6 +9,7 @@ const {
   image = '/images/og/og-image.png',
   noindex = false,
   headerTheme = 'neutral',
+  fullBleed = false,
 } = Astro.props;
 
 const siteName = 'Tie-Break Poggio San Vicino';
@@ -98,7 +99,7 @@ const themeStyle = `--theme-accent: ${currentTheme.accent}; --theme-accent-contr
   <body style={themeStyle}>
     <Header theme={headerTheme} accent={currentTheme.accent} contrast={currentTheme.contrast} logoSrc={currentTheme.logo} client:load />
 
-    <main class="max-w-5xl mx-auto px-4 py-8">
+    <main class={fullBleed ? 'w-full' : 'max-w-5xl mx-auto px-4 py-8'}>
       <slot />
     </main>
 

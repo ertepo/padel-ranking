@@ -1,7 +1,7 @@
 <script>
   export let theme = 'neutral';
-  export let accent = 'var(--theme-accent)';
-  export let contrast = 'var(--theme-accent-contrast)';
+  export let accent = '#ffcc00';
+  export let contrast = '#000';
   export let logoSrc = '/images/logo-b.svg';
 
   let isOpen = false;

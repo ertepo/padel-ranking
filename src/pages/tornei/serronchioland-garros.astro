@@ -1,0 +1,273 @@
+---
+import TournamentPage from '../../components/TournamentPage.astro';
+import TournamentBracket from '../../components/TournamentBracket.astro';
+
+const tournament = {
+  name: 'Serronchioland Garros',
+  date: '01 - 05 luglio',
+  image: '/images/tournaments/serronchioland.svg',
+  ogImage: '/images/og/og-image-serronchioland.png',
+  description:
+    'Secondo appuntamento del Grande Slam estivo di padel Tie-Break. Squadre, gironi e risultati aggiornati.',
+  registrationDays: [
+    {
+      name: 'Domenica',
+      teams: [
+        ['', ''],
+        ['', ''],
+        ['', ''],
+        ['', ''],
+      ],
+    },
+    {
+      name: 'Lunedì',
+      teams: [
+        ['', ''],
+        ['', ''],
+        ['', ''],
+        ['', ''],
+      ],
+    },
+  ],
+  groups: [
+    {
+      name: 'Girone A',
+      date: 'Domenica 31 maggio',
+      teams: [
+        ['', ''],
+        ['', ''],
+        ['', ''],
+        ['', ''],
+      ],
+      matches: [
+        {
+          teamA: '',
+          teamB: '',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: '',
+          teamB: '',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: '',
+          teamB: '',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: '',
+          teamB: '',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: '',
+          teamB: '',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: '',
+          teamB: '',
+          score: '',
+          winner: '',
+        },
+      ],
+    },
+    {
+      name: 'Girone B',
+      date: '',
+      teams: [
+        ['', ''],
+        ['', ''],
+        ['', ''],
+        ['', ''],
+      ],
+      matches: [
+        {
+          teamA: '',
+          teamB: '',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: '',
+          teamB: '',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: '',
+          teamB: '',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: '',
+          teamB: '',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: '',
+          teamB: '',
+          score: '',
+          winner: '',
+        },
+        {
+          teamA: '',
+          teamB: '',
+          score: '',
+          winner: '',
+        },
+      ],
+    },
+  ],
+};
+
+const bracketRoundsGOLD = [
+  /*{
+    name: 'Quarti',
+    matches: [
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+    ],
+  },*/
+  {
+    name: 'Semifinali',
+    surname: 'GOLD',
+    matches: [
+      {
+        teamA: '',
+        teamB: '',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: '',
+        teamB: '',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+    ],
+  },
+  {
+    name: 'Finale',
+    matches: [
+      {
+        teamA: '',
+        teamB: '',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+    ],
+  },
+];
+
+const bracketRoundsSILVER = [
+  /*{
+    name: 'Quarti',
+    matches: [
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: 'Da definire',
+        teamB: 'Da definire',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+    ],
+  },*/
+  {
+    name: 'Semifinali SILVER',
+    surname: 'SILVER',
+    matches: [
+      {
+        teamA: '',
+        teamB: '',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+      {
+        teamA: '',
+        teamB: '',
+        scoreA: '',
+        scoreB: '',
+        winner: '',
+      },
+    ],
+  },
+  {
+    name: 'Finale',
+    matches: [
+      {
+        teamA: '',
+        teamB: '',
+        scoreA: '',
+        scoreB: '',
+        winner: 'B',
+      },
+    ],
+  },
+];
+
+---
+
+<TournamentPage tournament={tournament}>
+  <TournamentBracket rounds={bracketRoundsGOLD} />
+  <TournamentBracket rounds={bracketRoundsSILVER} />
+</TournamentPage>
