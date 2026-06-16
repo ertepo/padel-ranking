@@ -1,0 +1,313 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { supabase } from '../../../lib/supabase';
+
+const { sport, id } = Astro.params;
+const normalizedSport = sport?.toLowerCase();
+
+if (!id || !['padel', 'tennis'].includes(normalizedSport || '')) {
+  return Astro.redirect('/404');
+}
+
+const formatDate = (value) =>
+  value
+    ? new Date(value).toLocaleDateString('it-IT', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+      })
+    : 'Data non disponibile';
+
+const formatDateTime = (value) =>
+  value
+    ? new Date(value).toLocaleString('it-IT', {
+        day: '2-digit',
+        month: 'long',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      })
+    : 'Data non disponibile';
+
+const matchOgImage = '/images/og/og-match.png';
+
+const joinNames = (players) =>
+  players
+    .map((item) => item.players?.name)
+    .filter(Boolean)
+    .join(' / ');
+
+let match = null;
+let error = null;
+let pageData = null;
+
+if (normalizedSport === 'padel') {
+  const response = await supabase
+    .from('matches')
+    .select(`
+      id,
+      created_at,
+      played_at,
+      winner_team,
+      score,
+      team_a_avg_elo,
+      team_b_avg_elo,
+      match_type,
+      match_players (
+        id,
+        player_id,
+        team,
+        result,
+        delta,
+        players (
+          id,
+          name
+        )
+      )
+    `)
+    .eq('id', id)
+    .maybeSingle();
+
+  match = response.data;
+  error = response.error;
+
+  if (match) {
+    const teamA = match.match_players?.filter((player) => player.team === 'A') || [];
+    const teamB = match.match_players?.filter((player) => player.team === 'B') || [];
+    const teamAName = joinNames(teamA);
+    const teamBName = joinNames(teamB);
+    const winnerName = match.winner_team === 'A' ? teamAName : teamBName;
+
+    pageData = {
+      sportLabel: 'Padel',
+      theme: 'padel',
+      ogImage: matchOgImage,
+      title: `${teamAName} vs ${teamBName}`,
+      description: `Risultato padel Tie-Break: ${teamAName} vs ${teamBName}, ${match.score || 'punteggio non disponibile'}. Vincitori: ${winnerName}.`,
+      date: match.played_at || match.created_at,
+      score: match.score || 'N/D',
+      winnerName,
+      teamA,
+      teamB,
+      matchType: match.match_type,
+      teamAAvgElo: match.team_a_avg_elo,
+      teamBAvgElo: match.team_b_avg_elo,
+    };
+  }
+}
+
+if (normalizedSport === 'tennis') {
+  const response = await supabase
+    .from('tennis_matches')
+    .select(`
+      id,
+      created_at,
+      played_at,
+      score,
+      challenger_id,
+      defender_id,
+      winner_id,
+      challenger_old_position,
+      challenger_new_position,
+      defender_old_position,
+      defender_new_position,
+      challenger:players!tennis_matches_challenger_id_fkey (
+        id,
+        name
+      ),
+      defender:players!tennis_matches_defender_id_fkey (
+        id,
+        name
+      ),
+      winner:players!tennis_matches_winner_id_fkey (
+        id,
+        name
+      )
+    `)
+    .eq('id', id)
+    .maybeSingle();
+
+  match = response.data;
+  error = response.error;
+
+  if (match) {
+    pageData = {
+      sportLabel: 'Tennis',
+      theme: 'tennis',
+      ogImage: matchOgImage,
+      title: `${match.challenger?.name} vs ${match.defender?.name}`,
+      description: `Risultato tennis Tie-Break: ${match.challenger?.name} vs ${match.defender?.name}, ${match.score || 'punteggio non disponibile'}. Vincitore: ${match.winner?.name}.`,
+      date: match.played_at || match.created_at,
+      score: match.score || 'N/D',
+      challenger: match.challenger,
+      defender: match.defender,
+      winner: match.winner,
+      challengerOldPosition: match.challenger_old_position,
+      challengerNewPosition: match.challenger_new_position,
+      defenderOldPosition: match.defender_old_position,
+      defenderNewPosition: match.defender_new_position,
+    };
+  }
+}
+
+if (error || !match || !pageData) {
+  return Astro.redirect('/404');
+}
+
+const pageTitle = `${pageData.sportLabel}: ${pageData.title}`;
+const shareText = `${pageTitle} - ${pageData.score}`;
+const shareUrl = Astro.url.toString();
+const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
+---
+
+<Layout
+  title={pageTitle}
+  description={pageData.description}
+  image={pageData.ogImage}
+  headerTheme={pageData.theme}
+>
+  <section class="mb-8">
+    <a href="/matches" class="club-btn inline-block px-4 py-2 mb-6">
+      Torna ai matches
+    </a>
+
+    <div class="flex flex-wrap items-center gap-3 mb-4">
+      <span class="border-2 border-black bg-[var(--giallo-club)] px-3 py-1 text-xs font-black uppercase tracking-widest text-black">
+        Match {pageData.sportLabel}
+      </span>
+
+      <span class="font-black text-slate-600">
+        {formatDate(pageData.date)}
+      </span>
+    </div>
+
+    <h1 class="text-4xl md:text-7xl font-black leading-none text-black">
+      {pageData.title}
+    </h1>
+  </section>
+
+  <article class="club-card overflow-hidden">
+    <div class="bg-black px-5 py-4 text-white">
+      <p class="text-xs font-black uppercase tracking-widest text-slate-400">
+        Risultato
+      </p>
+      <p class="text-5xl md:text-7xl font-black leading-none">
+        {pageData.score}
+      </p>
+    </div>
+
+    {normalizedSport === 'padel' && (
+      <div class="grid gap-0 md:grid-cols-2">
+        <div class={match.winner_team === 'A' ? 'border-b-2 border-black bg-[var(--giallo-club)] p-5 md:border-b-0 md:border-r-2' : 'border-b-2 border-black bg-white p-5 md:border-b-0 md:border-r-2'}>
+          <p class="mb-3 text-xs font-black uppercase tracking-widest text-slate-500">
+            Squadra A
+          </p>
+          <div class="space-y-2">
+            {pageData.teamA.map((player) => (
+              <a href={`/player/${player.player_id}`} class="block text-2xl font-black hover:underline">
+                {player.players?.name}
+                <span class="text-base text-slate-500">
+                  {player.delta > 0 ? '+' : ''}{player.delta}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+
+        <div class={match.winner_team === 'B' ? 'bg-[var(--giallo-club)] p-5' : 'bg-white p-5'}>
+          <p class="mb-3 text-xs font-black uppercase tracking-widest text-slate-500">
+            Squadra B
+          </p>
+          <div class="space-y-2">
+            {pageData.teamB.map((player) => (
+              <a href={`/player/${player.player_id}`} class="block text-2xl font-black hover:underline">
+                {player.players?.name}
+                <span class="text-base text-slate-500">
+                  {player.delta > 0 ? '+' : ''}{player.delta}
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {normalizedSport === 'tennis' && (
+      <div class="grid gap-0 md:grid-cols-2">
+        <div class={match.winner_id === match.challenger_id ? 'border-b-2 border-black bg-[var(--giallo-club)] p-5 md:border-b-0 md:border-r-2' : 'border-b-2 border-black bg-white p-5 md:border-b-0 md:border-r-2'}>
+          <p class="mb-3 text-xs font-black uppercase tracking-widest text-slate-500">
+            Sfidante
+          </p>
+          <a href={`/player/${pageData.challenger?.id}`} class="block text-3xl font-black hover:underline">
+            {pageData.challenger?.name}
+          </a>
+          <p class="mt-3 font-black text-slate-700">
+            #{pageData.challengerOldPosition} -> #{pageData.challengerNewPosition}
+          </p>
+        </div>
+
+        <div class={match.winner_id === match.defender_id ? 'bg-[var(--giallo-club)] p-5' : 'bg-white p-5'}>
+          <p class="mb-3 text-xs font-black uppercase tracking-widest text-slate-500">
+            Sfidato
+          </p>
+          <a href={`/player/${pageData.defender?.id}`} class="block text-3xl font-black hover:underline">
+            {pageData.defender?.name}
+          </a>
+          <p class="mt-3 font-black text-slate-700">
+            #{pageData.defenderOldPosition} -> #{pageData.defenderNewPosition}
+          </p>
+        </div>
+      </div>
+    )}
+
+    <div class="grid gap-3 border-t-2 border-black bg-white p-5 md:grid-cols-3">
+      <div>
+        <p class="text-xs font-black uppercase tracking-widest text-slate-500">
+          Vincitore
+        </p>
+        <p class="text-2xl font-black">
+          {normalizedSport === 'padel' ? pageData.winnerName : pageData.winner?.name}
+        </p>
+      </div>
+
+      <div>
+        <p class="text-xs font-black uppercase tracking-widest text-slate-500">
+          Data
+        </p>
+        <p class="text-lg font-black">
+          {formatDateTime(pageData.date)}
+        </p>
+      </div>
+
+      {normalizedSport === 'padel' ? (
+        <div>
+          <p class="text-xs font-black uppercase tracking-widest text-slate-500">
+            Media ELO
+          </p>
+          <p class="text-lg font-black">
+            A {Math.round(pageData.teamAAvgElo || 0)} / B {Math.round(pageData.teamBAvgElo || 0)}
+          </p>
+        </div>
+      ) : (
+        <div>
+          <p class="text-xs font-black uppercase tracking-widest text-slate-500">
+            Tipo
+          </p>
+          <p class="text-lg font-black">
+            Sfida tennis
+          </p>
+        </div>
+      )}
+    </div>
+  </article>
+
+  <div class="mt-8 flex flex-wrap gap-4">
+    <a href={whatsappUrl} target="_blank" rel="noreferrer" class="club-btn-yellow px-5 py-3">
+      Condividi su WhatsApp
+    </a>
+
+    <a href="/matches" class="club-btn px-5 py-3">
+      Storico matches
+    </a>
+  </div>
+</Layout>

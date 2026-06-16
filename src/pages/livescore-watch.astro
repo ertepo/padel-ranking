@@ -1,0 +1,571 @@
+---
+import { supabase } from '../lib/supabase';
+import '../styles/global.css';
+
+const { data: activeMatch } = await supabase
+  .from('live_score')
+  .select('*')
+  .in('status', ['live', 'waiting'])
+  .order('created_at', { ascending: false })
+  .limit(1)
+  .single();
+---
+
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>Watch Live Score | Tie-Break</title>
+  </head>
+
+  <body>
+    <main id="watch-control" data-match={JSON.stringify(activeMatch ?? null)}></main>
+  </body>
+</html>
+
+<style>
+  :global(*) {
+    box-sizing: border-box;
+  }
+
+  :global(html),
+  :global(body) {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+    background: #050505;
+    color: #fff;
+    overflow: hidden;
+  }
+
+  :global(button) {
+    font: inherit;
+  }
+
+  :global(#watch-control) {
+    width: 100vw;
+    height: 100vh;
+    min-height: 100svh;
+    font-family: Montserrat, Arial, sans-serif;
+  }
+
+  :global(.watch) {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 0.45rem;
+    width: 100%;
+    height: 100%;
+    padding: max(0.45rem, env(safe-area-inset-top)) max(0.45rem, env(safe-area-inset-right)) max(0.45rem, env(safe-area-inset-bottom)) max(0.45rem, env(safe-area-inset-left));
+    background: #050505;
+  }
+
+  :global(.watch-top) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  :global(.watch-title),
+  :global(.watch-status) {
+    border: 2px solid #fff;
+    padding: 0.25rem 0.4rem;
+    font-size: clamp(0.65rem, 5vw, 0.95rem);
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  :global(.watch-status) {
+    border-color: #ffcc00;
+    color: #ffcc00;
+  }
+
+  :global(.watch-score) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    min-height: 0;
+    border: 2px solid #fff;
+  }
+
+  :global(.watch-team) {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-width: 0;
+    padding: 0.45rem 0.35rem;
+    text-align: center;
+  }
+
+  :global(.watch-team-a) {
+    border-right: 2px solid #fff;
+  }
+
+  :global(.watch-team-serving::after) {
+    content: "";
+    position: absolute;
+    inset: 0.2rem;
+    border: 3px dashed #c8ff00;
+    pointer-events: none;
+  }
+
+  :global(.watch-name) {
+    min-width: 0;
+    margin: 0;
+    font-size: clamp(0.75rem, 6vw, 1.15rem);
+    font-weight: 900;
+    line-height: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  :global(.watch-points) {
+    display: grid;
+    width: 2ch;
+    place-self: center;
+    place-items: center;
+    color: #ffcc00;
+    font-size: clamp(2.6rem, 24vw, 5rem);
+    font-variant-numeric: tabular-nums;
+    font-weight: 900;
+    letter-spacing: 0;
+    line-height: 0.8;
+  }
+
+  :global(.watch-games) {
+    color: #aaa;
+    font-size: clamp(0.75rem, 6vw, 1.05rem);
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  :global(.watch-actions) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.4rem;
+  }
+
+  :global(.watch-btn) {
+    min-height: clamp(2.1rem, 17vw, 3rem);
+    border: 2px solid #fff;
+    border-radius: 0;
+    background: #111;
+    color: #fff;
+    font-size: clamp(0.75rem, 6vw, 1.05rem);
+    font-weight: 900;
+    line-height: 1;
+    text-transform: uppercase;
+  }
+
+  :global(.watch-btn-a) {
+    background: #16a34a;
+    color: #050505;
+  }
+
+  :global(.watch-btn-b) {
+    background: #ffcc00;
+    color: #050505;
+  }
+
+  :global(.watch-btn-danger) {
+    background: #ef4444;
+    color: #050505;
+  }
+
+  :global(.watch-btn-wide) {
+    grid-column: 1 / -1;
+  }
+
+  :global(.watch-empty) {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    height: 100%;
+    padding: 1rem;
+    background: #050505;
+    color: #fff;
+    text-align: center;
+  }
+
+  :global(.watch-empty h1) {
+    margin: 0;
+    font-size: clamp(1.7rem, 15vw, 3rem);
+    font-weight: 900;
+    line-height: 0.9;
+    text-transform: uppercase;
+  }
+
+  :global(.watch-empty p) {
+    margin: 0.7rem 0 0;
+    color: #ffcc00;
+    font-size: clamp(0.8rem, 7vw, 1.1rem);
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  @media (max-height: 220px) {
+    :global(.watch) {
+      gap: 0.3rem;
+    }
+
+    :global(.watch-team) {
+      padding-block: 0.3rem;
+    }
+
+    :global(.watch-btn) {
+      min-height: 1.9rem;
+    }
+  }
+</style>
+
+<script>
+  import { createClient } from '@supabase/supabase-js';
+
+  const sb = createClient(
+    import.meta.env.PUBLIC_SUPABASE_URL,
+    import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
+  );
+
+  const POINT_LABELS = ['0', '15', '30', '40'];
+  const container = document.getElementById('watch-control');
+  let match = JSON.parse(container?.dataset.match ?? 'null');
+  let history = [];
+  let finishArmed = false;
+  let finishTimer = null;
+
+  function escapeHtml(value) {
+    return String(value ?? '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#039;');
+  }
+
+  function usesMatchTiebreakThird(currentMatch) {
+    return ['match_tiebreak_third', 'short_sets_match_tiebreak_third'].includes(currentMatch.scoring_mode);
+  }
+
+  function usesShortSets(currentMatch) {
+    return currentMatch.scoring_mode === 'short_sets_match_tiebreak_third';
+  }
+
+  function isMatchTiebreak(currentMatch) {
+    return usesMatchTiebreakThird(currentMatch) && Number(currentMatch.max_sets) === 3 && (currentMatch.sets ?? []).length === 2;
+  }
+
+  function isSetTiebreak(currentMatch) {
+    const tiebreakAt = usesShortSets(currentMatch) ? 4 : 6;
+    return currentMatch.games_a === tiebreakAt && currentMatch.games_b === tiebreakAt;
+  }
+
+  function formatPoints(currentMatch) {
+    if (isMatchTiebreak(currentMatch) || isSetTiebreak(currentMatch)) {
+      return {
+        a: String(currentMatch.points_a),
+        b: String(currentMatch.points_b),
+      };
+    }
+
+    const a = currentMatch.points_a;
+    const b = currentMatch.points_b;
+
+    if (a >= 3 && b >= 3) {
+      if (a === b) return { a: '40', b: '40' };
+      if (a > b) return { a: 'V', b: '-' };
+      return { a: '-', b: 'V' };
+    }
+
+    return {
+      a: POINT_LABELS[a] ?? '0',
+      b: POINT_LABELS[b] ?? '0',
+    };
+  }
+
+  function render() {
+    if (!container) return;
+
+    if (!match || !['live', 'waiting'].includes(match.status)) {
+      container.innerHTML = `
+        <section class="watch-empty">
+          <div>
+            <h1>Tie-Break</h1>
+            <p>Nessuna partita attiva</p>
+          </div>
+        </section>
+      `;
+      return;
+    }
+
+    const points = formatPoints(match);
+    const matchTiebreak = isMatchTiebreak(match);
+    const statusLabel = match.status === 'live' ? 'Live' : 'Start';
+    const finishLabel = finishArmed ? 'Conferma fine' : 'Fine';
+
+    container.innerHTML = `
+      <section class="watch">
+        <header class="watch-top">
+          <span class="watch-title">Tie-Break</span>
+          <span class="watch-status">${statusLabel}</span>
+        </header>
+
+        <div class="watch-score">
+          <article class="watch-team watch-team-a ${match.serving === 'a' ? 'watch-team-serving' : ''}">
+            <h1 class="watch-name">${escapeHtml(match.team_a_name)}</h1>
+            <div class="watch-points">${points.a}</div>
+            <div class="watch-games">${matchTiebreak ? 'Tie 10' : `${match.games_a} game`}</div>
+          </article>
+
+          <article class="watch-team ${match.serving === 'b' ? 'watch-team-serving' : ''}">
+            <h1 class="watch-name">${escapeHtml(match.team_b_name)}</h1>
+            <div class="watch-points">${points.b}</div>
+            <div class="watch-games">${matchTiebreak ? 'Tie 10' : `${match.games_b} game`}</div>
+          </article>
+        </div>
+
+        <div class="watch-actions">
+          ${match.status === 'waiting' ? `
+            <button class="watch-btn watch-btn-wide watch-btn-b" id="start-match">Inizia</button>
+          ` : `
+            <button class="watch-btn watch-btn-a" id="point-a">+ A</button>
+            <button class="watch-btn watch-btn-b" id="point-b">+ B</button>
+          `}
+          <button class="watch-btn" id="undo-point">Undo</button>
+          <button class="watch-btn" id="toggle-serve">Servizio</button>
+          <button class="watch-btn watch-btn-wide watch-btn-danger" id="finish-match">${finishLabel}</button>
+        </div>
+      </section>
+    `;
+
+    attachEvents();
+  }
+
+  function attachEvents() {
+    document.getElementById('start-match')?.addEventListener('click', async () => {
+      await updateMatch({ status: 'live' });
+    });
+
+    document.getElementById('point-a')?.addEventListener('click', () => addPoint('a'));
+    document.getElementById('point-b')?.addEventListener('click', () => addPoint('b'));
+
+    document.getElementById('undo-point')?.addEventListener('click', async () => {
+      if (!history.length || !match) return;
+      const prev = history.pop();
+      const { error } = await sb.from('live_score').update(prev).eq('id', match.id);
+      if (error) return;
+      match = { ...match, ...prev };
+      render();
+    });
+
+    document.getElementById('toggle-serve')?.addEventListener('click', async () => {
+      if (!match) return;
+      await updateMatch({ serving: match.serving === 'a' ? 'b' : 'a' });
+    });
+
+    document.getElementById('finish-match')?.addEventListener('click', async () => {
+      if (!match) return;
+      if (!finishArmed) {
+        finishArmed = true;
+        clearTimeout(finishTimer);
+        finishTimer = setTimeout(() => {
+          finishArmed = false;
+          render();
+        }, 3500);
+        render();
+        return;
+      }
+
+      const completedSets = match.sets ?? [];
+      const setsWonA = completedSets.filter((set) => set.a > set.b).length;
+      const setsWonB = completedSets.filter((set) => set.b > set.a).length;
+      let finalWinner = null;
+      if (setsWonA > setsWonB) finalWinner = 'a';
+      else if (setsWonB > setsWonA) finalWinner = 'b';
+      else finalWinner = match.games_a >= match.games_b ? 'a' : 'b';
+      finishArmed = false;
+      await updateMatch({ status: 'finished', winner: finalWinner });
+    });
+  }
+
+  async function addPoint(who) {
+    if (!match || match.status === 'finished') return;
+
+    history.push({
+      points_a: match.points_a,
+      points_b: match.points_b,
+      games_a: match.games_a,
+      games_b: match.games_b,
+      sets: match.sets,
+      current_set: match.current_set,
+      serving: match.serving,
+      status: match.status,
+      winner: match.winner,
+    });
+    if (history.length > 50) history.shift();
+
+    let { points_a, points_b, games_a, games_b, sets, current_set, serving, status, winner } = match;
+    const setsToWin = Math.ceil(match.max_sets / 2);
+    const shortSets = match.scoring_mode === 'short_sets_match_tiebreak_third';
+    const matchTiebreak = ['match_tiebreak_third', 'short_sets_match_tiebreak_third'].includes(match.scoring_mode) && Number(match.max_sets) === 3 && (sets ?? []).length === 2;
+    const tiebreakAt = shortSets ? 4 : 6;
+    const isTiebreak = !matchTiebreak && games_a === tiebreakAt && games_b === tiebreakAt;
+    const goldenPoint = match.golden_point;
+
+    let gameWon = false;
+    let gameWinner = null;
+
+    if (matchTiebreak) {
+      if (who === 'a') points_a++;
+      else points_b++;
+
+      const totalPoints = points_a + points_b;
+      if (totalPoints === 1 || (totalPoints > 1 && totalPoints % 2 === 1)) {
+        serving = serving === 'a' ? 'b' : 'a';
+      }
+
+      if ((points_a >= 10 || points_b >= 10) && Math.abs(points_a - points_b) >= 2) {
+        sets = [...(sets ?? []), { a: points_a, b: points_b, matchTiebreak: true }];
+        points_a = 0;
+        points_b = 0;
+        current_set++;
+        winner = sets.filter((set) => set.a > set.b).length > sets.filter((set) => set.b > set.a).length ? 'a' : 'b';
+        status = 'finished';
+      }
+    } else if (isTiebreak) {
+      if (who === 'a') points_a++;
+      else points_b++;
+
+      const totalPoints = points_a + points_b;
+      if (totalPoints === 1 || (totalPoints > 1 && totalPoints % 2 === 1)) {
+        serving = serving === 'a' ? 'b' : 'a';
+      }
+
+      if ((points_a >= 7 || points_b >= 7) && Math.abs(points_a - points_b) >= 2) {
+        gameWon = true;
+        gameWinner = points_a > points_b ? 'a' : 'b';
+        points_a = 0;
+        points_b = 0;
+      }
+    } else {
+      if (who === 'a') points_a++;
+      else points_b++;
+
+      if (goldenPoint) {
+        if (points_a >= 4 || points_b >= 4) {
+          gameWon = true;
+          gameWinner = points_a > points_b ? 'a' : 'b';
+        }
+      } else if ((points_a >= 4 || points_b >= 4) && Math.abs(points_a - points_b) >= 2) {
+        gameWon = true;
+        gameWinner = points_a > points_b ? 'a' : 'b';
+      }
+
+      if (gameWon) {
+        points_a = 0;
+        points_b = 0;
+      }
+    }
+
+    if (!matchTiebreak && gameWon) {
+      if (gameWinner === 'a') games_a++;
+      else games_b++;
+
+      if (!isTiebreak) serving = serving === 'a' ? 'b' : 'a';
+
+      const setWon = shortSets
+        ? ((games_a >= 4 || games_b >= 4) && Math.abs(games_a - games_b) >= 2)
+          || (games_a === 5 && games_b === 4)
+          || (games_b === 5 && games_a === 4)
+        : ((games_a >= 6 || games_b >= 6) && Math.abs(games_a - games_b) >= 2)
+          || (games_a === 7 && games_b === 6)
+          || (games_b === 7 && games_a === 6);
+
+      if (setWon) {
+        sets = [...(sets ?? []), { a: games_a, b: games_b }];
+        games_a = 0;
+        games_b = 0;
+        current_set++;
+
+        const setsWonA = sets.filter((set) => set.a > set.b).length;
+        const setsWonB = sets.filter((set) => set.b > set.a).length;
+        if (setsWonA >= setsToWin || setsWonB >= setsToWin) {
+          winner = setsWonA >= setsToWin ? 'a' : 'b';
+          status = 'finished';
+        }
+      }
+    }
+
+    await updateMatch({ points_a, points_b, games_a, games_b, sets, current_set, serving, status, winner });
+  }
+
+  async function updateMatch(updates) {
+    if (!match) return;
+    const { data, error } = await sb
+      .from('live_score')
+      .update(updates)
+      .eq('id', match.id)
+      .select()
+      .single();
+
+    if (error) return;
+    match = data;
+    render();
+  }
+
+  function subscribeRealtime() {
+    return sb.channel('live_score_watch')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'live_score' },
+        (payload) => {
+          if (payload.eventType === 'DELETE') {
+            match = null;
+            history = [];
+          } else if (payload.new) {
+            const updated = payload.new;
+            if (!match || updated.id === match.id || ['live', 'waiting'].includes(updated.status)) {
+              match = updated;
+            }
+          }
+          render();
+        },
+      )
+      .subscribe();
+  }
+
+  let pollingInterval = null;
+
+  function startPolling() {
+    pollingInterval = setInterval(async () => {
+      const { data } = await sb
+        .from('live_score')
+        .select('*')
+        .in('status', ['live', 'waiting'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      match = data ?? null;
+      render();
+    }, 5000);
+  }
+
+  render();
+  const channel = subscribeRealtime();
+  const realtimeTimeout = setTimeout(() => {
+    if (channel.state !== 'joined') startPolling();
+  }, 3000);
+
+  window.addEventListener('beforeunload', () => {
+    sb.removeChannel(channel);
+    if (pollingInterval) clearInterval(pollingInterval);
+    clearTimeout(realtimeTimeout);
+    clearTimeout(finishTimer);
+  });
+</script>

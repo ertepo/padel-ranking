@@ -20,15 +20,23 @@ const ogImageUrl = new URL(image, Astro.site).toString();
 const themeColors = {
   neutral: {
     accent: 'linear-gradient(164deg, #6d42bb 0%, #6d42bb 50%, #2563eb 50%, #2563eb 100%)',
+    contrast: '#fff',
+    logo: '/images/logo-w.svg',
+  },
+  club: {
+    accent: '#ffcc00',
     contrast: '#000',
+    logo: '/images/logo-b.svg',
   },
   padel: {
     accent: 'linear-gradient(164deg, var(--blu-padel) 0%, var(--blu-padel) 49%, #ffffff 49%, #ffffff 52%, var(--rosso-padel) 52%, var(--rosso-padel) 100%)',
     contrast: '#fff',
+    logo: '/images/logo-w.svg',
   },
   tennis: {
     accent: 'linear-gradient(164deg, var(--viola-tennis) 0%, var(--viola-tennis) 49%, #ffffff 49%, #ffffff 52%, var(--verde-tennis) 52%, var(--verde-tennis) 100%)',
     contrast: '#fff',
+    logo: '/images/logo-w.svg',
   },
 };
 const currentTheme = themeColors[headerTheme] || themeColors.neutral;
@@ -88,7 +96,7 @@ const themeStyle = `--theme-accent: ${currentTheme.accent}; --theme-accent-contr
   </head>
 
   <body style={themeStyle}>
-    <Header theme={headerTheme} client:load />
+    <Header theme={headerTheme} accent={currentTheme.accent} contrast={currentTheme.contrast} logoSrc={currentTheme.logo} client:load />
 
     <main class="max-w-5xl mx-auto px-4 py-8">
       <slot />

@@ -37,6 +37,12 @@
   function formatDelta(delta) {
     return delta > 0 ? `+${delta}` : delta;
   }
+
+  function getMatchUrl() {
+    if (isPadel) return `/match/padel/${match.id}`;
+    if (isTennis) return `/match/tennis/${String(match.id).replace('tennis-', '')}`;
+    return '/matches';
+  }
 </script>
 
 <!-- ========================= -->
@@ -146,6 +152,12 @@
       </p>
     </div>
 
+  </div>
+
+  <div class="mt-5 flex justify-end">
+    <a href={getMatchUrl()} class="club-btn px-4 py-2">
+      Apri match
+    </a>
   </div>
 
 </article>
@@ -260,6 +272,12 @@
       </p>
     </div>
 
+  </div>
+
+  <div class="mt-5 flex justify-end">
+    <a href={getMatchUrl()} class="club-btn px-4 py-2">
+      Apri match
+    </a>
   </div>
 
 </article>
