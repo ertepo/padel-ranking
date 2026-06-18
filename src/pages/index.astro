@@ -27,8 +27,8 @@ import Layout from "../layouts/Layout.astro";
                 </p>
 
                 <div class="mt-8 flex flex-wrap gap-4">
-                    <a href="#regolamento" class="club-btn-pastelyellow px-5 py-3">
-                        Regolamento campionati
+                    <a href="#tornei" class="club-btn-pastelyellow px-5 py-3">
+                        Scendi ai tornei
                     </a>
 
                     <a href="/prenotazioni" class="club-btn-pastelblue px-5 py-3">
@@ -96,21 +96,21 @@ import Layout from "../layouts/Layout.astro";
                 </p>
 
                 <div class="mt-5 grid gap-4">
-                    <div class="border-dashed border-2 border-black bg-white p-4 text-green-700">
+                    <div class="border-dashed border-2 border-black bg-white p-4 text-yellow-500">
                         <span class="text-4xl font-black leading-none">€ 15</span>
                         <span class="mt-1 block text-sm font-bold text-slate-600">
                             Tessera annuale con copertura assicurativa. Prezzo ridotto a 10€ per Under12 (nati fino al 2014).
                         </span>
                     </div>
 
-                    <div class="border-dashed border-2 border-black bg-white p-4 text-green-700">
+                    <div class="border-dashed border-2 border-black bg-white p-4 text-purple-800">
                         <span class="text-4xl font-black leading-none">€5 tennis</span>
                         <span class="mt-1 block text-sm font-bold text-slate-600">
                             5€ a persona per 1h di tennis, con prenotazione tramite app o telefono.
                         </span>
                     </div>
 
-                    <div class="border-dashed border-2 border-black bg-white p-4 text-green-700">
+                    <div class="border-dashed border-2 border-black bg-white p-4 text-blue-800">
                         <span class="text-4xl font-black leading-none">€10 padel</span>
                         <span class="mt-1 block text-sm font-bold text-slate-600">
                             10€ a persona per 90min di padel, con prenotazione tramite app o telefono.
@@ -121,7 +121,49 @@ import Layout from "../layouts/Layout.astro";
         </div>
 
         <div class="mt-10 grid gap-8 lg:grid-cols-[minmax(18rem,0.85fr)_minmax(0,1.15fr)] lg:items-start">
-            <div class="club-card bg-white p-5">
+           <div class="club-card order-2 bg-white p-5 lg:order-1">
+                <p class="text-xs uppercase tracking-widest font-black text-slate-500">
+                    Fasce - livelli
+                </p>
+
+                <div class="mt-5 grid gap-4">
+
+                    <div class="border-dashed border-2 border-black bg-white p-4">
+                        <h3 class="text-2xl font-black leading-none text-red-600">
+                            RED
+                        </h3>
+                        <p class="mt-2 text-sm font-bold text-slate-700">
+                            I primi approcci, si utilizzano palle RED con rimbalzo controllato al 35% e campi ridotti. <br>Età 5-7 anni.
+                        </p>
+                    </div>
+
+                    <div class="border-dashed border-2 border-black bg-white p-4">
+                        <h3 class="text-2xl font-black leading-none text-orange-500">
+                            ORANGE - SUPEROR.
+                        </h3>
+                        <p class="mt-2 text-sm font-bold text-slate-700">
+                            Si gioca con palle ORANGE con rimbalzo controllato al 50% e campi ridotti. <br>Età 8-10 anni.
+                        </p>
+                    </div>
+                    <div class="border-dashed border-2 border-black bg-white p-4">
+                        <h3 class="text-2xl font-black leading-none text-green-700">
+                            GREEN -  SUPERGREEN
+                        </h3>
+                        <p class="mt-2 text-sm font-bold text-slate-700">
+                            Palle GREEN con rimbalzo controllato al 75% e campo a largezza intera ma più corto di un metro. <br>Età 11-14 anni.
+                        </p>
+                    </div>
+                    <div class="border-dashed border-2 border-black bg-white p-4">
+                        <h3 class="text-2xl font-black leading-none text-yellow-500">
+                            YELLOW
+                        </h3>
+                        <p class="mt-2 text-sm font-bold text-slate-700">
+                            Palle yellow (normali) a tutto campo. <br>Età 15+ anni.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <!-- <div class="club-card bg-white p-5">
                 <p class="text-xs uppercase tracking-widest font-black text-slate-500">
                     Documenti e regole
                 </p>
@@ -154,9 +196,9 @@ import Layout from "../layouts/Layout.astro";
                         </p>
                     </div>
                 </div>
-            </div>
+            </div>-->
 
-            <div class="min-w-0">
+            <div class="order-1 min-w-0 lg:order-2">
                 <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-4">
                     Corsi  di tennis e padel
                 </p>
@@ -170,13 +212,13 @@ import Layout from "../layouts/Layout.astro";
                 </p>
 
                 <p class="mt-5 max-w-2xl text-base md:text-lg font-semibold leading-relaxed text-slate-600 text-justify">
-                    Le lezioni sono organizzate in piccoli gruppi omogenei per età e abilità, con programmi personalizzati per garantire un apprendimento efficace e divertente. <br /> Ogni gruppo utilizzerà campi di dimensione adeguata e palline con rimbalzo ridotto in base all'età e al livello di gioco. I corsi si svolgono durante la settimana e nei weekend, con orari flessibili per adattarsi alle esigenze di tutti i soci. Per maggiori informazioni su orari, costi e modalità di iscrizione, contattaci direttamente o visita la sezione dedicata sul nostro sito. <br /> Offriamo anche lezioni private e pacchetti personalizzati per chi desidera un percorso di apprendimento più intensivo o specifico. Il nostro obiettivo è creare un ambiente accogliente e stimolante dove ogni socio possa migliorare le proprie abilità, fare nuove amicizie e condividere la passione per il tennis e il padel.
+                    Le lezioni sono organizzate in piccoli gruppi omogenei per età e abilità, con programmi personalizzati per garantire un apprendimento efficace e divertente. <br /> Ogni gruppo utilizzerà <strong>campi di dimensione adeguata</strong> e palline con rimbalzo ridotto in base all'età e al livello di gioco. I corsi si svolgono <strong>durante la settimana e nei weekend</strong>, con orari flessibili per adattarsi alle esigenze di tutti i soci. Per maggiori informazioni su orari, costi e modalità di iscrizione, <a href="tel:+3382437113" class="text-[var(--blu-bilanciato)] hover:underline">chiamaci</a> o <a href="https://wa.me/3382437113" target="_blank" class="text-[var(--blu-bilanciato)] hover:underline">scrivici su whatsapp</a>. <br /> Offriamo anche lezioni private e pacchetti personalizzati per chi desidera un percorso di apprendimento più intensivo o specifico. Il nostro obiettivo è creare un ambiente accogliente e stimolante dove ogni socio possa migliorare le proprie abilità, fare nuove amicizie e condividere la passione per il tennis e il padel.
                 </p>
             </div>
         </div>
     </section>
 
-    <section class="mb-16">
+    <section id="tornei" class="scroll-mt-24 mb-16">
         <div class="mb-6">
             <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
                 Estate in campo
@@ -188,6 +230,10 @@ import Layout from "../layouts/Layout.astro";
 
             <p class="mt-4 max-w-2xl text-lg font-semibold text-slate-700">
                 Quattro appuntamenti, quattro tornei e tutta la voglia di giocare per vincere.
+            </p>
+
+            <p class="mt-4 max-w-3xl text-base md:text-lg font-bold leading-relaxed text-slate-700">
+                Tornei con <strong>fun formula</strong>: ogni girone si gioca in una serata dedicata, con tutte le squadre dello stesso girone che si sfidano tra loro. Le prime due classificate accedono al tabellone <strong>GOLD</strong>, le altre al tabellone <strong>SILVER</strong>, entrambi a eliminazione diretta. Ogni squadra gioca quindi in due giornate.
             </p>
         </div>
 
