@@ -20,6 +20,9 @@ if (Astro.request.method === 'POST') {
       {
         path: '/',
         httpOnly: true,
+        secure: import.meta.env.PROD,
+        sameSite: 'strict',
+        maxAge: 60 * 60 * 24 * 7,
       }
     );
 

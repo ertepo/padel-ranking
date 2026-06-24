@@ -1,5 +1,5 @@
 ---
-import { supabase } from "../../lib/supabase";
+import { getSupabaseAdmin } from "../../lib/supabaseAdmin";
 import { calculateEloChange } from "../../lib/elo";
 import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
@@ -10,6 +10,8 @@ if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
     const redirectTo = encodeURIComponent(Astro.url.pathname);
     return Astro.redirect(`/login?redirect=${redirectTo}`);
 }
+
+const supabase = getSupabaseAdmin();
 
 // Recupera SOLO i giocatori iscritti al padel con i relativi dati anagrafici
 const { data: players } = await supabase

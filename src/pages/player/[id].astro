@@ -12,7 +12,7 @@ const { id } = Astro.params;
 
 const { data: playerData, error: playerError } = await supabase
   .from('players')
-  .select('*')
+  .select('id,name,active')
   .eq('id', id)
   .single();
 

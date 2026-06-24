@@ -1,5 +1,5 @@
 ---
-import { supabase } from "../../lib/supabase";
+import { getSupabaseAdmin } from "../../lib/supabaseAdmin";
 import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
 
@@ -9,6 +9,8 @@ if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
     const redirectTo = encodeURIComponent(Astro.url.pathname);
     return Astro.redirect(`/login?redirect=${redirectTo}`);
 }
+
+const supabase = getSupabaseAdmin();
 
 const { data: existingPlayers } = await supabase
     .from("players")

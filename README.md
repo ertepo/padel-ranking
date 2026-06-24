@@ -85,6 +85,20 @@ The project uses the following configuration files:
 - `tsconfig.json` - TypeScript configuration
 - `package.json` - Project dependencies and scripts
 
+Copy `.env.example` to `.env` and configure the Supabase keys and private
+server secrets. `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`, and
+`LIVESCORE_CONTROL_TOKEN` must also be configured in the Netlify environment.
+Never expose the service-role key through a variable prefixed with `PUBLIC_`.
+
+The Apple Watch controller is authorized once by opening:
+
+```text
+/livescore-watch#token=YOUR_LIVESCORE_CONTROL_TOKEN
+```
+
+The fragment is not sent in the HTTP request or server logs. The page exchanges
+it once for a secure HTTP-only cookie and then removes it from the address.
+
 ## 📚 Learn More
 
 - [Astro Documentation](https://docs.astro.build)

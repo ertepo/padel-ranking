@@ -1,5 +1,5 @@
 ---
-import { supabase } from "../../lib/supabase";
+import { getSupabaseAdmin } from "../../lib/supabaseAdmin";
 import "../../styles/global.css";
 import Layout from "../../layouts/Layout.astro";
 
@@ -9,6 +9,8 @@ if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
     const redirectTo = encodeURIComponent(Astro.url.pathname);
     return Astro.redirect(`/login?redirect=${redirectTo}`);
 }
+
+const supabase = getSupabaseAdmin();
 
 const { data: activeMatch } = await supabase
     .from("live_score")
@@ -42,14 +44,24 @@ const { data: activeMatch } = await supabase
 </Layout>
 
 <script>
-    import { createClient } from "@supabase/supabase-js";
-
-    const sb = createClient(
-        import.meta.env.PUBLIC_SUPABASE_URL,
-        import.meta.env.PUBLIC_SUPABASE_ANON_KEY,
-    );
-
     const POINT_LABELS = ["0", "15", "30", "40"];
+
+    async function liveScoreRequest(action, payload = {}) {
+        const response = await fetch("/api/livescore-control", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ action, ...payload }),
+        });
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || "Errore durante il salvataggio.");
+        }
+
+        return result.data;
+    }
 
     function usesMatchTiebreakThird(match) {
         return ["match_tiebreak_third", "short_sets_match_tiebreak_third"].includes(match.scoring_mode);
@@ -282,26 +294,29 @@ const { data: activeMatch } = await supabase
             const teamB = document.getElementById("team_b")?.value.trim();
             if (!teamA || !teamB) { showToast("Inserisci i nomi dei giocatori", "error"); return; }
 
-            const { data, error } = await sb.from("live_score").insert({
-                sport: document.getElementById("sport")?.value,
-                match_type: document.getElementById("match_type")?.value,
-                team_a_name: teamA,
-                team_b_name: teamB,
-                max_sets: ["match_tiebreak_third", "short_sets_match_tiebreak_third"].includes(document.getElementById("scoring_mode")?.value)
-                    ? 3
-                    : parseInt(document.getElementById("max_sets")?.value ?? "3"),
-                match_label: document.getElementById("match_label")?.value.trim() || null,
-                golden_point: document.getElementById("golden_point")?.value === "true",
-                scoring_mode: document.getElementById("scoring_mode")?.value ?? "standard",
-                serving: servingSelected,
-                status: "waiting",
-            }).select().single();
-
-            if (error) { showToast("Errore: " + error.message, "error"); return; }
-            match = data;
-            history = [];
-            showToast("Partita creata!");
-            render();
+            try {
+                match = await liveScoreRequest("create", {
+                    values: {
+                        sport: document.getElementById("sport")?.value,
+                        match_type: document.getElementById("match_type")?.value,
+                        team_a_name: teamA,
+                        team_b_name: teamB,
+                        max_sets: ["match_tiebreak_third", "short_sets_match_tiebreak_third"].includes(document.getElementById("scoring_mode")?.value)
+                            ? 3
+                            : parseInt(document.getElementById("max_sets")?.value ?? "3"),
+                        match_label: document.getElementById("match_label")?.value.trim() || null,
+                        golden_point: document.getElementById("golden_point")?.value === "true",
+                        scoring_mode: document.getElementById("scoring_mode")?.value ?? "standard",
+                        serving: servingSelected,
+                        status: "waiting",
+                    },
+                });
+                history = [];
+                showToast("Partita creata!");
+                render();
+            } catch (error) {
+                showToast("Errore: " + error.message, "error");
+            }
         });
 
         document.getElementById("start-match")?.addEventListener("click", async () => {
@@ -322,11 +337,15 @@ const { data: activeMatch } = await supabase
 
         document.getElementById("delete-match")?.addEventListener("click", async () => {
             if (!confirm("Eliminare la partita? L'azione è irreversibile.")) return;
-            await sb.from("live_score").delete().eq("id", match.id);
-            match = null;
-            history = [];
-            showToast("Partita eliminata.");
-            render();
+            try {
+                await liveScoreRequest("delete", { id: match.id });
+                match = null;
+                history = [];
+                showToast("Partita eliminata.");
+                render();
+            } catch (error) {
+                showToast("Errore: " + error.message, "error");
+            }
         });
 
         document.getElementById("toggle-serve")?.addEventListener("click", async () => {
@@ -339,11 +358,17 @@ const { data: activeMatch } = await supabase
         document.getElementById("undo-point")?.addEventListener("click", async () => {
             if (!history.length) { showToast("Nessun punto da annullare", "error"); return; }
             const prev = history.pop();
-            const { error } = await sb.from("live_score").update(prev).eq("id", match.id);
-            if (error) { showToast("Errore annullamento: " + error.message, "error"); return; }
-            match = { ...match, ...prev };
-            showToast("Punto annullato ↩");
-            render();
+            try {
+                match = await liveScoreRequest("update", {
+                    id: match.id,
+                    values: prev,
+                });
+                showToast("Punto annullato ↩");
+                render();
+            } catch (error) {
+                history.push(prev);
+                showToast("Errore annullamento: " + error.message, "error");
+            }
         });
     }
 
@@ -463,15 +488,15 @@ const { data: activeMatch } = await supabase
     }
 
     async function updateMatch(updates) {
-        const { data, error } = await sb
-            .from("live_score")
-            .update(updates)
-            .eq("id", match.id)
-            .select()
-            .single();
-        if (error) { showToast("Errore: " + error.message, "error"); return; }
-        match = data;
-        render();
+        try {
+            match = await liveScoreRequest("update", {
+                id: match.id,
+                values: updates,
+            });
+            render();
+        } catch (error) {
+            showToast("Errore: " + error.message, "error");
+        }
     }
 
     render();
