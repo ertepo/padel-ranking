@@ -24,19 +24,27 @@ const { data: lastMatches } = await supabase
     .from("match_players")
     .select(`
     player_id,
-    elo_before,
-    elo_after,
+    delta,
     matches!inner (
+      played_at,
       created_at
     )`)
     .order("created_at", { referencedTable: "matches", ascending: false });
 
-// Mappa player_id → delta dell'ultimo match
+// Mappa player_id -> delta dell'ultimo match
 const lastMatchMap: Record<string, number> = {};
+const lastMatchDateMap: Record<string, number> = {};
 
 for (const row of lastMatches || []) {
-    if (!(row.player_id in lastMatchMap)) {
-        lastMatchMap[row.player_id] = row.elo_after - row.elo_before;
+    const matchDate = row.matches?.played_at || row.matches?.created_at;
+    const matchTime = matchDate ? new Date(matchDate).getTime() : 0;
+
+    if (
+        !(row.player_id in lastMatchDateMap) ||
+        matchTime > lastMatchDateMap[row.player_id]
+    ) {
+        lastMatchDateMap[row.player_id] = matchTime;
+        lastMatchMap[row.player_id] = Number(row.delta || 0);
     }
 }
 

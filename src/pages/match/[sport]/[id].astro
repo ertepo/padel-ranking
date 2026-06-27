@@ -83,13 +83,16 @@ if (normalizedSport === 'padel') {
     const teamAName = joinNames(teamA);
     const teamBName = joinNames(teamB);
     const winnerName = match.winner_team === 'A' ? teamAName : teamBName;
+    const bestPlayerText = match.best_player?.name
+      ? ` Best player: ${match.best_player.name}.`
+      : '';
 
     pageData = {
       sportLabel: 'Padel',
       theme: 'padel',
       ogImage: matchOgImage,
       title: `${teamAName} vs ${teamBName}`,
-      description: `Risultato padel Tie-Break: ${teamAName} vs ${teamBName}, ${match.score || 'punteggio non disponibile'}. Vincitori: ${winnerName}.`,
+      description: `Vincitori: ${winnerName}, ${match.score || 'punteggio non disponibile'}.${bestPlayerText}`,
       date: match.played_at || match.created_at,
       score: match.score || 'N/D',
       note: match.note,
@@ -145,12 +148,16 @@ if (normalizedSport === 'tennis') {
   error = response.error;
 
   if (match) {
+    const bestPlayerText = match.best_player?.name
+      ? ` Best player: ${match.best_player.name}.`
+      : '';
+
     pageData = {
       sportLabel: 'Tennis',
       theme: 'tennis',
       ogImage: matchOgImage,
       title: `${match.challenger?.name} vs ${match.defender?.name}`,
-      description: `Risultato tennis Tie-Break: ${match.challenger?.name} vs ${match.defender?.name}, ${match.score || 'punteggio non disponibile'}. Vincitore: ${match.winner?.name}.`,
+      description: `Vincitore: ${match.winner?.name}, ${match.score || 'punteggio non disponibile'}.${bestPlayerText}`,
       date: match.played_at || match.created_at,
       score: match.score || 'N/D',
       note: match.note,
@@ -283,10 +290,10 @@ const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${sh
     <div class="grid gap-3 border-t-2 border-black bg-white p-5 md:grid-cols-3">
       <div>
         <p class="text-xs font-black uppercase tracking-widest text-slate-500">
-          Vincitore
+          Best player
         </p>
         <p class="text-2xl font-black">
-          {normalizedSport === 'padel' ? pageData.winnerName : pageData.winner?.name}
+          {pageData.bestPlayer?.name || 'Non assegnato'}
         </p>
       </div>
 
@@ -320,24 +327,11 @@ const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${sh
       )}
     </div>
 
-    {(pageData.bestPlayer || pageData.note) && (
-      <div class="grid gap-3 border-t-2 border-black bg-white p-5 md:grid-cols-2">
-        {pageData.bestPlayer && (
-          <div class="border-2 border-black bg-[var(--giallo-club)] p-4">
-            <p class="text-xs font-black uppercase tracking-widest text-black opacity-60">
-              Best player
-            </p>
-            <p class="text-2xl font-black">
-              {pageData.bestPlayer.name}
-            </p>
-          </div>
-        )}
-
-        {pageData.note && (
-          <blockquote class="border-2 border-black bg-white p-4 text-2xl font-black leading-snug">
-            "{pageData.note}"
-          </blockquote>
-        )}
+    {pageData.note && (
+      <div class="border-t-2 border-black bg-white p-5">
+        <blockquote class="border-2 border-black bg-white p-4 text-2xl font-black leading-snug">
+          "{pageData.note}"
+        </blockquote>
       </div>
     )}
   </article>

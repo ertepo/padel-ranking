@@ -3,6 +3,7 @@
 
   const isPadel = Array.isArray(match.match_players);
   const isTennis = Boolean(match.tennisData);
+  const siteUrl = 'https://tie-break.it';
 
   // =========================
   // PADEL
@@ -43,6 +44,38 @@
     if (isTennis) return `/match/tennis/${String(match.id).replace('tennis-', '')}`;
     return '/matches';
   }
+
+  function getSurname(name) {
+    const parts = String(name || '').trim().split(/\s+/);
+    return parts.length > 1 ? parts.at(-1) : parts[0] || '';
+  }
+
+  function getShareTitle() {
+    if (isPadel) {
+      const teamAName = teamA.map((p) => getSurname(p.players.name)).join(' / ');
+      const teamBName = teamB.map((p) => getSurname(p.players.name)).join(' / ');
+      return `Match padel: ${teamAName} vs ${teamBName} - ${match.score || 'N/D'}`;
+    }
+
+    if (isTennis) {
+      return `Match tennis: ${getSurname(match.tennisData.challenger.name)} vs ${getSurname(match.tennisData.defender.name)} - ${match.score || 'N/D'}`;
+    }
+
+    return 'Match Tie-Break';
+  }
+
+  function getWhatsappUrl() {
+    const shareUrl = `${siteUrl}${getMatchUrl()}`;
+    return `https://wa.me/?text=${encodeURIComponent(`${getShareTitle()} ${shareUrl}`)}`;
+  }
+
+  function isPadelBestPlayer(playerId) {
+    return Boolean(match.best_player_id && playerId === match.best_player_id);
+  }
+
+  function isTennisBestPlayer(playerId) {
+    return Boolean(match.tennisData?.best_player?.id && playerId === match.tennisData.best_player.id);
+  }
 </script>
 
 <!-- ========================= -->
@@ -51,7 +84,7 @@
 
 {#if isPadel}
 
-<article class="club-card p-5 md:p-6 relative">
+<article class="blue-club-card p-5 md:p-6 relative">
 
   <div class="flex items-start justify-between gap-4 mb-5">
     <div>
@@ -64,7 +97,7 @@
       </p>
     </div>
 
-    <div class={`px-3 py-1 font-black uppercase text-xs border-2 ${
+    <div class={`origin-center rotate-[5deg] px-3 py-1 font-black uppercase text-xs border-2 ${
       {
         expected: 'bg-white text-black border-black',
         balanced: 'bg-[var(--blu-bilanciato)] text-slate-100 border-black',
@@ -85,6 +118,9 @@
       {#each teamA as p, i}
         <span><a href={`/player/${p.player_id}`} class="font-black text-2xl break-words hover:underline">
               {p.players.name}
+              {#if isPadelBestPlayer(p.player_id)}
+                <span class="text-[var(--giallo-club)] drop-shadow-[1px_1px_0_#000]" title="Best player" aria-label="Best player">★</span>
+              {/if}
               </a> ({formatDelta(p.delta)})</span>
         {#if i < teamA.length - 1}
           <span class="text-slate-400">/</span>
@@ -110,6 +146,9 @@
       {#each teamB as p, i}
         <span><a href={`/player/${p.player_id}`} class="font-black text-2xl break-words hover:underline">
               {p.players.name}
+              {#if isPadelBestPlayer(p.player_id)}
+                <span class="text-[var(--giallo-club)] drop-shadow-[1px_1px_0_#000]" title="Best player" aria-label="Best player">★</span>
+              {/if}
               </a> ({formatDelta(p.delta)})</span>
 
         {#if i < teamB.length - 1}
@@ -144,7 +183,7 @@
 
     <div class="border-2 border-black bg-white px-3 py-2">
       <p class="text-xs uppercase font-bold text-slate-500">
-        Diff. Equilibrio
+        Differenza ELO
       </p>
 
       <p class="font-black text-lg">
@@ -154,28 +193,19 @@
 
   </div>
 
-  {#if match.note || match.best_player}
-    <div class="mt-5 grid gap-3 md:grid-cols-2">
-      {#if match.best_player}
-        <div class="border-2 border-black bg-[var(--giallo-club)] px-3 py-2">
-          <p class="text-xs uppercase font-bold text-black opacity-60">
-            Best player
-          </p>
-          <p class="font-black text-xl">
-            {match.best_player.name}
-          </p>
-        </div>
-      {/if}
-
-      {#if match.note}
-        <blockquote class="border-2 border-black bg-white px-3 py-2 font-black">
-          "{match.note}"
-        </blockquote>
-      {/if}
+  {#if match.note}
+    <div class="mt-5">
+      <blockquote class="border-2 border-black bg-white px-3 py-2 font-black">
+        "{match.note}"
+      </blockquote>
     </div>
   {/if}
 
-  <div class="mt-5 flex justify-end">
+  <div class="mt-5 flex flex-wrap justify-end gap-3">
+    <a href={getWhatsappUrl()} target="_blank" rel="noreferrer" class="club-btn-yellow px-4 py-2">
+      Condividi match
+    </a>
+
     <a href={getMatchUrl()} class="club-btn px-4 py-2">
       Apri match
     </a>
@@ -225,6 +255,9 @@
   class="font-black text-2xl break-words hover:underline"
 >
   {match.tennisData.challenger.name}
+  {#if isTennisBestPlayer(match.tennisData.challenger.id)}
+    <span class="text-[var(--giallo-club)] drop-shadow-[1px_1px_0_#000]" title="Best player" aria-label="Best player">★</span>
+  {/if}
 </a>
       </div>
 
@@ -258,6 +291,9 @@
   class="font-black text-2xl break-words hover:underline"
 >
   {match.tennisData.defender.name}
+  {#if isTennisBestPlayer(match.tennisData.defender.id)}
+    <span class="text-[var(--giallo-club)] drop-shadow-[1px_1px_0_#000]" title="Best player" aria-label="Best player">★</span>
+  {/if}
 </a>
       </div>
 
@@ -295,28 +331,19 @@
 
   </div>
 
-  {#if match.note || match.tennisData.best_player}
-    <div class="mt-5 grid gap-3 md:grid-cols-2">
-      {#if match.tennisData.best_player}
-        <div class="border-2 border-black bg-[var(--giallo-club)] px-3 py-2">
-          <p class="text-xs uppercase font-bold text-black opacity-60">
-            Best player
-          </p>
-          <p class="font-black text-xl">
-            {match.tennisData.best_player.name}
-          </p>
-        </div>
-      {/if}
-
-      {#if match.note}
-        <blockquote class="border-2 border-black bg-white px-3 py-2 font-black">
-          "{match.note}"
-        </blockquote>
-      {/if}
+  {#if match.note}
+    <div class="mt-5">
+      <blockquote class="border-2 border-black bg-white px-3 py-2 font-black">
+        "{match.note}"
+      </blockquote>
     </div>
   {/if}
 
-  <div class="mt-5 flex justify-end">
+  <div class="mt-5 flex flex-wrap justify-end gap-3">
+    <a href={getWhatsappUrl()} target="_blank" rel="noreferrer" class="club-btn-yellow px-4 py-2">
+      Condividi match
+    </a>
+
     <a href={getMatchUrl()} class="club-btn px-4 py-2">
       Apri match
     </a>

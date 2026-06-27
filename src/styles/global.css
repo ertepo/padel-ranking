@@ -75,6 +75,12 @@ body {
   box-shadow: -0.5em 0.5em black;
 }
 
+.blue-club-card {
+  background: white;
+  border: 2px solid black;
+  box-shadow: -0.5em 0.5em var(--blu-padel);
+}
+
 .stamp {
     --stamp-hole: 0.30rem;
     --stamp-step: 1rem;
