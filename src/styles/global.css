@@ -87,6 +87,25 @@ body {
   box-shadow: -0.5em 0.5em var(--viola-tennis);
 }
 
+.dark-club-card {
+  background: white;
+  border: 2px solid black;
+  color: black;
+  box-shadow: -0.5em 0.5em var(--giallo-club);
+}
+
+.dark-club-card-blue {
+  box-shadow: -0.5em 0.5em var(--blu-padel);
+}
+
+.dark-club-card-violet {
+  box-shadow: -0.5em 0.5em var(--viola-tennis);
+}
+
+.dark-club-card-green {
+  box-shadow: -0.5em 0.5em var(--verde-tennis);
+}
+
 .stamp {
     --stamp-hole: 0.30rem;
     --stamp-step: 1rem;
