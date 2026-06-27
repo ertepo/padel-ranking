@@ -96,6 +96,8 @@ if (normalizedSport === 'padel') {
       title: `${teamAName} vs ${teamBName}`,
       description: `Vincitori: ${winnerName}, ${match.score || 'punteggio non disponibile'}.${bestPlayerText}`,
       date: match.played_at || match.created_at,
+      teamAName,
+      teamBName,
       score: match.score || 'N/D',
       note: match.note,
       bestPlayer: match.best_player,
@@ -307,8 +309,8 @@ const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${sh
       </span>
     </div>
 
-    <h1 class="text-4xl md:text-7xl font-black leading-none text-black">
-      {pageData.title}
+    <h1 class="text-xl md:text-4xl font-black leading-none text-black">
+      {pageData.teamAName} <br />{pageData.teamBName}
     </h1>
   </section>
 
