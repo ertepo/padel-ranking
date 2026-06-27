@@ -84,7 +84,7 @@
 
 {#if isPadel}
 
-<article class="blue-club-card p-5 md:p-6 relative">
+<article class="blue-club-card relative flex h-full flex-col p-5 md:p-6">
 
   <div class="flex items-start justify-between gap-4 mb-5">
     <div>
@@ -119,7 +119,7 @@
         <span><a href={`/player/${p.player_id}`} class="font-black text-2xl break-words hover:underline">
               {p.players.name}
               {#if isPadelBestPlayer(p.player_id)}
-                <span class="text-[var(--giallo-club)] drop-shadow-[1px_1px_0_#000]" title="Best player" aria-label="Best player">★</span>
+                <span class="text-black" title="Best player" aria-label="Best player">★</span>
               {/if}
               </a> ({formatDelta(p.delta)})</span>
         {#if i < teamA.length - 1}
@@ -147,7 +147,7 @@
         <span><a href={`/player/${p.player_id}`} class="font-black text-2xl break-words hover:underline">
               {p.players.name}
               {#if isPadelBestPlayer(p.player_id)}
-                <span class="text-[var(--giallo-club)] drop-shadow-[1px_1px_0_#000]" title="Best player" aria-label="Best player">★</span>
+                <span class="text-black" title="Best player" aria-label="Best player">★</span>
               {/if}
               </a> ({formatDelta(p.delta)})</span>
 
@@ -201,12 +201,18 @@
     </div>
   {/if}
 
-  <div class="mt-5 flex flex-wrap justify-end gap-3">
-    <a href={getWhatsappUrl()} target="_blank" rel="noreferrer" class="club-btn-yellow px-4 py-2">
+  <div class="mt-auto grid grid-cols-2 gap-3 pt-5">
+    <a href={getWhatsappUrl()} target="_blank" rel="noreferrer" class="club-btn-blue inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-center text-black">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5"/>
+      </svg>
       Condividi match
     </a>
 
-    <a href={getMatchUrl()} class="club-btn px-4 py-2">
+    <a href={getMatchUrl()} class="club-btn inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-center">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+      </svg>
       Apri match
     </a>
   </div>
@@ -221,7 +227,7 @@
 
 {#if isTennis}
 
-<article class="club-card p-5 md:p-6 relative">
+<article class="violet-club-card relative flex h-full flex-col p-5 md:p-6">
 
   <div class="flex items-start justify-between gap-4 mb-5">
 
@@ -241,68 +247,66 @@
 
   </div>
 
-  <div class="mt-5 grid gap-3 md:grid-cols-[4fr_1fr_4fr]">
+  <div class="grid gap-3">
 
-     <div class="border-2 border-black bg-white p-4 min-w-0">
-
-      <div class="text-sm uppercase font-bold text-slate-500 mb-2">
-        Sfidante
+    <div
+      class={match.tennisData.winner.id === match.tennisData.challenger.id
+        ? 'border-2 border-black bg-[var(--giallo-club)] px-4 py-3'
+        : 'border-2 border-black bg-white px-4 py-3'}
+    >
+      <div class="mb-2 flex items-center justify-between gap-3 text-xs font-black uppercase tracking-widest text-slate-500">
+        <span>Sfidante</span>
+        <span class="tracking-normal text-slate-700">
+          #{match.tennisData.challenger_old_position}
+          →
+          #{match.tennisData.challenger_new_position}
+        </span>
       </div>
 
-      <div class="font-black text-2xl break-words">
-       <a
-  href={`/player/${match.tennisData.challenger.id}`}
-  class="font-black text-2xl break-words hover:underline"
->
-  {match.tennisData.challenger.name}
-  {#if isTennisBestPlayer(match.tennisData.challenger.id)}
-    <span class="text-[var(--giallo-club)] drop-shadow-[1px_1px_0_#000]" title="Best player" aria-label="Best player">★</span>
-  {/if}
-</a>
-      </div>
-
-      <div class="text-sm font-bold mt-2">
-        #{match.tennisData.challenger_old_position}
-        →
-        #{match.tennisData.challenger_new_position}
-      </div>
-
+      <a
+        href={`/player/${match.tennisData.challenger.id}`}
+        class="font-black text-2xl break-words hover:underline"
+      >
+        {match.tennisData.challenger.name}
+        {#if isTennisBestPlayer(match.tennisData.challenger.id)}
+          <span class="text-black" title="Best player" aria-label="Best player">★</span>
+        {/if}
+      </a>
     </div>
 
-    <div class="flex items-center gap-3  md:max-w-1/6 ">
-      <div class="h-1 bg-black flex-1 md:hidden"></div>
+    <div class="flex items-center gap-3">
+      <div class="h-1 bg-black flex-1"></div>
 
       <span class="bg-black text-white px-3 py-1 font-black text-xs uppercase">
         vs
       </span>
 
-      <div class="h-1 bg-black flex-1  md:hidden"></div>
+      <div class="h-1 bg-black flex-1"></div>
     </div>
 
-    <div class="border-2 border-black bg-white p-4 min-w-0">
-
-      <div class="text-sm uppercase font-bold text-slate-500 mb-2">
-        Sfidato
+    <div
+      class={match.tennisData.winner.id === match.tennisData.defender.id
+        ? 'border-2 border-black bg-[var(--giallo-club)] px-4 py-3'
+        : 'border-2 border-black bg-white px-4 py-3'}
+    >
+      <div class="mb-2 flex items-center justify-between gap-3 text-xs font-black uppercase tracking-widest text-slate-500">
+        <span>Sfidato</span>
+        <span class="tracking-normal text-slate-700">
+          #{match.tennisData.defender_old_position}
+          →
+          #{match.tennisData.defender_new_position}
+        </span>
       </div>
 
-      <div class="font-black text-2xl break-words">
-        <a
-  href={`/player/${match.tennisData.defender.id}`}
-  class="font-black text-2xl break-words hover:underline"
->
-  {match.tennisData.defender.name}
-  {#if isTennisBestPlayer(match.tennisData.defender.id)}
-    <span class="text-[var(--giallo-club)] drop-shadow-[1px_1px_0_#000]" title="Best player" aria-label="Best player">★</span>
-  {/if}
-</a>
-      </div>
-
-      <div class="text-sm font-bold mt-2">
-        #{match.tennisData.defender_old_position}
-        →
-        #{match.tennisData.defender_new_position}
-      </div>
-
+      <a
+        href={`/player/${match.tennisData.defender.id}`}
+        class="font-black text-2xl break-words hover:underline"
+      >
+        {match.tennisData.defender.name}
+        {#if isTennisBestPlayer(match.tennisData.defender.id)}
+          <span class="text-black" title="Best player" aria-label="Best player">★</span>
+        {/if}
+      </a>
     </div>
 
   </div>
@@ -339,12 +343,18 @@
     </div>
   {/if}
 
-  <div class="mt-5 flex flex-wrap justify-end gap-3">
-    <a href={getWhatsappUrl()} target="_blank" rel="noreferrer" class="club-btn-yellow px-4 py-2">
+  <div class="mt-auto grid grid-cols-2 gap-3 pt-5">
+    <a href={getWhatsappUrl()} target="_blank" rel="noreferrer" class="club-btn-blue inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-center text-black">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5"/>
+      </svg>
       Condividi match
     </a>
 
-    <a href={getMatchUrl()} class="club-btn px-4 py-2">
+    <a href={getMatchUrl()} class="club-btn inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-center">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+      </svg>
       Apri match
     </a>
   </div>

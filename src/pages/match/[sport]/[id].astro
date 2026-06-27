@@ -1,6 +1,7 @@
 ---
 import Layout from '../../../layouts/Layout.astro';
 import { supabase } from '../../../lib/supabase';
+import MatchEloChart from '../../../components/MatchEloChart.svelte';
 
 const { sport, id } = Astro.params;
 const normalizedSport = sport?.toLowerCase();
@@ -40,6 +41,7 @@ const joinNames = (players) =>
 let match = null;
 let error = null;
 let pageData = null;
+let matchEloChart = null;
 
 if (normalizedSport === 'padel') {
   const response = await supabase
@@ -171,6 +173,103 @@ if (normalizedSport === 'tennis') {
       defenderNewPosition: match.defender_new_position,
     };
   }
+}
+
+if (normalizedSport === 'padel' && match && pageData) {
+  const chartPlayers = [...pageData.teamA, ...pageData.teamB]
+    .map((player) => ({
+      id: player.player_id,
+      name: player.players?.name,
+    }))
+    .filter((player) => player.id && player.name);
+
+  const playerIds = chartPlayers.map((player) => player.id);
+  const currentMatchTime = new Date(match.created_at || pageData.date || 0).getTime();
+
+  const { data: eloRows } = await supabase
+    .from('match_players')
+    .select(`
+      player_id,
+      result,
+      delta,
+      elo_before,
+      elo_after,
+      matches!inner (
+        id,
+        played_at,
+        created_at,
+        score
+      )
+    `)
+    .in('player_id', playerIds);
+
+  const rowsUntilMatch = (eloRows || [])
+    .filter((row) => {
+      const rowTime = new Date(row.matches?.created_at || 0).getTime();
+      return rowTime > 0 && rowTime <= currentMatchTime;
+    })
+    .sort((a, b) => {
+      const timeA = new Date(a.matches?.created_at || 0).getTime();
+      const timeB = new Date(b.matches?.created_at || 0).getTime();
+      return timeA - timeB;
+    });
+
+  const eventMap = new Map();
+
+  for (const row of rowsUntilMatch) {
+    if (!row.matches?.id || eventMap.has(row.matches.id)) continue;
+
+    const matchDate = row.matches.played_at || row.matches.created_at;
+
+    eventMap.set(row.matches.id, {
+      id: row.matches.id,
+      time: new Date(row.matches.created_at || 0).getTime(),
+      label: matchDate
+        ? new Date(matchDate).toLocaleDateString('it-IT', {
+            day: '2-digit',
+            month: '2-digit',
+          })
+        : 'Match',
+    });
+  }
+
+  const events = Array.from(eventMap.values()).sort((a, b) => a.time - b.time);
+  const labels = ['Inizio', ...events.map((event) => event.label)];
+  const colors = ['#2563eb', '#dc2626', '#16a34a', '#7c3aed'];
+
+  const series = chartPlayers.map((player, index) => {
+    const playerRows = rowsUntilMatch.filter((row) => row.player_id === player.id);
+    let currentElo = playerRows.length > 0 ? Number(playerRows[0].elo_before || 1000) : null;
+    const data = [currentElo];
+    const detail = [['ELO iniziale']];
+
+    for (const event of events) {
+      const row = playerRows.find((item) => item.matches?.id === event.id);
+
+      if (row) {
+        currentElo = Number(row.elo_after || row.elo_before || currentElo || 1000);
+        data.push(currentElo);
+        detail.push([
+          `${row.result === 'win' ? 'Vittoria' : 'Sconfitta'} ${row.delta > 0 ? '+' : ''}${row.delta}`,
+          row.matches?.score ? `Score ${row.matches.score}` : null,
+        ].filter(Boolean));
+      } else {
+        data.push(currentElo);
+        detail.push(null);
+      }
+    }
+
+    return {
+      label: player.name,
+      color: colors[index % colors.length],
+      data,
+      detail,
+    };
+  });
+
+  matchEloChart = labels.length > 1 && series.length === 4
+    ? { labels, series }
+    : null;
 }
 
 if (pageData?.note) {
@@ -335,6 +434,21 @@ const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${sh
       </div>
     )}
   </article>
+
+  {normalizedSport === 'padel' && matchEloChart && (
+    <section class="club-card mt-8 p-5 md:p-6">
+      <div class="mb-5">
+        <p class="text-xs font-black uppercase tracking-widest text-slate-500">
+          Andamento ELO
+        </p>
+        <h2 class="text-3xl font-black text-black">
+          I quattro giocatori fino a questo match
+        </h2>
+      </div>
+
+      <MatchEloChart labels={matchEloChart.labels} series={matchEloChart.series} client:load />
+    </section>
+  )}
 
   <div class="mt-8 flex flex-wrap gap-4">
     <a href={whatsappUrl} target="_blank" rel="noreferrer" class="club-btn-yellow px-5 py-3">

@@ -76,9 +76,15 @@ body {
 }
 
 .blue-club-card {
-  background: white;
+  background: linear-gradient(0deg,rgba(0, 90, 216, .5) 0%, rgba(255, 255, 255, 1) 100%);
   border: 2px solid black;
   box-shadow: -0.5em 0.5em var(--blu-padel);
+}
+
+.violet-club-card {
+  background: linear-gradient(0deg,rgba(109, 66, 187, .5) 0%, rgba(255, 255, 255, 1) 100%);
+  border: 2px solid black;
+  box-shadow: -0.5em 0.5em var(--viola-tennis);
 }
 
 .stamp {
