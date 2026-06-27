@@ -450,12 +450,18 @@ const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`${shareText} ${sh
     </section>
   )}
 
-  <div class="mt-8 flex flex-wrap gap-4">
-    <a href={whatsappUrl} target="_blank" rel="noreferrer" class="club-btn-yellow px-5 py-3">
-      Condividi su WhatsApp
+  <div class="mt-8 flex flex-wrap justify-center gap-4">
+    <a href={whatsappUrl} target="_blank" rel="noreferrer" class="club-btn-blue inline-flex items-center justify-center gap-2 px-5 py-3 text-black">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5"/>
+      </svg>
+      Condividi match
     </a>
 
-    <a href="/matches" class="club-btn px-5 py-3">
+    <a href="/matches" class="club-btn inline-flex items-center justify-center gap-2 px-5 py-3">
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+        <path d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z"/>
+      </svg>
       Storico matches
     </a>
   </div>

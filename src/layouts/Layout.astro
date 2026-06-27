@@ -42,6 +42,7 @@ const themeColors = {
 };
 const currentTheme = themeColors[headerTheme] || themeColors.neutral;
 const themeStyle = `--theme-accent: ${currentTheme.accent}; --theme-accent-contrast: ${currentTheme.contrast};`;
+const isHomePage = Astro.url.pathname === '/';
 ---
 
 <html lang="it">
@@ -97,7 +98,7 @@ const themeStyle = `--theme-accent: ${currentTheme.accent}; --theme-accent-contr
   </head>
 
   <body style={themeStyle} class="min-h-screen flex flex-col">
-    <Header theme={headerTheme} accent={currentTheme.accent} contrast={currentTheme.contrast} logoSrc={currentTheme.logo} client:load />
+    <Header theme={headerTheme} accent={currentTheme.accent} contrast={currentTheme.contrast} logoSrc={currentTheme.logo} isHomePage={isHomePage} client:load />
 
     <main class={fullBleed ? 'w-full flex-1' : 'max-w-5xl mx-auto w-full flex-1 px-4 py-8'}>
       <slot />

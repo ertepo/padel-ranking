@@ -1,6 +1,5 @@
 <script lang="ts">
-  import { onDestroy, onMount, tick } from 'svelte';
-  import Chart from 'chart.js/auto';
+  import { onDestroy, onMount } from 'svelte';
 
   type EloSeries = {
     label: string;
@@ -13,27 +12,45 @@
   export let series: EloSeries[] = [];
 
   let canvas: HTMLCanvasElement;
-  let chart: Chart | null = null;
+  let chart: { destroy: () => void } | null = null;
+  let chartError = '';
+
+  function isNumber(value: number | null): value is number {
+    return typeof value === 'number' && Number.isFinite(value);
+  }
+
+  $: values = series
+    .flatMap((item) => item.data)
+    .filter(isNumber);
+
+  $: suggestedMin = values.length
+    ? Math.floor((Math.min(...values) - 20) / 10) * 10
+    : 900;
+
+  $: suggestedMax = values.length
+    ? Math.ceil((Math.max(...values) + 20) / 10) * 10
+    : 1100;
 
   onMount(async () => {
-    await tick();
-    if (!canvas || labels.length === 0 || series.length === 0) return;
+    if (!canvas || labels.length === 0 || series.length === 0 || values.length === 0) return;
 
-    requestAnimationFrame(() => {
+    try {
+      const { default: Chart } = await import('chart.js/auto');
+
       chart = new Chart(canvas, {
         type: 'line',
         data: {
           labels,
           datasets: series.map((item) => ({
             label: item.label,
-            data: item.data,
+            data: item.data.map((value) => (isNumber(value) ? value : null)),
             borderColor: item.color,
             backgroundColor: item.color,
             pointBackgroundColor: item.color,
             pointBorderColor: '#000',
             pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7,
+            pointRadius: 6,
+            pointHoverRadius: 8,
             borderWidth: 4,
             tension: 0.35,
             spanGaps: true,
@@ -94,6 +111,8 @@
               },
             },
             y: {
+              suggestedMin,
+              suggestedMax,
               grid: {
                 color: '#cbd5e1',
               },
@@ -108,7 +127,14 @@
           },
         },
       });
-    });
+      requestAnimationFrame(() => {
+        chart?.resize?.();
+      });
+    } catch (error) {
+      chartError = error instanceof Error
+        ? error.message
+        : 'Errore sconosciuto durante il rendering del grafico.';
+    }
   });
 
   onDestroy(() => {
@@ -116,6 +142,16 @@
   });
 </script>
 
-<div class="h-80 w-full md:h-96">
-  <canvas class="block h-full w-full" bind:this={canvas} aria-label="Grafico andamento ELO dei giocatori del match"></canvas>
-</div>
+{#if values.length === 0}
+  <div class="border-2 border-dashed border-black bg-white p-4 font-black text-slate-600">
+    Dati ELO non disponibili per questo match.
+  </div>
+{:else if chartError}
+  <div class="border-2 border-black bg-white p-4 font-black text-red-600">
+    Errore grafico: {chartError}
+  </div>
+{:else}
+  <div class="h-80 w-full border-2 border-dashed border-black bg-white md:h-96">
+    <canvas class="block h-full w-full" bind:this={canvas} aria-label="Grafico andamento ELO dei giocatori del match"></canvas>
+  </div>
+{/if}

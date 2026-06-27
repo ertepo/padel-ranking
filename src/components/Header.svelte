@@ -3,6 +3,7 @@
   export let accent = '#ffcc00';
   export let contrast = '#000';
   export let logoSrc = '/images/logo-b.svg';
+  export let isHomePage = false;
 
   let isOpen = false;
   let isRankingOpen = false;
@@ -39,11 +40,19 @@
 
     <!-- Desktop -->
     <nav class="hidden lg:flex items-center gap-3">
-      <a href="/" class="club-btn px-4 py-2">
-        Home
-      </a>
+      {#if !isHomePage}
+        <a href="/" class="club-btn inline-flex items-center gap-2 px-4 py-2">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5"/>
+          </svg>
+          Home
+        </a>
+      {/if}
 
-      <a href="/tornei/cascualian-open" class="club-btn-yellow px-4 py-2">
+      <a href="/tornei/cascualian-open" class="club-btn-yellow inline-flex items-center gap-2 px-4 py-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5q0 .807-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33 33 0 0 1 2.5.5m.099 2.54a2 2 0 0 0 .72 3.935c-.333-1.05-.588-2.346-.72-3.935m10.083 3.935a2 2 0 0 0 .72-3.935c-.133 1.59-.388 2.885-.72 3.935"/>
+        </svg>
         Torneo Padel
       </a>
 
@@ -72,35 +81,43 @@
         {#if isRankingOpen}
           <div
             id="desktop-ranking-menu"
-            class="absolute right-0 top-full mt-3 flex min-w-56 flex-col gap-3 border-2 border-black bg-white p-5 pl-6 club-card ombra"
+            class="absolute right-0 top-full mt-3 flex min-w-56 flex-col gap-3 border-2 border-black bg-blue-100/45 p-5 pl-6 shadow-2xl backdrop-blur-xl backdrop-saturate-150"
           >
           <a
               href="/#regolamento"
-              class="club-btn-pastelyellow px-4 py-2"
+              class="club-btn inline-flex items-center gap-2 px-4 py-2"
               on:click={() => (isRankingOpen = false)}
             >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2m5.5 1.5v2a1 1 0 0 0 1 1h2z"/>
+              </svg>
               Regolamento
             </a>
             <a
               href="/ranking/tennis"
-              class="club-btn-violet px-4 py-2"
+              class="club-btn inline-flex items-center gap-2 px-4 py-2"
               on:click={() => (isRankingOpen = false)}
             >
-              Tennis Ranking
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+              </svg>
+              Tennis
             </a>
 
             <a
               href="/ranking/padel"
-              class="club-btn-blue
-              
-              
-              
-               px-4 py-2"
+              class="club-btn inline-flex items-center gap-2 px-4 py-2"
               on:click={() => (isRankingOpen = false)}
             >
-              Padel Ranking
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+              </svg>
+              Padel
             </a>
-      <a href="/matches" class="club-btn-yellow px-4 py-2 !text-black">
+      <a href="/matches" class="club-btn inline-flex items-center gap-2 px-4 py-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z"/>
+        </svg>
         Matches
       </a>
             
@@ -111,8 +128,11 @@
       
       <a
         href="/prenotazioni"
-        class="club-btn-pastelgreen  px-4 py-2"
+        class="club-btn-pastelgreen inline-flex items-center gap-2 px-4 py-2"
       >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 shrink-0" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
+        </svg>
         Prenotazioni
       </a>
     </nav>
@@ -161,19 +181,27 @@
     }`}
   >
     <div class="p-6 flex flex-col gap-4">
-      <a
-        href="/"
-        class="club-btn p-4 text-center"
-        on:click={() => (isOpen = false)}
-      >
-        Home
-      </a>
+      {#if !isHomePage}
+        <a
+          href="/"
+          class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
+          on:click={() => (isOpen = false)}
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M6.5 14.5v-3.505c0-.245.25-.495.5-.495h2c.25 0 .5.25.5.5v3.5a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5v-7a.5.5 0 0 0-.146-.354L13 5.793V2.5a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1.293L8.354 1.146a.5.5 0 0 0-.708 0l-6 6A.5.5 0 0 0 1.5 7.5v7a.5.5 0 0 0 .5.5h4a.5.5 0 0 0 .5-.5"/>
+          </svg>
+          Home
+        </a>
+      {/if}
 
       <a
         href="/tornei/cascualian-open"
-        class="club-btn-yellow p-4 text-center"
+        class="club-btn-yellow inline-flex items-center justify-center gap-2 p-4 text-center"
         on:click={() => (isOpen = false)}
       >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5q0 .807-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33 33 0 0 1 2.5.5m.099 2.54a2 2 0 0 0 .72 3.935c-.333-1.05-.588-2.346-.72-3.935m10.083 3.935a2 2 0 0 0 .72-3.935c-.133 1.59-.388 2.885-.72 3.935"/>
+        </svg>
         Torneo Padel
       </a>
 
@@ -201,39 +229,51 @@
         <div id="mobile-ranking-menu" class="flex flex-col gap-3 pl-4">
           <a
             href="/#regolamento"
-            class="club-btn-pastelyellow p-4 text-center"
+            class="club-btn-pastelyellow inline-flex items-center justify-center gap-2 p-4 text-center"
             on:click={() => {
               isRankingOpen = false;
               isOpen = false;
             }}
           >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+              <path d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2m5.5 1.5v2a1 1 0 0 0 1 1h2z"/>
+            </svg>
             Regolamento
           </a><a
             href="/ranking/tennis"
-            class="club-btn p-4 text-center"
+            class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
             on:click={() => {
               isRankingOpen = false;
               isOpen = false;
             }}
           >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+              <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+            </svg>
             Tennis Ranking
           </a>
 
           <a
             href="/ranking/padel"
-            class="club-btn p-4 text-center"
+            class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
             on:click={() => {
               isRankingOpen = false;
               isOpen = false;
             }}
           >
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+              <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+            </svg>
             Padel Ranking
           </a>
           <a
         href="/matches"
-        class="club-btn p-4 text-center"
+        class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
         on:click={() => (isOpen = false)}
       >
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z"/>
+        </svg>
         Match
       </a>
           
@@ -242,9 +282,12 @@
 
       <a
         href="/prenotazioni"
-        class="club-btn-pastelgreen p-4 text-center"
+        class="club-btn-pastelgreen inline-flex items-center justify-center gap-2 p-4 text-center"
         on:click={() => (isOpen = false)}
       >
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="h-5 w-5 shrink-0" aria-hidden="true">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 0 1 0 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 0 1 0-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375Z" />
+        </svg>
         Disponibilita campi
       </a>
     </div>
