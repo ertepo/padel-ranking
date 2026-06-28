@@ -1,4 +1,6 @@
 <script>
+  import { slide } from 'svelte/transition';
+
   export let theme = 'neutral';
   export let accent = '#ffcc00';
   export let contrast = '#000';
@@ -25,6 +27,20 @@
     }
 
     if (isDesktop && clickedOutsideTournaments) {
+      isTournamentsOpen = false;
+    }
+  }
+
+  function toggleTournamentsMenu() {
+    isTournamentsOpen = !isTournamentsOpen;
+    if (isTournamentsOpen) {
+      isRankingOpen = false;
+    }
+  }
+
+  function toggleRankingMenu() {
+    isRankingOpen = !isRankingOpen;
+    if (isRankingOpen) {
       isTournamentsOpen = false;
     }
   }
@@ -64,7 +80,7 @@
           class="club-btn-yellow flex items-center gap-2 px-4 py-2"
           aria-expanded={isTournamentsOpen}
           aria-controls="desktop-tournaments-menu"
-          on:click={() => (isTournamentsOpen = !isTournamentsOpen)}
+          on:click={toggleTournamentsMenu}
         >
           Tornei Padel
           <svg
@@ -83,11 +99,11 @@
         {#if isTournamentsOpen}
           <div
             id="desktop-tournaments-menu"
-            class="absolute right-0 top-full mt-3 flex min-w-64 flex-col gap-3 border-2 border-black bg-blue-100/45 p-5 pl-6 shadow-2xl backdrop-blur-xl backdrop-saturate-150"
+            class="absolute right-0 top-full mt-3 flex min-w-72 flex-col gap-3 border-2 border-black bg-blue-100/45 p-5 pl-6 shadow-2xl backdrop-blur-xl backdrop-saturate-150"
           >
             <a
               href="/tornei/cascualian-open"
-              class="club-btn inline-flex items-center px-4 py-2"
+              class="club-btn inline-flex items-center whitespace-nowrap px-4 py-2"
               on:click={() => (isTournamentsOpen = false)}
             >
               Cascualian Open
@@ -95,7 +111,7 @@
 
             <a
               href="/tornei/serronchioland-garros"
-              class="club-btn inline-flex items-center px-4 py-2"
+              class="club-btn inline-flex items-center whitespace-nowrap px-4 py-2"
               on:click={() => (isTournamentsOpen = false)}
             >
               Serronchioland Garros
@@ -118,7 +134,7 @@
           class="club-btn flex items-center gap-2 px-4 py-2"
           aria-expanded={isRankingOpen}
           aria-controls="desktop-ranking-menu"
-          on:click={() => (isRankingOpen = !isRankingOpen)}
+          on:click={toggleRankingMenu}
         >
           Campionati
           <svg
@@ -232,7 +248,7 @@
 
   <!-- Drawer -->
   <aside
-    class={`fixed top-0 right-0 h-full w-72 border-l-2 border-black bg-white/45 shadow-2xl backdrop-blur-xl backdrop-saturate-150 transition-transform duration-300 z-50 lg:hidden ${
+    class={`fixed top-0 right-0 h-full w-[22rem] max-w-[calc(100vw-1rem)] border-l-2 border-black bg-white/45 shadow-2xl backdrop-blur-xl backdrop-saturate-150 transition-transform duration-300 z-50 lg:hidden ${
       isOpen ? 'translate-x-0' : 'translate-x-full'
     }`}
   >
@@ -255,7 +271,7 @@
         class="club-btn-yellow flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap p-4 text-center"
         aria-expanded={isTournamentsOpen}
         aria-controls="mobile-tournaments-menu"
-        on:click={() => (isTournamentsOpen = !isTournamentsOpen)}
+        on:click={toggleTournamentsMenu}
       >
         Tornei Padel<svg
           width="24"
@@ -271,36 +287,38 @@
       </button>
 
       {#if isTournamentsOpen}
-        <div id="mobile-tournaments-menu" class="flex flex-col gap-3 pl-4">
-          <a
-            href="/tornei/cascualian-open"
-            class="club-btn inline-flex items-center justify-center p-4 text-center"
-            on:click={() => {
-              isTournamentsOpen = false;
-              isOpen = false;
-            }}
-          >
-            Cascualian Open
-          </a>
+        <div id="mobile-tournaments-menu" class="overflow-hidden" transition:slide={{ duration: 180 }}>
+          <div class="flex flex-col gap-3 pl-4 pt-3">
+            <a
+              href="/tornei/cascualian-open"
+              class="club-btn inline-flex items-center justify-center whitespace-nowrap p-4 text-center"
+              on:click={() => {
+                isTournamentsOpen = false;
+                isOpen = false;
+              }}
+            >
+              Cascualian Open
+            </a>
 
-          <a
-            href="/tornei/serronchioland-garros"
-            class="club-btn inline-flex items-center justify-center p-4 text-center"
-            on:click={() => {
-              isTournamentsOpen = false;
-              isOpen = false;
-            }}
-          >
-            Serronchioland Garros
-          </a>
+            <a
+              href="/tornei/serronchioland-garros"
+              class="club-btn inline-flex items-center justify-center whitespace-nowrap p-4 text-center"
+              on:click={() => {
+                isTournamentsOpen = false;
+                isOpen = false;
+              }}
+            >
+              Serronchioland Garros
+            </a>
 
-          <span class="club-btn inline-flex cursor-not-allowed items-center justify-center p-4 text-center opacity-60">
-            Cordivimbledon
-          </span>
+            <span class="club-btn inline-flex cursor-not-allowed items-center justify-center p-4 text-center opacity-60">
+              Cordivimbledon
+            </span>
 
-          <span class="club-btn inline-flex cursor-not-allowed items-center justify-center p-4 text-center opacity-60">
-            PalazzUS Open
-          </span>
+            <span class="club-btn inline-flex cursor-not-allowed items-center justify-center p-4 text-center opacity-60">
+              PalazzUS Open
+            </span>
+          </div>
         </div>
       {/if}
 
@@ -309,7 +327,7 @@
         class="club-btn flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap p-4 text-center"
         aria-expanded={isRankingOpen}
         aria-controls="mobile-ranking-menu"
-        on:click={() => (isRankingOpen = !isRankingOpen)}
+        on:click={toggleRankingMenu}
       >
         Campionati<svg
           width="24"
@@ -325,57 +343,58 @@
       </button>
 
       {#if isRankingOpen}
-        <div id="mobile-ranking-menu" class="flex flex-col gap-3 pl-4">
-          <a
-            href="/#regolamento"
-            class="club-btn-pastelyellow inline-flex items-center justify-center gap-2 p-4 text-center"
-            on:click={() => {
-              isRankingOpen = false;
-              isOpen = false;
-            }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
-              <path d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2m5.5 1.5v2a1 1 0 0 0 1 1h2z"/>
-            </svg>
-            Regolamento
-          </a><a
-            href="/ranking/tennis"
-            class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
-            on:click={() => {
-              isRankingOpen = false;
-              isOpen = false;
-            }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
-              <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
-            </svg>
-            Tennis Ranking
-          </a>
+        <div id="mobile-ranking-menu" class="overflow-hidden" transition:slide={{ duration: 180 }}>
+          <div class="flex flex-col gap-3 pl-4 pt-3">
+            <a
+              href="/#regolamento"
+              class="club-btn-pastelyellow inline-flex items-center justify-center gap-2 p-4 text-center"
+              on:click={() => {
+                isRankingOpen = false;
+                isOpen = false;
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M4 0h5.293A1 1 0 0 1 10 .293L13.707 4a1 1 0 0 1 .293.707V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2m5.5 1.5v2a1 1 0 0 0 1 1h2z"/>
+              </svg>
+              Regolamento
+            </a><a
+              href="/ranking/tennis"
+              class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
+              on:click={() => {
+                isRankingOpen = false;
+                isOpen = false;
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+              </svg>
+              Tennis Ranking
+            </a>
 
-          <a
-            href="/ranking/padel"
-            class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
-            on:click={() => {
-              isRankingOpen = false;
-              isOpen = false;
-            }}
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
-              <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
-            </svg>
-            Padel Ranking
-          </a>
-          <a
-        href="/matches"
-        class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
-        on:click={() => (isOpen = false)}
-      >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z"/>
-        </svg>
-        Match
-      </a>
-          
+            <a
+              href="/ranking/padel"
+              class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
+              on:click={() => {
+                isRankingOpen = false;
+                isOpen = false;
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+              </svg>
+              Padel Ranking
+            </a>
+            <a
+              href="/matches"
+              class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
+              on:click={() => (isOpen = false)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z"/>
+              </svg>
+              Match
+            </a>
+          </div>
         </div>
       {/if}
 
