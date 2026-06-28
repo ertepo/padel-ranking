@@ -7,16 +7,25 @@
 
   let isOpen = false;
   let isRankingOpen = false;
+  let isTournamentsOpen = false;
   let desktopRankingContainer;
+  let desktopTournamentsContainer;
 
   function closeDesktopRankingOnOutsideClick(event) {
     const isDesktop = window.innerWidth >= 1024;
-    const clickedOutside =
+    const clickedOutsideRanking =
       desktopRankingContainer &&
       !desktopRankingContainer.contains(event.target);
+    const clickedOutsideTournaments =
+      desktopTournamentsContainer &&
+      !desktopTournamentsContainer.contains(event.target);
 
-    if (isDesktop && clickedOutside) {
+    if (isDesktop && clickedOutsideRanking) {
       isRankingOpen = false;
+    }
+
+    if (isDesktop && clickedOutsideTournaments) {
+      isTournamentsOpen = false;
     }
   }
 </script>
@@ -49,12 +58,59 @@
         </a>
       {/if}
 
-      <a href="/tornei/cascualian-open" class="club-btn-yellow inline-flex items-center gap-2 px-4 py-2">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5q0 .807-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33 33 0 0 1 2.5.5m.099 2.54a2 2 0 0 0 .72 3.935c-.333-1.05-.588-2.346-.72-3.935m10.083 3.935a2 2 0 0 0 .72-3.935c-.133 1.59-.388 2.885-.72 3.935"/>
-        </svg>
-        Torneo Padel
-      </a>
+      <div class="relative" bind:this={desktopTournamentsContainer}>
+        <button
+          type="button"
+          class="club-btn-yellow flex items-center gap-2 px-4 py-2"
+          aria-expanded={isTournamentsOpen}
+          aria-controls="desktop-tournaments-menu"
+          on:click={() => (isTournamentsOpen = !isTournamentsOpen)}
+        >
+          Tornei Padel
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            class={`transition-transform ${isTournamentsOpen ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          >
+            <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
+          </svg>
+        </button>
+
+        {#if isTournamentsOpen}
+          <div
+            id="desktop-tournaments-menu"
+            class="absolute right-0 top-full mt-3 flex min-w-64 flex-col gap-3 border-2 border-black bg-blue-100/45 p-5 pl-6 shadow-2xl backdrop-blur-xl backdrop-saturate-150"
+          >
+            <a
+              href="/tornei/cascualian-open"
+              class="club-btn inline-flex items-center px-4 py-2"
+              on:click={() => (isTournamentsOpen = false)}
+            >
+              Cascualian Open
+            </a>
+
+            <a
+              href="/tornei/serronchioland-garros"
+              class="club-btn inline-flex items-center px-4 py-2"
+              on:click={() => (isTournamentsOpen = false)}
+            >
+              Serronchioland Garros
+            </a>
+
+            <span class="club-btn inline-flex cursor-not-allowed items-center px-4 py-2 opacity-60">
+              Cordivimbledon
+            </span>
+
+            <span class="club-btn inline-flex cursor-not-allowed items-center px-4 py-2 opacity-60">
+              PalazzUS Open
+            </span>
+          </div>
+        {/if}
+      </div>
 
       <div class="relative" bind:this={desktopRankingContainer}>
         <button
@@ -194,16 +250,59 @@
         </a>
       {/if}
 
-      <a
-        href="/tornei/cascualian-open"
-        class="club-btn-yellow inline-flex items-center justify-center gap-2 p-4 text-center"
-        on:click={() => (isOpen = false)}
+      <button
+        type="button"
+        class="club-btn-yellow flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap p-4 text-center"
+        aria-expanded={isTournamentsOpen}
+        aria-controls="mobile-tournaments-menu"
+        on:click={() => (isTournamentsOpen = !isTournamentsOpen)}
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
-          <path d="M2.5.5A.5.5 0 0 1 3 0h10a.5.5 0 0 1 .5.5q0 .807-.034 1.536a3 3 0 1 1-1.133 5.89c-.79 1.865-1.878 2.777-2.833 3.011v2.173l1.425.356c.194.048.377.135.537.255L13.3 15.1a.5.5 0 0 1-.3.9H3a.5.5 0 0 1-.3-.9l1.838-1.379c.16-.12.343-.207.537-.255L6.5 13.11v-2.173c-.955-.234-2.043-1.146-2.833-3.012a3 3 0 1 1-1.132-5.89A33 33 0 0 1 2.5.5m.099 2.54a2 2 0 0 0 .72 3.935c-.333-1.05-.588-2.346-.72-3.935m10.083 3.935a2 2 0 0 0 .72-3.935c-.133 1.59-.388 2.885-.72 3.935"/>
+        Tornei Padel<svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class={`shrink-0 transition-transform ${isTournamentsOpen ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        >
+          <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
         </svg>
-        Torneo Padel
-      </a>
+      </button>
+
+      {#if isTournamentsOpen}
+        <div id="mobile-tournaments-menu" class="flex flex-col gap-3 pl-4">
+          <a
+            href="/tornei/cascualian-open"
+            class="club-btn inline-flex items-center justify-center p-4 text-center"
+            on:click={() => {
+              isTournamentsOpen = false;
+              isOpen = false;
+            }}
+          >
+            Cascualian Open
+          </a>
+
+          <a
+            href="/tornei/serronchioland-garros"
+            class="club-btn inline-flex items-center justify-center p-4 text-center"
+            on:click={() => {
+              isTournamentsOpen = false;
+              isOpen = false;
+            }}
+          >
+            Serronchioland Garros
+          </a>
+
+          <span class="club-btn inline-flex cursor-not-allowed items-center justify-center p-4 text-center opacity-60">
+            Cordivimbledon
+          </span>
+
+          <span class="club-btn inline-flex cursor-not-allowed items-center justify-center p-4 text-center opacity-60">
+            PalazzUS Open
+          </span>
+        </div>
+      {/if}
 
       <button
         type="button"
