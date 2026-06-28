@@ -1,0 +1,435 @@
+---
+---
+
+    <section id="regolamento" class="scroll-mt-15">
+        <div class="mb-8 flex gap-3">
+            <div>
+                <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
+                    Campionati interni
+                </p>
+
+                <h2 class="text-5xl md:text-7xl font-black leading-none text-black">
+                    Regolamento
+                </h2>
+            </div>
+        </div>
+
+    <div class="sticky top-16 md:top-20 z-40 mb-8 flex justify-center">
+        <div class="grid w-full max-w-xl grid-cols-2 border-2 border-black bg-white p-1 club-card">
+            <button
+                id="show-padel"
+                type="button"
+                class="rules-tab border-2 border-black bg-[var(--giallo-club)] px-4 py-3 text-sm font-black uppercase text-black"
+                data-active="true"
+            >
+                Padel
+            </button>
+
+            <button
+                id="show-tennis"
+                type="button"
+                class="rules-tab border-2 border-transparent bg-white px-4 py-3 text-sm font-black uppercase text-black"
+                data-active="false"
+            >
+                Tennis
+            </button>
+        </div>
+    </div>
+
+    <div class="relative overflow-hidden">
+        <div
+            id="rules-slider"
+            class="flex transition-transform duration-300 ease-in-out w-[200%]"
+        ><div class="w-1/2 shrink-0 pl-2">
+                <section class="mb-10 dotted">
+                    <h2
+                        class=" highlight-blue text-4xl md:text-5xl font-black leading-none text-black mt-5"
+                    >
+                        Padel Championship
+                    </h2>
+
+                    <p
+                        class="mt-5 max-w-2xl text-lg font-semibold text-slate-700"
+                    >
+                        Competizione individuale di padel con ranking ELO,
+                        partite libere e playoff finale.
+                    </p>
+
+                    <div class="mt-6 flex flex-wrap gap-4">
+                        <a href="/ranking/padel" class="club-btn-pastelyellow inline-flex items-center justify-center gap-2 px-5 py-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+                            </svg>
+                            Classifica Padel
+                        </a>
+
+                        <a href="/matches" class="club-btn-pastelgreen inline-flex items-center justify-center gap-2 px-5 py-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z"/>
+                            </svg>
+                            Storico match
+                        </a>
+                    </div>
+                </section>
+
+                <section class="grid gap-5 md:grid-cols-3 mb-10">
+                    <div class="club-card p-5">
+                        <div class="text-4xl font-black mb-3">1</div>
+                        <h2 class="text-2xl font-black mb-2">Partite libere</h2>
+                        <p class="font-medium text-slate-700">
+                            I soci organizzano autonomamente le partite. Le
+                            coppie non sono fisse e possono cambiare ogni volta.
+                        </p>
+                    </div>
+
+                    <div class="club-card p-5 bg-[var(--giallo-club)]">
+                        <div class="text-4xl font-black mb-3">2</div>
+                        <h2 class="text-2xl font-black mb-2">Ranking ELO</h2>
+                        <p class="font-medium text-slate-800">
+                            Ogni giocatore ha un punteggio individuale (ELO) che
+                            sale o scende ad ogni match.
+                        </p>
+                    </div>
+
+                    <div class="club-card p-5">
+                        <div class="text-4xl font-black mb-3">3</div>
+                        <h2 class="text-2xl font-black mb-2">Finale playoff</h2>
+                        <p class="font-medium text-slate-700">
+                            A fine stagione la classifica determina i
+                            qualificati per il master finale.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="club-card p-6 mb-10 bg-[var(--giallo-club)]">
+                    <h2 class="text-3xl font-black mb-4">
+                        Come si calcola la forza delle coppie?
+                    </h2>
+
+                    <p class="font-semibold text-slate-900 mb-4">
+                        La forza di una coppia è la media ELO dei due giocatori.
+                    </p>
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div
+                            class="bg-white border-2 border-black p-4 font-mono text-lg"
+                        >
+                            Team A: 1000 + 1040 = media 1020<br />
+                            Team B: 990 + 970 = media 980<br />
+                        </div>
+                        <div
+                            class="bg-white border-2 border-black p-4 font-mono text-lg"
+                        >
+                            Fino a 50 punti di differenza il match sarà
+                            considerato equilibrato.<br />
+                            Oltre i 50 punti di differenza l'incontro avrà dei FAVORITI
+                            alla vittoria.<br />
+                        </div>
+                    </div>
+                </section>
+
+                <section class="club-card p-6 mb-8">
+                    <h2 class="text-3xl font-black mb-5">
+                        Assegnazione punti ELO
+                    </h2>
+
+                    <div class="grid gap-4 md:grid-cols-2">
+                        <div
+                            class="border-2 border-black p-4 bg-white border-dashed"
+                        >
+                            <h3 class="font-black text-xl mb-2">
+                                ELO iniziale
+                            </h3>
+                            <p class="font-medium text-slate-700">
+                                Tutti i giocatori partono da 1000 punti ELO.
+                            </p>
+                        </div>
+
+                        <div
+                            class="border-2 border-black p-4 bg-white border-dashed"
+                        >
+                            <h3 class="font-black text-xl mb-2">
+                                Primi tre match personali
+                            </h3>
+                            <p class="font-medium text-slate-700">
+                                I primi tre incontri di ogni giocatore assegnano
+                                15 punti per vittoria e -15 per sconfitta,
+                                indipendentemente dalla forza delle coppie.
+                            </p>
+                        </div>
+
+                        <div
+                            class="border-2 border-black p-4 bg-white border-dashed"
+                        >
+                            <h3 class="font-black text-xl mb-2">
+                                Match equilibrato
+                            </h3>
+                            <p class="font-medium text-slate-700">
+                                Se il match è equilibrato (esempio: TeamA 1020pt
+                                - TeamB 1000pt = 20pt) si assegnano +12 punti
+                                per vittoria e -12 per sconfitta.
+                            </p>
+                        </div>
+
+                        <div
+                            class="border-2 border-black p-4 bg-white border-dashed"
+                        >
+                            <h3 class="font-black text-xl mb-2">
+                                Match con favoriti e sfavoriti
+                            </h3>
+                            <p class="font-medium text-slate-700">
+                                Se vincono i favoriti guadagnano 8 punti e gli
+                                sfavoriti ne perdono 8. Se vincono gli sfavoriti
+                                guadagnano 25 punti e i favoriti ne perdono 25.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <!-- TENNIS -->
+            <div class="w-1/2 shrink-0 pl-2">
+                <section class="mb-10 dotted">
+                    <h2
+                        class=" highlight-violet text-4xl md:text-5xl font-black leading-none text-black mt-5"
+                    >
+                        Tennis Championship
+                    </h2>
+
+                    <p
+                        class="mt-5 max-w-2xl text-lg font-semibold text-slate-700"
+                    >
+                        Classifica a scala con sistema challenge e movimento
+                        dinamico delle posizioni.
+                    </p>
+
+                    <div class="mt-6 flex flex-wrap gap-4">
+                         <a href="/ranking/tennis" class="club-btn-pastelyellow inline-flex items-center justify-center gap-2 px-5 py-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+                            </svg>
+                            Vedi classifica Tennis
+                        </a>
+
+                        <a href="/matches" class="club-btn-pastelgreen inline-flex items-center justify-center gap-2 px-5 py-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                                <path d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z"/>
+                            </svg>
+                            Storico match
+                        </a>
+                    </div>
+                </section>
+
+                <section class="grid gap-5 md:grid-cols-3 mb-10">
+                    <div class="club-card p-5">
+                        <div class="text-4xl font-black mb-3">1</div>
+                        <h2 class="text-2xl font-black mb-2">
+                            Challenge libere
+                        </h2>
+
+                        <p class="font-medium text-slate-700">
+                            Ogni giocatore può sfidare altri membri della scala.
+                        </p>
+                    </div>
+
+                    <div class="club-card p-5 bg-[var(--giallo-club)]">
+                        <div class="text-4xl font-black mb-3">2</div>
+
+                        <h2 class="text-2xl font-black mb-2">
+                            Sistema a Scala
+                        </h2>
+
+                        <p class="font-medium text-slate-800">
+                            La posizione cambia in base alla distanza tra
+                            challenger e defender.
+                        </p>
+                    </div>
+
+                    <div class="club-card p-5">
+                        <div class="text-4xl font-black mb-3">3</div>
+
+                        <h2 class="text-2xl font-black mb-2">
+                            Movimento Dinamico
+                        </h2>
+
+                        <p class="font-medium text-slate-700">
+                            Le vittorie contro giocatori più in alto permettono
+                            rapide scalate.
+                        </p>
+                    </div>
+                </section>
+
+                <section class="club-card p-6 mb-10 bg-[var(--giallo-club)]">
+                    <h2 class="text-3xl font-black mb-5">Regole di ascesa</h2>
+                    <h3 class="text-2xl font-black mb-5">
+                        Vittoria dello sfidante
+                    </h3>
+                    <div class="grid gap-5 md:grid-cols-2 mb-10 font-mono">
+                        <div class="bg-white border-2 border-black">
+                            <div class="flex justify-between items-start gap-4 mb-3">
+                                <div></div>
+
+                                <div class="bg-violet-500 text-white px-3 py-2 font-black shrink-0">
+                                    Differenza = 1
+                                </div>
+                            </div>
+                            <div class="font-mono leading-tight px-4 pb-2">
+                            → swap diretto<br />
+                            ----------------------<br />
+                            1<br />
+                            2 ↱ Sfidato<br />
+                            3 &nbsp;Sfidante ↲<br />
+                            4<br />
+                            5<br />
+                        </div></div>
+
+                        <div class="bg-white border-2 border-black">
+                            <div class="flex justify-between items-start gap-4 mb-3">
+                                <div></div>
+
+                                <div class="bg-violet-600 text-white px-3 py-2 font-black shrink-0">
+                                    Differenza = 2
+                                </div>
+                            </div>
+                            <div class="font-mono leading-tight px-4 pb-2">
+                            → sfidato invariato<br />
+                            → sfidante sale di 1<br />
+                            ----------------------<br />
+                            1 - Sfidato<br />
+                            2 ↱<br />
+                            3 ↑ Sfidante <br />
+                        </div>
+</div>
+                        <div class="bg-white border-2 border-black">
+                            <div class="flex justify-between items-start gap-4 mb-3">
+                                <div></div>
+
+                                <div class="bg-violet-700 text-white px-3 py-2 font-black shrink-0">
+                                    Differenza = 3
+                                </div>
+                            </div>
+                            <div class="font-mono leading-tight px-4 pb-2">
+                            → sfidato scende di 1<br />
+                            → sfidante sale di 1<br />
+                            ----------------------<br />
+                            1 Sfidato ↓<br />
+                            2 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↲<br
+                            />
+                            3 ↱<br />
+                            4 ↑ Sfidante<br /></div>
+                        </div>
+
+                        <div class="bg-white border-2 border-black">
+                            <div class="flex justify-between items-start gap-4 mb-3">
+                                <div></div>
+
+                                <div class="bg-violet-800 text-white px-3 py-2 font-black shrink-0">
+                                    Differenza = 4
+                                </div>
+                            </div>
+
+                            <div class="font-mono leading-tight px-4 pb-2">
+                                → sfidato scende di 1<br />
+                                → sfidante sale di 2<br />
+                            ----------------------<br />
+                                1 Sfidato ↓<br />
+                                2 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↲<br
+                                />
+                                3 ↱<br />
+                                4 ↑<br />
+                                5 ↑ Sfidante
+                            </div>
+                        </div>
+
+                        <div class="bg-white border-2 border-black">
+                            <div class="flex justify-between items-start gap-4 mb-3">
+                                <div></div>
+
+                                <div class="bg-violet-900 text-white px-3 py-2 font-black shrink-0">
+                                    Differenza = 5
+                                </div>
+                            </div>
+                            <div class="font-mono leading-tight px-4 pb-2">
+                            → sfidato scende di 2<br />
+                            → sfidante sale di 2<br />
+                            ----------------------<br />
+                            1 Sfidato ↓<br />
+                            2 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↓<br
+                            />
+                            3 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;↲<br
+                            />
+                            4<br />
+                            5 ↱<br />
+                            6 ↑<br />
+                            7 ↑ Sfidante<br />
+                        </div></div>
+                    </div>
+                    <h3 class="text-2xl font-black mb-5">
+                        Vittoria dello sfidato
+                    </h3>
+                    <div class="grid gap-5 md:grid-cols-2 mb-10 font-mono">
+                        <div class="bg-white border-2 border-black p-4">
+                            → sfidato invariato<br />
+                            → sfidante scende di 1<br />
+                            ----------------------<br />
+                            1 - Sfidato<br />
+                            2 <br />
+                            3 ↓ Sfigato <br />
+                            4 ↳<br />
+                        </div>
+                    </div>
+                </section>
+            </div>
+            
+        </div>
+
+        <script is:inline>
+            const slider = document.getElementById("rules-slider");
+            const padelBtn = document.getElementById("show-padel");
+            const tennisBtn = document.getElementById("show-tennis");
+            let startX = 0;
+            let currentSlide = 0;
+            const threshold = 100;
+
+            const setActiveButton = (button, isActive) => {
+                button?.classList.toggle("bg-[var(--giallo-club)]", isActive);
+                button?.classList.toggle("bg-white", !isActive);
+                button?.classList.toggle("border-black", isActive);
+                button?.classList.toggle("border-transparent", !isActive);
+                button?.setAttribute("data-active", isActive ? "true" : "false");
+            };
+
+            const setActiveRule = (slide) => {
+                currentSlide = slide;
+
+                if (slider) {
+                    slider.style.transform = slide === 0 ? "translateX(0%)" : "translateX(-50%)";
+                }
+
+                setActiveButton(padelBtn, slide === 0);
+                setActiveButton(tennisBtn, slide === 1);
+            };
+
+            padelBtn?.addEventListener("click", () => setActiveRule(0));
+            tennisBtn?.addEventListener("click", () => setActiveRule(1));
+
+            slider?.addEventListener("touchstart", (e) => {
+                startX = e.touches[0].clientX;
+            }, { passive: true });
+
+            slider?.addEventListener("touchend", (e) => {
+                const endX = e.changedTouches[0].clientX;
+
+                const deltaX = endX - startX;
+
+                // swipe left
+                if (deltaX < -threshold && currentSlide === 0) {
+                    setActiveRule(1);
+                }
+
+                // swipe right
+                if (deltaX > threshold && currentSlide === 1) {
+                    setActiveRule(0);
+                }
+            });
+        </script>
+    </div>
+    </section>
