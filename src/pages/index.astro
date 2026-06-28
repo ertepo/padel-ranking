@@ -1,5 +1,108 @@
 ---
 import Layout from "../layouts/Layout.astro";
+import FieldGallery from "../components/FieldGallery.svelte";
+
+const fieldGalleryImages = [
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637757/dji_fly_20250726_123352_78_1753525511094_photo_nbwgc8.jpg",
+        alt: "Campo da padel Tie-Break Poggio San Vicino",
+        caption: "Padel",
+        accentClass: "dark-club-card dark-club-card-blue rotate-1",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637756/IMG_4307_qw0561.jpg",
+        alt: "Campo da tennis Tie-Break Poggio San Vicino",
+        caption: "Tennis",
+        accentClass: "dark-club-card dark-club-card-violet -rotate-1",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637756/IMG_4745_reaabf.jpg",
+        alt: "Spalti e circolo Tie-Break Poggio San Vicino",
+        caption: "Circolo",
+        accentClass: "dark-club-card dark-club-card-yellow rotate-1",
+    },
+];
+
+const extraFieldGalleryImages = [
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637764/IMG_4823_a4oluh.jpg",
+        alt: "Foto dal circolo Tie-Break Poggio San Vicino",
+        caption: "Circolo",
+        accentClass: "dark-club-card dark-club-card-green -rotate-1",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637764/IMG_4732_ffewjf.jpg",
+        alt: "Momento al circolo Tie-Break Poggio San Vicino",
+        caption: "Tornei",
+        accentClass: "dark-club-card dark-club-card-blue rotate-1",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637763/IMG_3304_hbd41j.jpg",
+        alt: "Giornata sui campi Tie-Break Poggio San Vicino",
+        caption: "Padel",
+        accentClass: "dark-club-card dark-club-card-violet -rotate-1",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637762/CY0A8397_wmdadi.jpg",
+        alt: "Foto dal circolo Tie-Break Poggio San Vicino",
+        caption: "Circolo",
+        accentClass: "dark-club-card dark-club-card-yellow rotate-2",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637762/IMG_4855_wd1qq5.jpg",
+        alt: "Momento al circolo Tie-Break Poggio San Vicino",
+        caption: "Tornei",
+        accentClass: "dark-club-card dark-club-card-green -rotate-2",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637760/IMG_4815_y5xh7b.jpg",
+        alt: "Giornata sui campi Tie-Break Poggio San Vicino",
+        caption: "Tornei",
+        accentClass: "dark-club-card dark-club-card-blue rotate-1",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637759/IMG_4675-Modifica_dhiock.jpg",
+        alt: "Foto dal circolo Tie-Break Poggio San Vicino",
+        caption: "Tornei",
+        accentClass: "dark-club-card dark-club-card-violet -rotate-1",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637760/IMG_4722_kidhjj.jpg",
+        alt: "Campo Tie-Break Poggio San Vicino",
+        caption: "Tornei",
+        accentClass: "dark-club-card dark-club-card-green rotate-2",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637758/IMG_3313_pbwhhr.jpg",
+        alt: "Giornata al Tie-Break Poggio San Vicino",
+        caption: "Tennis",
+        accentClass: "dark-club-card dark-club-card-yellow -rotate-1",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637758/IMG_3790_trknsg.jpg",
+        alt: "Foto sui campi Tie-Break Poggio San Vicino",
+        caption: "Padel",
+        accentClass: "dark-club-card dark-club-card-blue -rotate-2",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637758/IMG_4858_ace2bm.jpg",
+        alt: "Momento sui campi Tie-Break Poggio San Vicino",
+        caption: "Circolo",
+        accentClass: "dark-club-card dark-club-card-violet rotate-1",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637757/CY0A8374_ehtw60.jpg",
+        alt: "Campo e circolo Tie-Break Poggio San Vicino",
+        caption: "Circolo",
+        accentClass: "dark-club-card dark-club-card-yellow -rotate-2",
+    },
+    {
+        src: "https://res.cloudinary.com/diqgwitqg/image/upload/f_auto,q_auto,w_1200/v1782637755/IMG_3537_bv2p6f.jpg",
+        alt: "Giornata di sport al Tie-Break Poggio San Vicino",
+        caption: "Tennis",
+        accentClass: "dark-club-card dark-club-card-green rotate-1",
+    },
+];
 ---
 
 <Layout
@@ -72,6 +175,30 @@ import Layout from "../layouts/Layout.astro";
                     </div>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <section class="relative left-1/2 mb-16 w-screen -translate-x-1/2 scroll-mt-24 border-y-2 border-black bg-black py-12 text-white">
+        <div class="mx-auto max-w-5xl px-4">
+            <div class="mb-8 max-w-3xl">
+                <p class="text-sm uppercase tracking-widest font-black text-[var(--giallo-club)] mb-3">
+                    Dai campi
+                </p>
+
+                <h2 class="text-4xl md:text-5xl font-black leading-none text-white">
+                    Un po' di circolo, senza filtri
+                </h2>
+
+                <p class="mt-5 text-lg font-bold leading-snug text-slate-300">
+                    Foto reali dei campi, delle giornate di gioco e della vita di Tie-Break.
+                </p>
+            </div>
+
+            <FieldGallery
+                images={fieldGalleryImages}
+                extraImages={extraFieldGalleryImages}
+                client:load
+            />
         </div>
     </section>
 
@@ -246,8 +373,8 @@ import Layout from "../layouts/Layout.astro";
         </div>
 
         <div class="grid gap-5 md:grid-cols-2">
-            <a href="/tornei/cascualian-open" class="dark-club-card dark-club-card-blue block p-5 bg-white hover:bg-[var(--giallo-club)] transition">
-                <div class="mb-5 -rotate-2 border-dashed border-2 border-black bg-[var(--giallo-club)] p-4">
+            <a href="/tornei/cascualian-open" class="dark-club-card dark-club-card-blue relative block p-5 bg-white hover:bg-[var(--giallo-club)] transition">
+                <div class="absolute left-3 right-3 top-3 z-10 -rotate-2 border-dashed border-2 border-black bg-[var(--giallo-club)] p-4">
                     <p class="flex items-center justify-center gap-3 text-center text-2xl font-black uppercase leading-none text-black">
                         <svg
                             aria-hidden="true"
