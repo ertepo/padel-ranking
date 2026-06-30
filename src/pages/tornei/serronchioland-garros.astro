@@ -2,6 +2,21 @@
 import TournamentPage from '../../components/TournamentPage.astro';
 import TournamentBracket from '../../components/TournamentBracket.astro';
 
+const formatTeam = (team = []) => team.filter(Boolean).join('\n');
+
+const resolveGroupMatches = (group) => ({
+  ...group,
+  matches: group.matches.map((match) => ({
+    ...match,
+    teamA: Number.isInteger(match.teamA)
+      ? formatTeam(group.teams[match.teamA])
+      : match.teamA,
+    teamB: Number.isInteger(match.teamB)
+      ? formatTeam(group.teams[match.teamB])
+      : match.teamB,
+  })),
+});
+
 const tournament = {
   name: 'Serronchioland Garros',
   date: '01 - 05 luglio',
@@ -11,7 +26,7 @@ const tournament = {
     'Secondo appuntamento del Grande Slam estivo di padel Tie-Break. Squadre, gironi e risultati aggiornati.',
   registrationDays: [
     {
-      name: 'Domenica',
+      name: 'Serronchioland_teams',
       teams: [
         ['Zamponi', 'Amadio'],
         ['Brega', 'Tassi'],
@@ -19,8 +34,8 @@ const tournament = {
         ['Moreschini', 'Cirillo'],
         ['Virgili', 'Nocelli D.'],
         ['David', 'Scaloni'],
-        ['...', '...'],
-        ['...', '...']
+        ['Gagliardini', 'Romaldi'],
+        ['Antonelli', 'Piersigilli']
       ],
     },
     {
@@ -38,42 +53,42 @@ const tournament = {
         ['Brega', 'Tassi'],
         ['Virgili', 'Nocelli D.'],
         ['Scaloni', 'David'],
-        ['...', '...'],
+        ['Zamponi', 'Amadio'],
       ],
       matches: [
         {
-          teamA: 'Brega \n Tassi',
-          teamB: 'Virgili \n Nocelli D.',
+          teamA: 0,
+          teamB: 1,
           score: '',
           winner: '',
         },
         {
-          teamA: 'Virgili \n Nocelli D.',
-          teamB: 'Scaloni \n David',
+          teamA: 2,
+          teamB: 0,
           score: '',
           winner: '',
         },
         {
-          teamA: 'Brega \n Tassi',
-          teamB: 'Scaloni \n David',
+          teamA: 1,
+          teamB: 2,
           score: '',
           winner: '',
         },
         {
-          teamA: '',
-          teamB: '',
+          teamA: 3,
+          teamB: 2,
           score: '',
           winner: '',
         },
         {
-          teamA: '',
-          teamB: '',
+          teamA: 1,
+          teamB: 3,
           score: '',
           winner: '',
         },
         {
-          teamA: '',
-          teamB: '',
+          teamA: 3,
+          teamB: 0,
           score: '',
           winner: '',
         },
@@ -83,51 +98,56 @@ const tournament = {
       name: 'Girone B',
       date: 'Venerdì 03 Luglio',
       teams: [
-        ['Zamponi', 'Amadio'],
+        ['Antonelli', 'Piersigilli'],
         ['Nitrati', 'Frontalini'],
         ['Moreschini', 'Cirillo'],
-        ['...', '...']
+        ['Gagliardini', 'Romaldi']
       ],
       matches: [
         {
-          teamA: 'Zamponi \n Amadio',
-          teamB: 'Nitrati \n Frontalini',
+          teamA: 0,
+          teamB: 1,
           score: '',
           winner: '',
         },
         {
-          teamA: 'Moreschini \n Cirillo',
-          teamB: 'Zamponi \n Amadio',
+          teamA: 2,
+          teamB: 0,
           score: '',
           winner: '',
         },
         {
-          teamA: 'Nitrati \n Frontalini',
-          teamB: 'Moreschini \n Cirillo',
+          teamA: 1,
+          teamB: 2,
           score: '',
           winner: '',
         },
         {
-          teamA: '',
-          teamB: '',
+          teamA: 3,
+          teamB: 2,
           score: '',
           winner: '',
         },
         {
-          teamA: '',
-          teamB: '',
+          teamA: 1,
+          teamB: 3,
           score: '',
           winner: '',
         },
         {
-          teamA: '',
-          teamB: '',
+          teamA: 3,
+          teamB: 0,
           score: '',
           winner: '',
         },
       ],
     },
   ],
+};
+
+const tournamentWithResolvedMatches = {
+  ...tournament,
+  groups: tournament.groups.map(resolveGroupMatches),
 };
 
 const bracketRoundsGOLD = [
@@ -268,7 +288,7 @@ const bracketRoundsSILVER = [
 
 ---
 
-<TournamentPage tournament={tournament}>
+<TournamentPage tournament={tournamentWithResolvedMatches}>
   <TournamentBracket rounds={bracketRoundsGOLD} />
   <TournamentBracket rounds={bracketRoundsSILVER} />
 </TournamentPage>
