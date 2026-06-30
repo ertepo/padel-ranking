@@ -52,7 +52,7 @@
   class="sticky top-0 z-50 border-b-2 border-black"
   style={`background-color: ${accent}; background: ${accent}; color: ${contrast};`}
 >
-  <div class="max-w-6xl mx-auto px-4 py-2 flex items-center justify-between">
+  <div class="max-w-[80vw] mx-auto px-4 py-2 flex items-center justify-between">
    <a href="/" aria-label="Torna alla Home" class="block shrink-0">
      <img
       src={`${logoSrc}?v=2`}

@@ -133,7 +133,7 @@ const registeredTeams = tournament.registrationDays.flatMap((day) => day.teams);
               {group.matches.map((match) => (
                 <li class="border-2 border-black bg-slate-50 p-3">
                   <div class="grid gap-2 md:grid-cols-[1fr_auto_1fr] md:items-center">
-                    <p class={`font-black border-2 border-transparent p-2 ${match.winner === 'A' ? 'border-black bg-[var(--giallo-club)]' : ''}`}>
+                    <p class={`font-black border-2 border-transparent p-2 whitespace-pre-line ${match.winner === 'A' ? 'border-black bg-[var(--giallo-club)]' : ''}`}>
                       {match.teamA}
                     </p>
 
@@ -141,7 +141,7 @@ const registeredTeams = tournament.registrationDays.flatMap((day) => day.teams);
                       {match.score || 'da giocare'}
                     </p>
 
-                    <p class={`font-black border-2 border-transparent p-2 md:text-right ${match.winner === 'B' ? 'border-black bg-[var(--giallo-club)]' : ''}`}>
+                    <p class={`font-black border-2 border-transparent p-2 whitespace-pre-line md:text-right ${match.winner === 'B' ? 'border-black bg-[var(--giallo-club)]' : ''}`}>
                       {match.teamB}
                     </p>
                   </div>
