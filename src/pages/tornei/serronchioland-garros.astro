@@ -14,6 +14,12 @@ const resolveGroupMatches = (group) => ({
     teamB: Number.isInteger(match.teamB)
       ? formatTeam(group.teams[match.teamB])
       : match.teamB,
+    winner:
+      String(match.winner) === String(match.teamA)
+        ? 'A'
+        : String(match.winner) === String(match.teamB)
+          ? 'B'
+          : match.winner,
   })),
 });
 
@@ -138,7 +144,7 @@ const tournament = {
           teamA: 3,
           teamB: 0,
           score: '24 35 7-10',
-          winner: '',
+          winner: '0',
         },
       ],
     },
