@@ -60,8 +60,9 @@ const preparedRounds = rounds.map((round, roundIndex) => {
     <div class="bracket-board" style={`--slot-count: ${firstRoundMatchCount};`}>
       {preparedRounds.map((round) => (
         <section class="bracket-round" style={`--round-width: ${round.roundWidth}rem;`}>
-          <div class="bracket-title">
-            <h3>{round.name}</h3>
+          <div class="bracket-title grid md:grid-cols md:items-center">
+            <h3 class="text-center">{round.name}</h3>
+            <h3 class="text-sm text-center font-black text-slate-600 md:text-right">{round.data}</h3>
           </div>
 
           <div class="bracket-lane">
