@@ -31,6 +31,50 @@ const { data: players } = await supabase
     )
     .order("current_elo", { ascending: false });
 
+// Recupera lo storico coppie per suggerire l'ultimo compagno di squadra
+const { data: matchPlayerRows } = await supabase
+    .from("match_players")
+    .select("match_id, player_id, team, matches!inner(created_at)")
+    .order("created_at", { referencedTable: "matches", ascending: false });
+
+const matchTeams = new Map<string, { A: string[]; B: string[] }>();
+const matchOrder = new Map<string, string>();
+
+for (const row of matchPlayerRows ?? []) {
+    const matchId = row.match_id as string;
+    const createdAt = (row.matches as any)?.created_at;
+
+    if (createdAt && !matchOrder.has(matchId)) {
+        matchOrder.set(matchId, createdAt);
+    }
+
+    if (!matchTeams.has(matchId)) {
+        matchTeams.set(matchId, { A: [], B: [] });
+    }
+
+    const team = row.team as "A" | "B";
+    matchTeams.get(matchId)?.[team]?.push(row.player_id as string);
+}
+
+const orderedMatchIds = [...matchOrder.entries()]
+    .sort((a, b) => new Date(b[1]).getTime() - new Date(a[1]).getTime())
+    .map(([matchId]) => matchId);
+
+const lastPartnerByPlayer: Record<string, string> = {};
+
+for (const matchId of orderedMatchIds) {
+    const teams = matchTeams.get(matchId);
+
+    for (const team of [teams?.A, teams?.B]) {
+        if (!team || team.length !== 2) continue;
+
+        const [p1, p2] = team;
+
+        if (!(p1 in lastPartnerByPlayer)) lastPartnerByPlayer[p1] = p2;
+        if (!(p2 in lastPartnerByPlayer)) lastPartnerByPlayer[p2] = p1;
+    }
+}
+
 let message = "";
 let errorMessage = "";
 
@@ -432,7 +476,7 @@ if (Astro.request.method === "POST") {
         </button>
     </form>
 
-    <script is:inline>
+    <script is:inline define:vars={{ lastPartnerByPlayer }}>
         function setupBanner(id) {
             const banner = document.getElementById(id);
 
@@ -482,5 +526,56 @@ if (Astro.request.method === "POST") {
             select?.addEventListener("change", () => syncBestPlayerRadio(selectName));
             syncBestPlayerRadio(selectName);
         });
+
+        // Suggerimento automatico dell'ultimo compagno di squadra
+        let suppressAutofillClear = false;
+
+        function selectedIds() {
+            return ["a1_id", "a2_id", "b1_id", "b2_id"]
+                .map((name) => document.querySelector(`[name="${name}"]`)?.value)
+                .filter(Boolean);
+        }
+
+        function setupPartnerSuggestion(sourceName, targetName) {
+            const sourceSelect = document.querySelector(`[name="${sourceName}"]`);
+            const targetSelect = document.querySelector(`[name="${targetName}"]`);
+
+            if (!sourceSelect || !targetSelect) return;
+
+            targetSelect.addEventListener("change", () => {
+                if (suppressAutofillClear) return;
+                targetSelect.dataset.autofilled = "0";
+            });
+
+            sourceSelect.addEventListener("change", () => {
+                const sourceId = sourceSelect.value;
+
+                if (!sourceId) return;
+
+                const targetHasManualValue =
+                    targetSelect.value && targetSelect.dataset.autofilled !== "1";
+
+                if (targetHasManualValue) return;
+
+                const suggestedId = lastPartnerByPlayer[sourceId];
+
+                if (!suggestedId || selectedIds().includes(suggestedId)) return;
+
+                const optionExists = [...targetSelect.options].some(
+                    (option) => option.value === suggestedId,
+                );
+
+                if (!optionExists) return;
+
+                suppressAutofillClear = true;
+                targetSelect.value = suggestedId;
+                targetSelect.dataset.autofilled = "1";
+                targetSelect.dispatchEvent(new Event("change"));
+                suppressAutofillClear = false;
+            });
+        }
+
+        setupPartnerSuggestion("a1_id", "a2_id");
+        setupPartnerSuggestion("b1_id", "b2_id");
     </script>
 </Layout>
