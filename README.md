@@ -86,9 +86,17 @@ The project uses the following configuration files:
 - `package.json` - Project dependencies and scripts
 
 Copy `.env.example` to `.env` and configure the Supabase keys and private
-server secrets. `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`, and
-`LIVESCORE_CONTROL_TOKEN` must also be configured in the Netlify environment.
-Never expose the service-role key through a variable prefixed with `PUBLIC_`.
+server secrets. `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`,
+`LIVESCORE_CONTROL_TOKEN`, and the `CLOUDINARY_*` variables must also be
+configured in the Netlify environment. Never expose the service-role key or
+the Cloudinary API secret through a variable prefixed with `PUBLIC_`.
+
+Tournament photo galleries are pulled automatically from a Cloudinary asset
+folder via the Admin API (`src/lib/cloudinary.ts`) — no need to hand-write
+the image list. Create a folder in the Cloudinary Media Library (e.g.
+`tornei/serronchioland-garros`), upload the photos there, and the matching
+tournament page will pick them up on the next request. `CLOUDINARY_API_KEY`
+and `CLOUDINARY_API_SECRET` are found under Console Settings > Access Keys.
 
 The Apple Watch controller is authorized once by opening:
 

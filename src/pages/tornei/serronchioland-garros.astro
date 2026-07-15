@@ -1,8 +1,16 @@
 ---
 import TournamentPage from '../../components/TournamentPage.astro';
 import TournamentBracket from '../../components/TournamentBracket.astro';
+import { fetchCloudinaryFolderImages } from '../../lib/cloudinary';
 
 const formatTeam = (team = []) => team.filter(Boolean).join('\n');
+
+// Cartella Cloudinary da cui pescare automaticamente le foto del torneo
+// (dynamic asset folder, non il vecchio "public_id prefix").
+const galleryImages = await fetchCloudinaryFolderImages(
+  'tornei/serronchioland-garros',
+  'Serronchioland Garros',
+);
 
 const resolveGroupMatches = (group) => ({
   ...group,
@@ -31,6 +39,8 @@ const tournament = {
   description:
     'Secondo appuntamento del Grande Slam estivo di padel Tie-Break. Squadre, gironi e risultati aggiornati.',
     winnerBanner: 'Virgili / Nocelli D.',
+  // Foto pescate automaticamente dalla cartella Cloudinary "tornei/serronchioland-garros".
+  gallery: galleryImages,
   registrationDays: [
     {
       name: 'Serronchioland_teams',
