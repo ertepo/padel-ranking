@@ -12,6 +12,7 @@ type CloudinaryResource = {
   height: number;
   created_at: string;
   public_id: string;
+  display_name?: string;
   context?: { custom?: Record<string, string> };
 };
 
@@ -89,8 +90,11 @@ export async function fetchCloudinaryFolderImages(
   try {
     const resources = await fetchAllResources(cloudName, authHeader, assetFolder);
 
-    resources.sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    resources.sort((a, b) =>
+      (a.display_name || a.public_id).localeCompare(b.display_name || b.public_id, undefined, {
+        numeric: true,
+        sensitivity: 'base',
+      }),
     );
 
     return resources.map((resource, index) => ({
