@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@astrojs/netlify": "^7.0.9",
+    "@astrojs/sitemap": "^3.7.3",
     "@astrojs/svelte": "^8.1.1",
     "@supabase/supabase-js": "^2.105.4",
     "@tailwindcss/vite": "^4.3.0",
