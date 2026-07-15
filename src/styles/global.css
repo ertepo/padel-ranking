@@ -40,6 +40,7 @@
 
 body {
   margin: 0;
+  overflow-x: hidden;
   font-family: Montserrat, Arial, sans-serif;
   color: var(--text-color);
   background: hsl(38, 17%, 91%);

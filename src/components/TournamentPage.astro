@@ -74,12 +74,12 @@ const registeredTeams = tournament.registrationDays.flatMap((day) => day.teams);
             Foto dal torneo
           </p>
           <p class="mt-5 text-md font-bold leading-snug text-slate-300">
-            Scorri con il dito per vedere le foto.
+            Scorri per vedere le foto. → → →
           </p>
         </div>
-
-        <PhotoCarousel images={tournament.gallery} client:load />
       </div>
+
+      <PhotoCarousel images={tournament.gallery} client:load />
     </section>
   )}
 
@@ -98,7 +98,7 @@ const registeredTeams = tournament.registrationDays.flatMap((day) => day.teams);
       <ul class="grid gap-3 md:grid-cols-2">
         {registeredTeams.map((team) => (
           <li class="grid grid-cols-2 gap-3 border-2 border-black bg-white p-3 font-black text-lg">
-            <span>{team[0]}</span>
+            <span class="text-right">{team[0]}</span>
             <span>{team[1]}</span>
           </li>
         ))}

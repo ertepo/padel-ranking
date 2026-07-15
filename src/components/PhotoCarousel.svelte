@@ -64,7 +64,7 @@
         loading="lazy"
         decoding="async"
         draggable="false"
-        class={`h-64 w-auto border-2 border-black object-cover sm:h-72 md:h-80 ${image.orientation === "portrait" ? "aspect-[2/3]" : "aspect-[3/2]"}`}
+        class={`h-64 w-auto border-2 border-black object-cover sm:h-72 md:h-100 ${image.orientation === "portrait" ? "aspect-[2/3]" : "aspect-[3/2]"}`}
       />
 
       {#if image.caption}
