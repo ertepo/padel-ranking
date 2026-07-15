@@ -87,9 +87,12 @@ The project uses the following configuration files:
 
 Copy `.env.example` to `.env` and configure the Supabase keys and private
 server secrets. `SUPABASE_SERVICE_ROLE_KEY`, `ADMIN_PASSWORD`,
-`LIVESCORE_CONTROL_TOKEN`, and the `CLOUDINARY_*` variables must also be
-configured in the Netlify environment. Never expose the service-role key or
-the Cloudinary API secret through a variable prefixed with `PUBLIC_`.
+`LIVESCORE_CONTROL_TOKEN`, `PUBLIC_CLOUDINARY_CLOUD_NAME`,
+`CLOUDINARY_API_KEY`, and `CLOUDINARY_API_SECRET` must also be configured in
+the Netlify environment. Never expose the service-role key or the Cloudinary
+API secret through a variable prefixed with `PUBLIC_` — the Cloudinary cloud
+name is the only one of the three that is safe to expose that way, since it
+already appears in plain sight in every image URL.
 
 Tournament photo galleries are pulled automatically from a Cloudinary asset
 folder via the Admin API (`src/lib/cloudinary.ts`) — no need to hand-write

@@ -72,12 +72,15 @@ export async function fetchCloudinaryFolderImages(
   assetFolder: string,
   altPrefix: string,
 ): Promise<GalleryImage[]> {
-  const cloudName = import.meta.env.CLOUDINARY_CLOUD_NAME;
+  // Il cloud name non e un segreto: compare in chiaro in ogni URL delle
+  // immagini, per questo usa il prefisso PUBLIC_ come le altre variabili
+  // non sensibili del progetto (evita anche il secrets-scanner di Netlify).
+  const cloudName = import.meta.env.PUBLIC_CLOUDINARY_CLOUD_NAME;
   const apiKey = import.meta.env.CLOUDINARY_API_KEY;
   const apiSecret = import.meta.env.CLOUDINARY_API_SECRET;
 
   if (!cloudName || !apiKey || !apiSecret) {
-    console.warn('Cloudinary non configurato: CLOUDINARY_CLOUD_NAME/API_KEY/API_SECRET mancanti.');
+    console.warn('Cloudinary non configurato: PUBLIC_CLOUDINARY_CLOUD_NAME/CLOUDINARY_API_KEY/CLOUDINARY_API_SECRET mancanti.');
     return [];
   }
 
