@@ -1,0 +1,527 @@
+[
+  {
+    "name": "Borg",
+    "style": "reg",
+    "strength": 5,
+    "surface": "terra",
+    "era": "70s"
+  },
+  {
+    "name": "Laver",
+    "style": "sv",
+    "strength": 5,
+    "surface": "erba",
+    "era": "70s"
+  },
+  {
+    "name": "Nastase",
+    "style": "att",
+    "strength": 4,
+    "surface": "terra",
+    "era": "70s"
+  },
+  {
+    "name": "Vilas",
+    "style": "reg",
+    "strength": 4,
+    "surface": "terra",
+    "era": "70s"
+  },
+  {
+    "name": "Newcombe",
+    "style": "sv",
+    "strength": 4,
+    "surface": "erba",
+    "era": "70s"
+  },
+  {
+    "name": "Ashe",
+    "style": "sv",
+    "strength": 3,
+    "surface": "erba",
+    "era": "70s"
+  },
+  {
+    "name": "Panatta",
+    "style": "att",
+    "strength": 3,
+    "surface": "terra",
+    "era": "70s"
+  },
+  {
+    "name": "Gerulaitis",
+    "style": "sv",
+    "strength": 3,
+    "surface": "erba",
+    "era": "70s"
+  },
+  {
+    "name": "Orantes",
+    "style": "reg",
+    "strength": 3,
+    "surface": "terra",
+    "era": "70s"
+  },
+  {
+    "name": "Smith",
+    "style": "sv",
+    "strength": 3,
+    "surface": "erba",
+    "era": "70s"
+  },
+  {
+    "name": "Tanner",
+    "style": "sv",
+    "strength": 2,
+    "surface": "erba",
+    "era": "70s"
+  },
+  {
+    "name": "Kodes",
+    "style": "reg",
+    "strength": 2,
+    "surface": "terra",
+    "era": "70s"
+  },
+  {
+    "name": "Lendl",
+    "style": "att",
+    "strength": 5,
+    "surface": "cemento",
+    "era": "80s"
+  },
+  {
+    "name": "McEnroe",
+    "style": "sv",
+    "strength": 5,
+    "surface": "erba",
+    "era": "80s"
+  },
+  {
+    "name": "Connors",
+    "style": "att",
+    "strength": 4,
+    "surface": "cemento",
+    "era": "80s"
+  },
+  {
+    "name": "Wilander",
+    "style": "reg",
+    "strength": 4,
+    "surface": "terra",
+    "era": "80s"
+  },
+  {
+    "name": "Becker",
+    "style": "sv",
+    "strength": 4,
+    "surface": "erba",
+    "era": "80s"
+  },
+  {
+    "name": "Edberg",
+    "style": "sv",
+    "strength": 4,
+    "surface": "erba",
+    "era": "80s"
+  },
+  {
+    "name": "Muster",
+    "style": "reg",
+    "strength": 4,
+    "surface": "terra",
+    "era": "80s"
+  },
+  {
+    "name": "Stich",
+    "style": "sv",
+    "strength": 3,
+    "surface": "erba",
+    "era": "80s"
+  },
+  {
+    "name": "Bruguera",
+    "style": "reg",
+    "strength": 3,
+    "surface": "terra",
+    "era": "80s"
+  },
+  {
+    "name": "Chang",
+    "style": "reg",
+    "strength": 3,
+    "surface": "terra",
+    "era": "80s"
+  },
+  {
+    "name": "Gomez",
+    "style": "reg",
+    "strength": 2,
+    "surface": "terra",
+    "era": "80s"
+  },
+  {
+    "name": "Sampras",
+    "style": "sv",
+    "strength": 5,
+    "surface": "erba",
+    "era": "90s"
+  },
+  {
+    "name": "Agassi",
+    "style": "att",
+    "strength": 5,
+    "surface": "cemento",
+    "era": "90s"
+  },
+  {
+    "name": "Courier",
+    "style": "reg",
+    "strength": 4,
+    "surface": "terra",
+    "era": "90s"
+  },
+  {
+    "name": "Rafter",
+    "style": "sv",
+    "strength": 4,
+    "surface": "cemento",
+    "era": "90s"
+  },
+  {
+    "name": "Kuerten",
+    "style": "reg",
+    "strength": 4,
+    "surface": "terra",
+    "era": "90s"
+  },
+  {
+    "name": "Ivanisevic",
+    "style": "sv",
+    "strength": 3,
+    "surface": "erba",
+    "era": "90s"
+  },
+  {
+    "name": "Krajicek",
+    "style": "sv",
+    "strength": 3,
+    "surface": "erba",
+    "era": "90s"
+  },
+  {
+    "name": "Kafelnikov",
+    "style": "reg",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "90s"
+  },
+  {
+    "name": "Rios",
+    "style": "reg",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "90s"
+  },
+  {
+    "name": "Moya",
+    "style": "reg",
+    "strength": 3,
+    "surface": "terra",
+    "era": "90s"
+  },
+  {
+    "name": "Henman",
+    "style": "sv",
+    "strength": 3,
+    "surface": "erba",
+    "era": "90s"
+  },
+  {
+    "name": "Philippoussis",
+    "style": "sv",
+    "strength": 2,
+    "surface": "erba",
+    "era": "90s"
+  },
+  {
+    "name": "Federer",
+    "style": "att",
+    "strength": 5,
+    "surface": "erba",
+    "era": "00s"
+  },
+  {
+    "name": "Nadal",
+    "style": "reg",
+    "strength": 5,
+    "surface": "terra",
+    "era": "00s"
+  },
+  {
+    "name": "Djokovic",
+    "style": "reg",
+    "strength": 5,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Murray",
+    "style": "reg",
+    "strength": 4,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Safin",
+    "style": "att",
+    "strength": 4,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Hewitt",
+    "style": "reg",
+    "strength": 4,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Roddick",
+    "style": "att",
+    "strength": 4,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Del Potro",
+    "style": "att",
+    "strength": 4,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Wawrinka",
+    "style": "att",
+    "strength": 4,
+    "surface": "terra",
+    "era": "00s"
+  },
+  {
+    "name": "Ferrero",
+    "style": "reg",
+    "strength": 3,
+    "surface": "terra",
+    "era": "00s"
+  },
+  {
+    "name": "Nalbandian",
+    "style": "reg",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Davydenko",
+    "style": "reg",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Ferrer",
+    "style": "reg",
+    "strength": 3,
+    "surface": "terra",
+    "era": "00s"
+  },
+  {
+    "name": "Tsonga",
+    "style": "att",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Berdych",
+    "style": "att",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Cilic",
+    "style": "att",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Soderling",
+    "style": "att",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Nishikori",
+    "style": "reg",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Raonic",
+    "style": "att",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Dimitrov",
+    "style": "att",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Monfils",
+    "style": "reg",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Coria",
+    "style": "reg",
+    "strength": 3,
+    "surface": "terra",
+    "era": "00s"
+  },
+  {
+    "name": "Isner",
+    "style": "att",
+    "strength": 2,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Karlovic",
+    "style": "sv",
+    "strength": 2,
+    "surface": "erba",
+    "era": "00s"
+  },
+  {
+    "name": "Gasquet",
+    "style": "reg",
+    "strength": 2,
+    "surface": "terra",
+    "era": "00s"
+  },
+  {
+    "name": "Simon",
+    "style": "reg",
+    "strength": 2,
+    "surface": "cemento",
+    "era": "00s"
+  },
+  {
+    "name": "Gaudio",
+    "style": "reg",
+    "strength": 2,
+    "surface": "terra",
+    "era": "00s"
+  },
+  {
+    "name": "Alcaraz",
+    "style": "att",
+    "strength": 5,
+    "surface": "terra",
+    "era": "20s"
+  },
+  {
+    "name": "Sinner",
+    "style": "reg",
+    "strength": 5,
+    "surface": "cemento",
+    "era": "20s"
+  },
+  {
+    "name": "Medvedev",
+    "style": "reg",
+    "strength": 4,
+    "surface": "cemento",
+    "era": "20s"
+  },
+  {
+    "name": "Zverev",
+    "style": "reg",
+    "strength": 4,
+    "surface": "cemento",
+    "era": "20s"
+  },
+  {
+    "name": "Thiem",
+    "style": "att",
+    "strength": 4,
+    "surface": "terra",
+    "era": "20s"
+  },
+  {
+    "name": "Tsitsipas",
+    "style": "att",
+    "strength": 3,
+    "surface": "terra",
+    "era": "20s"
+  },
+  {
+    "name": "Rublev",
+    "style": "att",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "20s"
+  },
+  {
+    "name": "Berrettini",
+    "style": "att",
+    "strength": 3,
+    "surface": "erba",
+    "era": "20s"
+  },
+  {
+    "name": "Ruud",
+    "style": "reg",
+    "strength": 3,
+    "surface": "terra",
+    "era": "20s"
+  },
+  {
+    "name": "Rune",
+    "style": "att",
+    "strength": 3,
+    "surface": "terra",
+    "era": "20s"
+  },
+  {
+    "name": "Fritz",
+    "style": "att",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "20s"
+  },
+  {
+    "name": "De Minaur",
+    "style": "reg",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "20s"
+  },
+  {
+    "name": "Kyrgios",
+    "style": "att",
+    "strength": 3,
+    "surface": "cemento",
+    "era": "20s"
+  }
+]

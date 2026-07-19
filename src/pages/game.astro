@@ -1,0 +1,24 @@
+---
+import Layout from '../layouts/Layout.astro';
+import ScambioGame from '../components/game/ScambioGame.svelte';
+---
+
+<Layout
+  title="Gioco dello scambio"
+  headerTheme="tennis"
+  description="Sfida la CPU al gioco dello scambio: scegli i tuoi 6 tennisti leggendari e ripeti la sequenza di colpi prima che scada il tempo."
+>
+  <section class="mb-8">
+    <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+      Tennis
+    </p>
+    <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+      Gioco dello scambio
+    </h1>
+    <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
+      Scegli il tuo roster di 6 leggende del tennis e sfida la CPU: memorizza la sequenza di colpi e ripetila prima che scada il tempo. Primo a 6 game vince il match.
+    </p>
+  </section>
+
+  <ScambioGame client:load />
+</Layout>
