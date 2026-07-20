@@ -170,7 +170,7 @@
   {#if phase === 'draft'}
     <RosterDraft {cpuRoster} allPlayers={ALL_PLAYERS} {surface} onConfirm={onDraftConfirm} />
   {:else if phase === 'setup'}
-    <div class="flex flex-col" style={`min-height: calc(100dvh - ${headerOffset}px - 4rem)`}>
+    <div class="flex flex-col gap-6" style={`min-height: calc(100dvh - ${headerOffset}px - 4rem)`}>
       <Scoreboard {playerScore} {cpuScore} {target} {gameNumber} {surface} playerName={playerCurrentPlayer?.name ?? 'Tu'} cpuName={cpuCurrentPlayer?.name ?? 'CPU'} />
       <GameSetup
         {surface}
