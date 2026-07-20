@@ -1,6 +1,7 @@
 <script lang="ts">
+  import { onDestroy, onMount } from 'svelte';
   import playersData from '../../lib/game/players.json';
-  import { diffScore, gameParams, type GameParams, type Player, type Surface } from '../../lib/game/matchup';
+  import { matchParams, type Difficulty, type Player, type Surface } from '../../lib/game/matchup';
   import RosterDraft from './RosterDraft.svelte';
   import GameSetup from './GameSetup.svelte';
   import DeciderSetup from './DeciderSetup.svelte';
@@ -9,26 +10,6 @@
 
   const ALL_PLAYERS = playersData as Player[];
   const SURFACES: Surface[] = ['terra', 'erba', 'cemento'];
-
-  type Difficulty = 'facile' | 'normale' | 'difficile';
-
-  // moltiplicatori applicati sopra i parametri "grezzi" di matchup.ts (che restano
-  // la taratura più difficile): facile/normale allungano tempi e accorciano la sequenza
-  const DIFFICULTY_MULT: Record<Difficulty, { showMs: number; inputMs: number; seqLengthDelta: number }> = {
-    facile: { showMs: 1.4, inputMs: 1.6, seqLengthDelta: -2 },
-    normale: { showMs: 1.15, inputMs: 1.3, seqLengthDelta: -1 },
-    difficile: { showMs: 1, inputMs: 1, seqLengthDelta: 0 },
-  };
-
-  function applyDifficulty(params: GameParams, tier: Difficulty): GameParams {
-    const m = DIFFICULTY_MULT[tier];
-    return {
-      seqLength: Math.max(5, params.seqLength + m.seqLengthDelta),
-      showMs: Math.round(params.showMs * m.showMs),
-      gapMs: params.gapMs,
-      inputMsPerStep: Math.round(params.inputMsPerStep * m.inputMs),
-    };
-  }
 
   function pickRandom<T>(arr: T[], count: number): T[] {
     const copy = [...arr];
@@ -47,6 +28,24 @@
   type Phase = 'draft' | 'setup' | 'decider' | 'playing' | 'matchEnd';
 
   let phase: Phase = 'draft';
+
+  // durante il match il footer non serve: si vede già nella schermata di draft
+  $: if (typeof document !== 'undefined') {
+    const footer = document.querySelector('footer');
+    if (footer) footer.style.display = phase === 'draft' ? '' : 'none';
+  }
+  onDestroy(() => {
+    const footer = typeof document !== 'undefined' ? document.querySelector('footer') : null;
+    if (footer) footer.style.display = '';
+  });
+
+  // la schermata di setup occupa tutta l'altezza sotto l'header (anch'esso sticky)
+  let headerOffset = 0;
+  onMount(() => {
+    const header = document.querySelector('header');
+    if (header) headerOffset = header.getBoundingClientRect().height;
+  });
+
   let surface: Surface = SURFACES[Math.floor(Math.random() * SURFACES.length)];
   let cpuRoster: Player[] = pickRandom(ALL_PLAYERS, 6);
   let playerRoster: Player[] = [];
@@ -66,7 +65,7 @@
 
   let cpuCurrentPlayer: Player;
   let playerCurrentPlayer: Player;
-  let currentParams: ReturnType<typeof gameParams>;
+  let currentParams: ReturnType<typeof matchParams>;
   let difficulty: Difficulty = 'normale';
 
   $: target = playerScore >= 5 && cpuScore >= 5 ? 7 : 6;
@@ -102,8 +101,7 @@
   }
 
   function onStartGame() {
-    const d = diffScore(playerCurrentPlayer, cpuCurrentPlayer, surface);
-    currentParams = applyDifficulty(gameParams(gameNumber, d), difficulty);
+    currentParams = matchParams(difficulty, playerCurrentPlayer, cpuCurrentPlayer, surface);
     phase = 'playing';
     window.scrollTo(0, 0);
   }
@@ -115,8 +113,7 @@
   }
 
   function onStartDecider() {
-    const d = diffScore(playerCurrentPlayer, cpuCurrentPlayer, surface);
-    currentParams = applyDifficulty(gameParams(gameNumber + 1, d), difficulty);
+    currentParams = matchParams(difficulty, playerCurrentPlayer, cpuCurrentPlayer, surface);
     deciderActive = true;
     phase = 'playing';
     window.scrollTo(0, 0);
@@ -166,23 +163,25 @@
         Scegli il tuo roster di 6 leggende del tennis e sfida l'avversario': memorizza la sequenza di colpi e ripetila prima che scada il tempo. Primo a 6 game vince il match.
       </p>
     </section>
-  {:else}
+  {:else if phase !== 'setup'}
     <Scoreboard {playerScore} {cpuScore} {target} playerName={playerCurrentPlayer?.name ?? 'Tu'} cpuName={cpuCurrentPlayer?.name ?? 'CPU'} />
   {/if}
 
   {#if phase === 'draft'}
     <RosterDraft {cpuRoster} allPlayers={ALL_PLAYERS} {surface} onConfirm={onDraftConfirm} />
   {:else if phase === 'setup'}
-    <GameSetup
-      {gameNumber}
-      {surface}
-      {playerRoster}
-      selectedPlayer={playerCurrentPlayer}
-      cpuPlayer={cpuCurrentPlayer}
-      usedPlayerNames={usedByPlayerNames}
-      {onSelectPlayer}
-      onStart={onStartGame}
-    />
+    <div class="flex flex-col" style={`min-height: calc(100dvh - ${headerOffset}px - 4rem)`}>
+      <Scoreboard {playerScore} {cpuScore} {target} {gameNumber} {surface} playerName={playerCurrentPlayer?.name ?? 'Tu'} cpuName={cpuCurrentPlayer?.name ?? 'CPU'} />
+      <GameSetup
+        {surface}
+        {playerRoster}
+        selectedPlayer={playerCurrentPlayer}
+        cpuPlayer={cpuCurrentPlayer}
+        usedPlayerNames={usedByPlayerNames}
+        {onSelectPlayer}
+        onStart={onStartGame}
+      />
+    </div>
   {:else if phase === 'decider'}
     <DeciderSetup
       {surface}

@@ -22,7 +22,8 @@ export const STYLE_LABELS: Record<Style, string> = {
 
 /**
  * Difficoltà del game dal punto di vista di `me`.
- * Negativo = favorevole, positivo = sfavorevole. Intervallo [-3, +3].
+ * Negativo = favorevole, positivo = sfavorevole. Non limitato: rispecchia
+ * per intero la differenza di forza tra i due tennisti.
  */
 export function diffScore(me: Player, opp: Player, surface: Surface): number {
   let d = opp.strength - me.strength;
@@ -30,7 +31,7 @@ export function diffScore(me: Player, opp: Player, surface: Surface): number {
   if (BEATS[opp.style] === me.style) d += 1;
   if (surface === me.surface) d -= 1;
   if (surface === opp.surface) d += 1;
-  return Math.max(-3, Math.min(3, d));
+  return d;
 }
 
 export function diffLabel(d: number): string {
@@ -48,7 +49,13 @@ export interface GameParams {
   inputMsPerStep: number; // tempo concesso per colpo in fase di risposta
 }
 
-/** Parametri del game dato il numero di game (1-based) e la difficoltà. */
+/**
+ * Formula originale, non più usata dai 3 livelli standard (cresceva senza
+ * limite col numero di game). Conservata per una futura "modalità
+ * impossibile" (Sinner): la difficoltà del match-up incide sia sulla
+ * lunghezza sequenza sia sulla velocità, e la sequenza si allunga game dopo
+ * game.
+ */
 export function gameParams(gameNumber: number, d: number): GameParams {
   return {
     seqLength: Math.max(5, 4 + gameNumber + d),
@@ -56,6 +63,32 @@ export function gameParams(gameNumber: number, d: number): GameParams {
     gapMs: 130,
     inputMsPerStep: d > 0 ? 950 : d < 0 ? 1300 : 1100,
   };
+}
+
+export type Difficulty = 'facile' | 'normale' | 'difficile';
+
+// range di colpi raggiungibile ad ogni livello: si parte dal minimo e il
+// match-up (superficie + stile + forza, vedi diffScore) sposta verso il massimo
+const SEQ_RANGE: Record<Difficulty, { min: number; max: number }> = {
+  facile: { min: 3, max: 6 },
+  normale: { min: 4, max: 8 },
+  difficile: { min: 5, max: 10 },
+};
+
+// velocità fissa per livello, indipendente dal match-up
+const SPEED_BY_TIER: Record<Difficulty, { showMs: number; inputMsPerStep: number }> = {
+  facile: { showMs: 480, inputMsPerStep: 1300 },
+  normale: { showMs: 420, inputMsPerStep: 1100 },
+  difficile: { showMs: 360, inputMsPerStep: 950 },
+};
+
+/** Parametri del game per i 3 livelli standard: sequenza modulata dal match-up, velocità fissa. */
+export function matchParams(tier: Difficulty, me: Player, opp: Player, surface: Surface): GameParams {
+  const range = SEQ_RANGE[tier];
+  const modifier = diffScore(me, opp, surface);
+  const seqLength = Math.max(range.min, Math.min(range.max, range.min + modifier));
+  const speed = SPEED_BY_TIER[tier];
+  return { seqLength, showMs: speed.showMs, gapMs: 130, inputMsPerStep: speed.inputMsPerStep };
 }
 
 /**
