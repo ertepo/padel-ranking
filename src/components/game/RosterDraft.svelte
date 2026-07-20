@@ -74,7 +74,7 @@
 <div class="flex flex-col gap-6 pb-24">
   <section class="club-card p-4 md:p-6">
     <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-3">
-      Il roster della CPU ({surfaceLabels[surface] || surface})
+      Il roster avversario ({surfaceLabels[surface] || surface})
     </p>
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
       {#each cpuRoster as player}
