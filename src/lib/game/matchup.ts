@@ -51,7 +51,7 @@ export interface GameParams {
 /** Parametri del game dato il numero di game (1-based) e la difficoltà. */
 export function gameParams(gameNumber: number, d: number): GameParams {
   return {
-    seqLength: Math.max(6, 5 + gameNumber + d),
+    seqLength: Math.max(5, 4 + gameNumber + d),
     showMs: d > 0 ? 360 : d < 0 ? 480 : 420,
     gapMs: 130,
     inputMsPerStep: d > 0 ? 950 : d < 0 ? 1300 : 1100,
@@ -59,8 +59,8 @@ export function gameParams(gameNumber: number, d: number): GameParams {
 }
 
 /**
- * Genera la sequenza dello scambio su una griglia 3x4 (indici 0-11).
- * Riquadri 0-5: metà campo sopra la rete; 6-11: metà campo sotto.
+ * Genera la sequenza dello scambio su una griglia con 5 riquadri per metà campo (indici 0-9).
+ * Riquadri 0-4: metà campo sopra la rete; 5-9: metà campo sotto.
  * I colpi si alternano sempre tra i due lati; il lato iniziale è casuale.
  * Due colpi consecutivi non cadono mai sullo stesso riquadro.
  */
@@ -74,7 +74,7 @@ export function generateRally(
   for (let k = 0; k < length; k++) {
     let cell: number;
     do {
-      cell = side * 6 + Math.floor(rng() * 6);
+      cell = side * 5 + Math.floor(rng() * 5);
     } while (cell === prev);
     seq.push(cell);
     prev = cell;

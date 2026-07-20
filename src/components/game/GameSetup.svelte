@@ -6,6 +6,7 @@
   export let playerRoster: Player[];
   export let selectedPlayer: Player;
   export let cpuPlayer: Player;
+  export let usedPlayerNames: Set<string> = new Set();
   export let onSelectPlayer: (player: Player) => void;
   export let onStart: () => void;
 
@@ -36,46 +37,58 @@
     : 'bg-[var(--rosso-padel)] text-white';
 </script>
 
-<div class="flex flex-col gap-6">
+<div class="flex flex-col gap-3">
   <p class="text-center font-black text-sm uppercase tracking-widest text-slate-600">
     Game {gameNumber} · {surfaceLabels[surface] || surface}
   </p>
 
-  <div class="grid gap-4 md:grid-cols-[1fr_auto_1fr] items-center">
-    <section class="violet-club-card p-4 text-center">
-      <p class="text-xs uppercase tracking-widest font-bold text-slate-600 mb-2">La CPU schiera</p>
-      <p class="font-black text-2xl">{cpuPlayer.name}</p>
-      <p class="text-xs uppercase font-bold text-slate-500">{STYLE_LABELS[cpuPlayer.style]}</p>
-      <p aria-label={`Forza ${cpuPlayer.strength}`}>{strengthDots(cpuPlayer.strength)}</p>
-    </section>
-
-    <div class={`mx-auto px-4 py-2 border-2 border-black font-black uppercase text-xs text-center ${labelClass}`}>
-      Difficoltà<br />{label}
+  <div class="flex flex-col gap-3">
+    <div class="violet-club-card px-3 py-2 flex items-center justify-between gap-3">
+      <p class="font-black text-lg truncate">{cpuPlayer.name}</p>
+      <div class="text-right shrink-0">
+        <p class="text-[10px] uppercase font-bold text-slate-600">{STYLE_LABELS[cpuPlayer.style]}</p>
+        <p class="text-sm leading-none" aria-label={`Forza ${cpuPlayer.strength}`}>{strengthDots(cpuPlayer.strength)}</p>
+      </div>
     </div>
 
-    <section class="club-card p-4 text-center bg-[var(--giallo-club)]">
-      <p class="text-xs uppercase tracking-widest font-bold text-black/60 mb-2">Tu schieri</p>
-      <p class="font-black text-2xl">{selectedPlayer.name}</p>
-      <p class="text-xs uppercase font-bold text-black/60">{STYLE_LABELS[selectedPlayer.style]}</p>
-      <p aria-label={`Forza ${selectedPlayer.strength}`}>{strengthDots(selectedPlayer.strength)}</p>
-    </section>
+    <div class={`mx-auto px-3 py-1 border-2 border-black font-black uppercase text-[10px] text-center ${labelClass}`}>
+      Difficoltà: {label}
+    </div>
   </div>
 
-  <section class="club-card p-4">
-    <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-3">Il tuo roster</p>
-    <div class="grid grid-cols-3 sm:grid-cols-6">
-      {#each playerRoster as player}
-        <button
-          type="button"
-          on:click={() => onSelectPlayer(player)}
-          class={`min-w-0 border border-dashed border-black p-2 text-center transition-colors ${
-            player === selectedPlayer ? 'bg-[var(--giallo-club)]' : 'bg-white hover:bg-slate-100'
-          }`}
-        >
-          <p class={`font-black ${nameClass(player.name)} leading-tight break-words`}>{player.name}</p>
-          <p class="text-[10px] uppercase font-bold text-slate-500">{STYLE_LABELS[player.style]}</p>
-        </button>
-      {/each}
+  <section class="club-card">
+    <div class="px-3 py-2 flex items-center justify-between gap-3 bg-[var(--giallo-club)] border-b-2 border-black">
+      <p class="font-black text-lg truncate">{selectedPlayer.name}</p>
+      <div class="text-right shrink-0">
+        <p class="text-[10px] uppercase font-bold text-black/60">{STYLE_LABELS[selectedPlayer.style]}</p>
+        <p class="text-sm leading-none" aria-label={`Forza ${selectedPlayer.strength}`}>{strengthDots(selectedPlayer.strength)}</p>
+      </div>
+    </div>
+
+    <div class="p-3">
+      <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-2">Il tuo roster</p>
+      <div class="grid grid-cols-3 sm:grid-cols-6">
+        {#each playerRoster as player}
+          <button
+            type="button"
+            on:click={() => onSelectPlayer(player)}
+            disabled={usedPlayerNames.has(player.name)}
+            class={`min-w-0 border border-dashed border-black p-2 text-center transition-colors ${
+              player === selectedPlayer
+                ? 'bg-[var(--giallo-club)]'
+                : usedPlayerNames.has(player.name)
+                  ? 'bg-slate-100 opacity-40 cursor-not-allowed'
+                  : 'bg-white hover:bg-slate-100'
+            }`}
+          >
+            <p class={`font-black ${nameClass(player.name)} leading-tight break-words`}>{player.name}</p>
+            <p class="text-[10px] uppercase font-bold text-slate-500">{STYLE_LABELS[player.style]}</p>
+            {#if usedPlayerNames.has(player.name)}
+              <p class="text-[9px] uppercase font-black text-[var(--rosso-padel)]">Già usato</p>
+            {/if}
+          </button>
+        {/each}
+      </div>
     </div>
   </section>
 
