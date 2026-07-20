@@ -93,6 +93,7 @@
     cpuCurrentPlayer = randomFrom(cpuRoster);
     playerCurrentPlayer = playerRoster[0];
     phase = 'setup';
+    window.scrollTo(0, 0);
   }
 
   function onSelectPlayer(player: Player) {

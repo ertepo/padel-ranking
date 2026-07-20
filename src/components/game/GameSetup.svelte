@@ -66,7 +66,7 @@
     </div>
 
     <div class="p-3">
-      <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-2">Il tuo roster</p>
+      <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-2">Seleziona il giocatore</p>
       <div class="grid grid-cols-3 sm:grid-cols-6">
         {#each playerRoster as player}
           <button

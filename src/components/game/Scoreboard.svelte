@@ -14,7 +14,7 @@
         <span class={`h-4 w-4 border-2 border-black ${i < playerScore ? 'bg-[var(--giallo-club)]' : 'bg-white'}`}></span>
       {/each}
     </div>
-    <p class="font-black text-xl">{playerScore}</p>
+    <p class="font-black text-xl w-6 text-right">{playerScore}</p>
   </div>
 
   <div class="h-px bg-black/20"></div>
@@ -26,6 +26,6 @@
         <span class={`h-4 w-4 border-2 border-black ${i < cpuScore ? 'bg-[var(--rosso-padel)]' : 'bg-white'}`}></span>
       {/each}
     </div>
-    <p class="font-black text-xl">{cpuScore}</p>
+    <p class="font-black text-xl w-6 text-right">{cpuScore}</p>
   </div>
 </div>
