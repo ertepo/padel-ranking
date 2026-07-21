@@ -111,6 +111,7 @@
           nomecognome: nomecognome.trim(),
           match_score: `${playerScore}-${cpuScore}`,
           points: totalPoints,
+          difficulty,
         }),
       });
     } catch {
@@ -265,7 +266,7 @@
             type="text"
             maxlength="20"
             placeholder="Es. SIN"
-            class="club-card w-full px-3 py-2 font-black uppercase tracking-widest text-lg focus:outline-none"
+            class="w-full border border-dashed border-black bg-white px-3 py-2 font-black uppercase tracking-widest text-lg focus:outline-none"
             value={nickname}
             on:input={(e) => onNicknameInput(e.currentTarget.value)}
           />
@@ -280,7 +281,7 @@
             type="text"
             maxlength="60"
             placeholder="Es. Mario Rossi"
-            class="club-card w-full px-3 py-2 font-black text-lg focus:outline-none"
+            class="w-full border border-dashed border-black bg-white px-3 py-2 font-black text-lg focus:outline-none"
             value={nomecognome}
             on:input={(e) => onNomecognomeInput(e.currentTarget.value)}
           />

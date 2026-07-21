@@ -72,10 +72,16 @@
 </script>
 
 <div class="flex flex-col gap-6 pb-24">
-  <section class="club-card p-4 md:p-6">
-    <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-3">
-      Il roster avversario ({surfaceLabels[surface] || surface})
-    </p>
+  <section class="club-card p-4 md:p-6" style={`box-shadow: -0.5em 0.5em ${surfaceColors[surface]}`}>
+    <div class="flex items-center justify-between gap-4 mb-3">
+      <p class="text-s uppercase tracking-widest font-black text-slate-600">Avversario</p>
+      <div
+        class="origin-center rotate-[5deg] translate-x-3 -translate-y-2 px-3 py-1 font-black uppercase text-xs border-2 border-black text-white"
+        style={`background:${surfaceColors[surface]}`}
+      >
+        Superficie: {surfaceLabels[surface] || surface}
+      </div>
+    </div>
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
       {#each cpuRoster as player}
         <div class="min-w-0 border-4 bg-white p-2 text-center" style={`border-color:${surfaceColors[player.surface]}`}>
@@ -94,16 +100,16 @@
       style={`top: ${headerOffset}px`}
     >
       <div class="flex items-center justify-between gap-4 mb-2">
-        <p class="text-xs uppercase tracking-widest font-black text-slate-600">
+        <p class="text-s uppercase tracking-widest font-black text-slate-600">
           Scegli i tuoi 6 tennisti
         </p>
         <p class="font-black text-sm">{selected.length} / 6</p>
       </div>
 
-      <div class="flex flex-wrap gap-2">
+      <div class="grid grid-cols-2 gap-2">
         {#each QUOTA_ORDER as s}
           <div
-            class={`border-2 border-black px-3 py-1 text-xs font-black uppercase ${
+            class={`border-2 border-black px-3 py-1 text-xs font-black uppercase text-center ${
               (countsByStrength[s] ?? 0) >= QUOTAS[s] ? 'bg-[var(--verde-tennis)] text-white' : 'bg-white'
             }`}
           >
@@ -145,6 +151,13 @@
 </div>
 
 <div class="fixed inset-x-0 bottom-0 z-[1000] border-t-2 border-black bg-white p-3 flex items-center justify-center">
+  <div
+    class="absolute right-4 -top-5 origin-center px-3 py-1 font-black uppercase text-xs border-2 border-black text-white"
+    style={`background:${surfaceColors[surface]}`}
+  >
+    Superficie: {surfaceLabels[surface] || surface}
+  </div>
+
   <button
     type="button"
     class="club-btn-yellow px-6 py-3 font-black uppercase tracking-widest disabled:opacity-40"

@@ -4,11 +4,20 @@ import { supabase } from '../../lib/supabase';
 
 const { data: scores, error } = await supabase
   .from('legends_game_score')
-  .select('id, nickname, match_score, points, created_at')
+  .select('id, nickname, match_score, points, difficulty, created_at')
   .order('points', { ascending: false })
   .limit(50);
 
 const topScores = scores || [];
+
+const DIFFICULTY_LABELS: Record<string, string> = {
+  '1': 'Liv. 1',
+  '2': 'Liv. 2',
+  '3': 'Liv. 3',
+  '4': 'Liv. 4',
+  '5': 'Liv. 5',
+  ultra: 'Ultra',
+};
 ---
 
 <Layout
@@ -35,10 +44,11 @@ const topScores = scores || [];
       <h2 class="text-xl font-black uppercase">Top 50</h2>
     </div>
 
-    <div class="hidden md:grid grid-cols-[4rem_1fr_8rem_10rem] gap-3 px-4 py-2 bg-slate-100 border-b-2 border-black font-black text-xs uppercase text-slate-600">
+    <div class="hidden md:grid grid-cols-[4rem_1fr_8rem_6rem_10rem] gap-3 px-4 py-2 bg-slate-100 border-b-2 border-black font-black text-xs uppercase text-slate-600">
       <div>Pos</div>
       <div>Nickname</div>
       <div class="text-right">Risultato</div>
+      <div class="text-right">Livello</div>
       <div class="text-right">Punti</div>
     </div>
 
@@ -50,22 +60,27 @@ const topScores = scores || [];
 
     <div class="divide-y-2 divide-black">
       {
-        topScores.map((score, index) => (
-          <div class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_8rem_10rem] gap-3 items-center p-4 bg-white">
+        topScores.map((score, index) => {
+          const difficultyLabel = DIFFICULTY_LABELS[score.difficulty] || score.difficulty || '—';
+          return (
+          <div class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_8rem_6rem_10rem] gap-3 items-center p-4 bg-white">
             <div class="text-3xl font-black text-black">#{index + 1}</div>
 
             <div>
               <div class="font-black text-xl text-black truncate">{score.nickname}</div>
               <div class="text-sm font-bold text-slate-600 md:hidden">
-                {score.match_score} · {score.points} pt
+                {score.match_score} · {difficultyLabel} · {score.points} pt
               </div>
             </div>
 
             <div class="hidden md:block text-right font-bold">{score.match_score}</div>
 
+            <div class="hidden md:block text-right font-bold">{difficultyLabel}</div>
+
             <div class="hidden md:block text-right font-black text-2xl text-black">{score.points}</div>
           </div>
-        ))
+          );
+        })
       }
     </div>
   </div>

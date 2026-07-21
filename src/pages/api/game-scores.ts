@@ -6,6 +6,7 @@ export const prerender = false;
 
 const NICKNAME_MAX_LENGTH = 20;
 const MATCH_SCORE_PATTERN = /^\d{1,2}-\d{1,2}$/;
+const VALID_DIFFICULTIES = new Set(['1', '2', '3', '4', '5', 'ultra']);
 
 export const POST: APIRoute = async ({ request }) => {
   const requestUrl = new URL(request.url);
@@ -15,7 +16,7 @@ export const POST: APIRoute = async ({ request }) => {
     return Response.json({ error: 'Origine richiesta non valida.' }, { status: 403 });
   }
 
-  let body: { nickname?: unknown; nomecognome?: unknown; match_score?: unknown; points?: unknown };
+  let body: { nickname?: unknown; nomecognome?: unknown; match_score?: unknown; points?: unknown; difficulty?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -26,6 +27,7 @@ export const POST: APIRoute = async ({ request }) => {
   const nomecognome = typeof body.nomecognome === 'string' ? body.nomecognome.trim() : '';
   const matchScore = typeof body.match_score === 'string' ? body.match_score.trim() : '';
   const points = typeof body.points === 'number' && Number.isFinite(body.points) ? Math.round(body.points) : NaN;
+  const difficulty = typeof body.difficulty === 'string' ? body.difficulty.trim() : '';
 
   if (!nickname) {
     return Response.json({ error: 'Nickname mancante.' }, { status: 400 });
@@ -35,6 +37,9 @@ export const POST: APIRoute = async ({ request }) => {
   }
   if (!Number.isFinite(points)) {
     return Response.json({ error: 'Punteggio non valido.' }, { status: 400 });
+  }
+  if (!VALID_DIFFICULTIES.has(difficulty)) {
+    return Response.json({ error: 'Difficoltà non valida.' }, { status: 400 });
   }
 
   const supabase = getSupabaseAdmin();
@@ -49,7 +54,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const { error } = await supabase
     .from('legends_game_score')
-    .insert({ nickname, match_score: matchScore, points });
+    .insert({ nickname, match_score: matchScore, points, difficulty });
 
   if (error) {
     return Response.json({ error: error.message }, { status: 400 });
