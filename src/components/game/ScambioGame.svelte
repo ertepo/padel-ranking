@@ -1,5 +1,6 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
+  import { slide } from 'svelte/transition';
   import playersData from '../../lib/game/players.json';
   import { matchParams, type Difficulty, type Player, type Surface } from '../../lib/game/matchup';
   import RosterDraft from './RosterDraft.svelte';
@@ -53,6 +54,7 @@
   let nomecognome = '';
   let nicknameError = '';
   let checkingNickname = false;
+  let regolamentoOpen = false;
 
   onMount(() => {
     const header = document.querySelector('header');
@@ -255,6 +257,71 @@
       <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
         Scegli il tuo roster di 6 leggende del tennis e sfida l'avversario: memorizza la sequenza di colpi e ripetila prima che scada il tempo. Primo a 6 game vince il match.
       </p>
+
+      <button
+        type="button"
+        class="club-btn-yellow mt-4 inline-flex items-center justify-center gap-2 px-5 py-3"
+        aria-expanded={regolamentoOpen}
+        aria-controls="regolamento-panel"
+        on:click={() => (regolamentoOpen = !regolamentoOpen)}
+      >
+        {regolamentoOpen ? 'Nascondi regolamento' : 'Regolamento'}
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class={`shrink-0 transition-transform ${regolamentoOpen ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        >
+          <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
+        </svg>
+      </button>
+
+      {#if regolamentoOpen}
+        <div id="regolamento-panel" transition:slide={{ duration: 220 }}>
+          <div class="mt-3 max-w-3xl border-2 border-black bg-black p-5 md:p-6 text-white flex flex-col gap-5">
+            <div>
+              <h3 class="font-black text-lg uppercase tracking-widest" style="color: var(--giallo-club)">Come funziona</h3>
+              <p class="mt-1 text-sm font-semibold leading-relaxed">
+                Guarda la sequenza di colpi che si accende sul campo, poi ripetila cliccando le stesse caselle prima che scada il tempo. Se completi la sequenza in tempo vinci il game, altrimenti lo vince l'avversario. Il primo che arriva a 6 game vince la partita (7 se si arriva 5 pari); sul 6 pari si gioca un game secco di spareggio.
+              </p>
+            </div>
+
+            <div>
+              <h3 class="font-black text-lg uppercase tracking-widest" style="color: var(--verde-tennis)">Tipi di giocatore</h3>
+              <p class="mt-1 text-sm font-semibold leading-relaxed">
+                Ogni tennista ha uno stile: Serve&amp;Volley batte Regolarista, Regolarista batte Attaccante, Attaccante batte Serve&amp;Volley. Schierare lo stile favorevole rende la sequenza più corta.
+              </p>
+              <p class="mt-2 text-sm font-semibold leading-relaxed">
+                Conta anche la forza (da 1 a 5 stelle, indicata nel roster): più l'avversario è più forte di te, più lunga sarà la sequenza.
+              </p>
+            </div>
+
+            <div>
+              <h3 class="font-black text-lg uppercase tracking-widest" style="color: var(--blu-padel)">Superficie</h3>
+              <p class="mt-1 text-sm font-semibold leading-relaxed">
+                Ogni giocatore ha una superficie preferita (terra, erba o cemento), indicata dal colore del bordo nella sua scheda. Se la partita si gioca sulla tua superficie preferita la sequenza si accorcia; se è quella preferita dall'avversario si allunga.
+              </p>
+            </div>
+
+            <div>
+              <h3 class="font-black text-lg uppercase tracking-widest" style="color: var(--rosso-padel)">Difficoltà</h3>
+              <p class="mt-1 text-sm font-semibold leading-relaxed">
+                I livelli 1-5 stabiliscono un range minimo/massimo di colpi (es. livello 1: 3-6, livello 5: 8-16): il confronto tra i due giocatori in campo sposta la sequenza verso il massimo. La modalità Ultra parte come il livello 5 ma la sequenza cresce di un colpo a ogni game, senza limite massimo.
+              </p>
+            </div>
+
+            <div>
+              <h3 class="font-black text-lg uppercase tracking-widest" style="color: var(--viola-tennis)">Punteggio</h3>
+              <p class="mt-1 text-sm font-semibold leading-relaxed">
+                Ogni game vinto vale 100 punti, ogni game perso -50: il valore si moltiplica per la lunghezza della sequenza e per un fattore che premia la velocità di risposta (più tempo resta sul cronometro, più punti). Il totale della partita finisce in classifica insieme al tuo nickname.
+              </p>
+            </div>
+          </div>
+        </div>
+      {/if}
 
       <div class="mt-6 flex flex-col sm:flex-row gap-3 max-w-xl">
         <div class="flex-1">
