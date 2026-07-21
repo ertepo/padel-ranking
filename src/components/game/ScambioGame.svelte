@@ -30,13 +30,18 @@
   let phase: Phase = 'draft';
 
   // durante il match il footer non serve: si vede già nella schermata di draft
+  // in setup/playing la pagina non deve scorrere: su mobile lo scroll fa comparire/sparire
+  // la barra degli indirizzi, spostando i tap a metà gesto (schermata di setup fixed più sotto)
   $: if (typeof document !== 'undefined') {
     const footer = document.querySelector('footer');
     if (footer) footer.style.display = phase === 'draft' ? '' : 'none';
+    document.body.style.overflow = phase === 'setup' || phase === 'playing' ? 'hidden' : '';
   }
   onDestroy(() => {
-    const footer = typeof document !== 'undefined' ? document.querySelector('footer') : null;
+    if (typeof document === 'undefined') return;
+    const footer = document.querySelector('footer');
     if (footer) footer.style.display = '';
+    document.body.style.overflow = '';
   });
 
   // la schermata di setup occupa tutta l'altezza sotto l'header (anch'esso sticky)
@@ -170,7 +175,10 @@
   {#if phase === 'draft'}
     <RosterDraft {cpuRoster} allPlayers={ALL_PLAYERS} {surface} onConfirm={onDraftConfirm} />
   {:else if phase === 'setup'}
-    <div class="flex flex-col gap-6" style={`min-height: calc(100dvh - ${headerOffset}px - 4rem)`}>
+    <div
+      class="fixed inset-x-0 bottom-0 z-40 flex flex-col gap-6 px-4 pt-4 pb-4"
+      style={`top: ${headerOffset}px; background: hsl(38, 17%, 91%);`}
+    >
       <Scoreboard {playerScore} {cpuScore} {target} {gameNumber} {surface} playerName={playerCurrentPlayer?.name ?? 'Tu'} cpuName={cpuCurrentPlayer?.name ?? 'CPU'} />
       <GameSetup
         {surface}

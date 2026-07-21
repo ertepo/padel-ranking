@@ -30,8 +30,8 @@
     : 'bg-[var(--rosso-padel)] text-white';
 </script>
 
-<div class="flex flex-1 flex-col gap-3">
-  <div class="flex-1 flex flex-col gap-3">
+<div class="flex flex-1 min-h-0 flex-col gap-3">
+  <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 p-2 -m-2">
     <div class="flex flex-col gap-3">
       <div class="violet-club-card px-3 py-2 flex items-center justify-between gap-3">
         <p class="font-black text-lg truncate">{cpuPlayer.name}</p>
