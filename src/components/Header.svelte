@@ -10,8 +10,10 @@
   let isOpen = false;
   let isRankingOpen = false;
   let isTournamentsOpen = false;
+  let isArcadeOpen = false;
   let desktopRankingContainer;
   let desktopTournamentsContainer;
+  let desktopArcadeContainer;
 
   function closeDesktopRankingOnOutsideClick(event) {
     const isDesktop = window.innerWidth >= 1024;
@@ -21,6 +23,9 @@
     const clickedOutsideTournaments =
       desktopTournamentsContainer &&
       !desktopTournamentsContainer.contains(event.target);
+    const clickedOutsideArcade =
+      desktopArcadeContainer &&
+      !desktopArcadeContainer.contains(event.target);
 
     if (isDesktop && clickedOutsideRanking) {
       isRankingOpen = false;
@@ -29,12 +34,17 @@
     if (isDesktop && clickedOutsideTournaments) {
       isTournamentsOpen = false;
     }
+
+    if (isDesktop && clickedOutsideArcade) {
+      isArcadeOpen = false;
+    }
   }
 
   function toggleTournamentsMenu() {
     isTournamentsOpen = !isTournamentsOpen;
     if (isTournamentsOpen) {
       isRankingOpen = false;
+      isArcadeOpen = false;
     }
   }
 
@@ -42,6 +52,15 @@
     isRankingOpen = !isRankingOpen;
     if (isRankingOpen) {
       isTournamentsOpen = false;
+      isArcadeOpen = false;
+    }
+  }
+
+  function toggleArcadeMenu() {
+    isArcadeOpen = !isArcadeOpen;
+    if (isArcadeOpen) {
+      isTournamentsOpen = false;
+      isRankingOpen = false;
     }
   }
 </script>
@@ -192,12 +211,63 @@
         </svg>
         Matches
       </a>
-            
           </div>
         {/if}
       </div>
 
-      
+      <div class="relative" bind:this={desktopArcadeContainer}>
+        <button
+          type="button"
+          class="club-btn flex items-center gap-2 px-4 py-2"
+          aria-expanded={isArcadeOpen}
+          aria-controls="desktop-arcade-menu"
+          on:click={toggleArcadeMenu}
+        >
+          Arcade
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            class={`transition-transform ${isArcadeOpen ? 'rotate-180' : ''}`}
+            aria-hidden="true"
+          >
+            <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
+          </svg>
+        </button>
+
+        {#if isArcadeOpen}
+          <div
+            id="desktop-arcade-menu"
+            class="absolute right-0 top-full mt-3 flex min-w-56 flex-col gap-3 border-2 border-black bg-blue-100/45 p-5 pl-6 shadow-2xl backdrop-blur-xl backdrop-saturate-150"
+          >
+            <a
+              href="/game"
+              class="club-btn inline-flex items-center gap-2 px-4 py-2"
+              on:click={() => (isArcadeOpen = false)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M10 2a2 2 0 0 1-1.5 1.937v5.087c.863.083 1.5.377 1.5.726 0 .414-.895.75-2 .75s-2-.336-2-.75c0-.35.637-.643 1.5-.726V3.937A2 2 0 1 1 10 2"/>
+                <path d="M0 9.665v1.717a1 1 0 0 0 .553.894l6.553 3.277a2 2 0 0 0 1.788 0l6.553-3.277a1 1 0 0 0 .553-.894V9.665c0-.1-.06-.19-.152-.23L9.5 6.715v.993l5.227 2.178a.125.125 0 0 1 .001.23l-5.94 2.546a2 2 0 0 1-1.576 0l-5.94-2.546a.125.125 0 0 1 .001-.23L6.5 7.708l-.013-.988L.152 9.435a.25.25 0 0 0-.152.23"/>
+              </svg>
+              Legends Game
+            </a>
+
+            <a
+              href="/game/classifica"
+              class="club-btn inline-flex items-center gap-2 px-4 py-2"
+              on:click={() => (isArcadeOpen = false)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+              </svg>
+              Highscore
+            </a>
+          </div>
+        {/if}
+      </div>
+
       <a
         href="/prenotazioni"
         class="club-btn-pastelgreen inline-flex items-center gap-2 px-4 py-2"
@@ -288,7 +358,7 @@
 
       {#if isTournamentsOpen}
         <div id="mobile-tournaments-menu" class="overflow-hidden" transition:slide={{ duration: 180 }}>
-          <div class="flex flex-col gap-3 pl-4 pt-3">
+          <div class="flex flex-col gap-3 pl-4 pt-3 pb-2">
             <a
               href="/tornei/cascualian-open"
               class="club-btn inline-flex items-center justify-center whitespace-nowrap p-4 text-center"
@@ -344,7 +414,7 @@
 
       {#if isRankingOpen}
         <div id="mobile-ranking-menu" class="overflow-hidden" transition:slide={{ duration: 180 }}>
-          <div class="flex flex-col gap-3 pl-4 pt-3">
+          <div class="flex flex-col gap-3 pl-4 pt-3 pb-2">
             <a
               href="/regolamento"
               class="club-btn-pastelyellow inline-flex items-center justify-center gap-2 p-4 text-center"
@@ -393,6 +463,61 @@
                 <path d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z"/>
               </svg>
               Match
+            </a>
+          </div>
+        </div>
+      {/if}
+
+      <button
+        type="button"
+        class="club-btn flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap p-4 text-center"
+        aria-expanded={isArcadeOpen}
+        aria-controls="mobile-arcade-menu"
+        on:click={toggleArcadeMenu}
+      >
+        Arcade<svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class={`shrink-0 transition-transform ${isArcadeOpen ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        >
+          <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
+        </svg>
+      </button>
+
+      {#if isArcadeOpen}
+        <div id="mobile-arcade-menu" class="overflow-hidden" transition:slide={{ duration: 180 }}>
+          <div class="flex flex-col gap-3 pl-4 pt-3 pb-2">
+            <a
+              href="/game"
+              class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
+              on:click={() => {
+                isArcadeOpen = false;
+                isOpen = false;
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M10 2a2 2 0 0 1-1.5 1.937v5.087c.863.083 1.5.377 1.5.726 0 .414-.895.75-2 .75s-2-.336-2-.75c0-.35.637-.643 1.5-.726V3.937A2 2 0 1 1 10 2"/>
+                <path d="M0 9.665v1.717a1 1 0 0 0 .553.894l6.553 3.277a2 2 0 0 0 1.788 0l6.553-3.277a1 1 0 0 0 .553-.894V9.665c0-.1-.06-.19-.152-.23L9.5 6.715v.993l5.227 2.178a.125.125 0 0 1 .001.23l-5.94 2.546a2 2 0 0 1-1.576 0l-5.94-2.546a.125.125 0 0 1 .001-.23L6.5 7.708l-.013-.988L.152 9.435a.25.25 0 0 0-.152.23"/>
+              </svg>
+              Legends Game
+            </a>
+
+            <a
+              href="/game/classifica"
+              class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
+              on:click={() => {
+                isArcadeOpen = false;
+                isOpen = false;
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path fill-rule="evenodd" d="M0 0h1v15h15v1H0zm10 3.5a.5.5 0 0 1 .5-.5h4a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-1 0V4.9l-3.613 4.417a.5.5 0 0 1-.74.037L7.06 6.767l-3.656 5.027a.5.5 0 0 1-.808-.588l4-5.5a.5.5 0 0 1 .758-.06l2.609 2.61L13.445 4H10.5a.5.5 0 0 1-.5-.5"/>
+              </svg>
+              Highscore
             </a>
           </div>
         </div>
