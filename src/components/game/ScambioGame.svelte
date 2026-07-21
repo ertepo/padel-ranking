@@ -46,10 +46,77 @@
 
   // la schermata di setup occupa tutta l'altezza sotto l'header (anch'esso sticky)
   let headerOffset = 0;
+
+  const NICKNAME_KEY = 'tie-break:scambio-nickname';
+  const NOMECOGNOME_KEY = 'tie-break:scambio-nomecognome';
+  let nickname = '';
+  let nomecognome = '';
+  let nicknameError = '';
+  let checkingNickname = false;
+
   onMount(() => {
     const header = document.querySelector('header');
     if (header) headerOffset = header.getBoundingClientRect().height;
+    nickname = localStorage.getItem(NICKNAME_KEY) ?? '';
+    nomecognome = localStorage.getItem(NOMECOGNOME_KEY) ?? '';
   });
+
+  function onNicknameInput(value: string) {
+    nickname = value;
+    nicknameError = '';
+    localStorage.setItem(NICKNAME_KEY, value);
+  }
+
+  function onNomecognomeInput(value: string) {
+    nomecognome = value;
+    nicknameError = '';
+    localStorage.setItem(NOMECOGNOME_KEY, value);
+  }
+
+  // il nickname va abbinato la prima volta a nome e cognome: evita che due
+  // giocatori diversi rivendichino lo stesso nickname in classifica
+  async function verifyNickname(): Promise<boolean> {
+    if (!nickname.trim() || !nomecognome.trim()) {
+      nicknameError = 'Inserisci nickname e nome cognome per giocare.';
+      return false;
+    }
+    checkingNickname = true;
+    try {
+      const res = await fetch('/api/game-nickname', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: nickname.trim(), nomecognome: nomecognome.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        nicknameError = data.error || 'Nickname non disponibile.';
+        return false;
+      }
+      return true;
+    } catch {
+      nicknameError = 'Impossibile verificare il nickname: controlla la connessione.';
+      return false;
+    } finally {
+      checkingNickname = false;
+    }
+  }
+
+  async function submitScore() {
+    try {
+      await fetch('/api/game-scores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nickname: nickname.trim() || 'Anonimo',
+          nomecognome: nomecognome.trim(),
+          match_score: `${playerScore}-${cpuScore}`,
+          points: totalPoints,
+        }),
+      });
+    } catch {
+      // punteggio non salvato: non blocchiamo la fine partita per un errore di rete
+    }
+  }
 
   let surface: Surface = SURFACES[Math.floor(Math.random() * SURFACES.length)];
   let cpuRoster: Player[] = pickRandom(ALL_PLAYERS, 6);
@@ -58,6 +125,7 @@
   let playerScore = 0;
   let cpuScore = 0;
   let gameNumber = 1;
+  let totalPoints = 0;
 
   // tennisti già schierati nel ciclo corrente: non riselezionabili finché non
   // sono stati usati tutti e 6, poi il pool si resetta (per entrambi i lati)
@@ -71,7 +139,16 @@
   let cpuCurrentPlayer: Player;
   let playerCurrentPlayer: Player;
   let currentParams: ReturnType<typeof matchParams>;
-  let difficulty: Difficulty = 'normale';
+  let difficulty: Difficulty = '2';
+
+  const DIFFICULTY_OPTIONS: { value: Difficulty; label: string; color: string; textColor: string }[] = [
+    { value: '1', label: '1', color: 'var(--verde-tennis)', textColor: 'text-white' },
+    { value: '2', label: '2', color: 'var(--giallo-club)', textColor: 'text-black' },
+    { value: '3', label: '3', color: 'var(--rosso-padel)', textColor: 'text-white' },
+    { value: '4', label: '4', color: '#7a1010', textColor: 'text-white' },
+    { value: '5', label: '5', color: '#1a1a1a', textColor: 'text-white' },
+    { value: 'ultra', label: 'ULTRA', color: '#000000', textColor: 'text-white' },
+  ];
 
   $: target = playerScore >= 5 && cpuScore >= 5 ? 7 : 6;
 
@@ -83,15 +160,21 @@
     playerScore = 0;
     cpuScore = 0;
     gameNumber = 1;
+    totalPoints = 0;
     usedByPlayerNames = new Set();
     usedByCpuNames = new Set();
     deciderActive = false;
     deciderWinnerIsPlayer = null;
   }
 
-  function onDraftConfirm(selected: Player[], chosenDifficulty: Difficulty) {
+  async function onDraftConfirm(selected: Player[]) {
+    const verified = await verifyNickname();
+    if (!verified) {
+      window.scrollTo(0, 0);
+      return;
+    }
+
     playerRoster = selected;
-    difficulty = chosenDifficulty;
     usedByPlayerNames = new Set();
     usedByCpuNames = new Set();
     cpuCurrentPlayer = randomFrom(cpuRoster);
@@ -106,7 +189,7 @@
   }
 
   function onStartGame() {
-    currentParams = matchParams(difficulty, playerCurrentPlayer, cpuCurrentPlayer, surface);
+    currentParams = matchParams(difficulty, playerCurrentPlayer, cpuCurrentPlayer, surface, gameNumber);
     phase = 'playing';
     window.scrollTo(0, 0);
   }
@@ -118,18 +201,21 @@
   }
 
   function onStartDecider() {
-    currentParams = matchParams(difficulty, playerCurrentPlayer, cpuCurrentPlayer, surface);
+    currentParams = matchParams(difficulty, playerCurrentPlayer, cpuCurrentPlayer, surface, gameNumber + 1);
     deciderActive = true;
     phase = 'playing';
     window.scrollTo(0, 0);
   }
 
-  function onGameResult(win: boolean) {
+  function onGameResult(win: boolean, points: number) {
     window.scrollTo(0, 0);
+    totalPoints += points;
+
     if (deciderActive) {
       deciderActive = false;
       deciderWinnerIsPlayer = win;
       phase = 'matchEnd';
+      submitScore();
       return;
     }
 
@@ -149,6 +235,7 @@
     const nextTarget = playerScore >= 5 && cpuScore >= 5 ? 7 : 6;
     if (playerScore >= nextTarget || cpuScore >= nextTarget) {
       phase = 'matchEnd';
+      submitScore();
       return;
     }
 
@@ -167,6 +254,67 @@
       <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
         Scegli il tuo roster di 6 leggende del tennis e sfida l'avversario': memorizza la sequenza di colpi e ripetila prima che scada il tempo. Primo a 6 game vince il match.
       </p>
+
+      <div class="mt-6 flex flex-col sm:flex-row gap-3 max-w-xl">
+        <div class="flex-1">
+          <label for="nickname" class="block text-xs uppercase tracking-widest font-black text-slate-600 mb-1">
+            Il tuo nickname
+          </label>
+          <input
+            id="nickname"
+            type="text"
+            maxlength="20"
+            placeholder="Es. SIN"
+            class="club-card w-full px-3 py-2 font-black uppercase tracking-widest text-lg focus:outline-none"
+            value={nickname}
+            on:input={(e) => onNicknameInput(e.currentTarget.value)}
+          />
+        </div>
+
+        <div class="flex-1">
+          <label for="nomecognome" class="block text-xs uppercase tracking-widest font-black text-slate-600 mb-1">
+            Nome e cognome
+          </label>
+          <input
+            id="nomecognome"
+            type="text"
+            maxlength="60"
+            placeholder="Es. Mario Rossi"
+            class="club-card w-full px-3 py-2 font-black text-lg focus:outline-none"
+            value={nomecognome}
+            on:input={(e) => onNomecognomeInput(e.currentTarget.value)}
+          />
+        </div>
+      </div>
+
+      <p class="mt-2 max-w-xl text-xs font-bold text-slate-500">
+        La prima volta abbina il nickname a nome e cognome, così resta solo tuo: compare nella
+        <a href="/game/classifica" class="underline hover:text-black">classifica</a> insieme al punteggio.
+      </p>
+
+      {#if checkingNickname}
+        <p class="mt-2 text-xs font-black uppercase tracking-widest text-slate-500">Verifico il nickname…</p>
+      {:else if nicknameError}
+        <p class="mt-2 text-xs font-black uppercase tracking-widest text-[var(--rosso-padel)]">{nicknameError}</p>
+      {/if}
+
+      <div class="mt-6 max-w-xl">
+        <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-1">Difficoltà</p>
+        <div class="flex gap-1">
+          {#each DIFFICULTY_OPTIONS as opt}
+            <button
+              type="button"
+              on:click={() => (difficulty = opt.value)}
+              style={difficulty === opt.value ? `background:${opt.color}` : ''}
+              class={`flex-1 min-w-0 border-2 border-black py-2 text-center font-black text-sm transition-colors ${
+                difficulty === opt.value ? opt.textColor : 'bg-white hover:bg-slate-100'
+              }`}
+            >
+              {opt.label}
+            </button>
+          {/each}
+        </div>
+      </div>
     </section>
   {:else if phase !== 'setup'}
     <Scoreboard {playerScore} {cpuScore} {target} playerName={playerCurrentPlayer?.name ?? 'Tu'} cpuName={cpuCurrentPlayer?.name ?? 'CPU'} />
@@ -219,9 +367,20 @@
         </h2>
       {/if}
       <p class="font-black text-xl">{playerScore} - {cpuScore}</p>
-      <button type="button" class="club-btn-yellow px-6 py-3 font-black uppercase tracking-widest" on:click={startMatch}>
-        Nuova partita
-      </button>
+
+      <div class="dark-club-card px-4 py-2 flex flex-col items-center">
+        <p class="text-[10px] uppercase tracking-widest font-black text-slate-600">Punteggio arcade</p>
+        <p class="font-black text-3xl">{totalPoints}</p>
+      </div>
+
+      <div class="flex flex-col sm:flex-row gap-3">
+        <button type="button" class="club-btn-yellow px-6 py-3 font-black uppercase tracking-widest" on:click={startMatch}>
+          Nuova partita
+        </button>
+        <a href="/game/classifica" class="club-btn px-6 py-3 font-black uppercase tracking-widest text-center">
+          Classifica
+        </a>
+      </div>
     </section>
   {/if}
 </div>

@@ -4,7 +4,7 @@
 
   export let params: GameParams;
   export let surface: Surface;
-  export let onResult: (win: boolean) => void;
+  export let onResult: (win: boolean, points: number) => void;
 
   // colore del campo per superficie; le linee restano sempre bianche
   const SURFACE_COLORS: Record<Surface, string> = {
@@ -77,12 +77,17 @@
     }
   }
 
+  // punteggio arcade: base per vittoria/sconfitta, scalato per lunghezza
+  // sequenza e per quanto tempo era rimasto (bonus se rispondi in fretta)
   function finish(win: boolean) {
     if (phase === 'result') return;
     resultWin = win;
     phase = 'result';
     if (timerInterval) clearInterval(timerInterval);
-    schedule(() => onResult(win), 700);
+    const remainingMs = Math.max(0, inputDeadline - Date.now());
+    const timeFactor = 1 + remainingMs / totalInputMs;
+    const points = Math.round((win ? 100 : -50) * params.seqLength * timeFactor);
+    schedule(() => onResult(win, points), 700);
   }
 
   // activeCell/feedback/phase passati come argomenti: servono nel template

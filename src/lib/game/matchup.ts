@@ -65,29 +65,52 @@ export function gameParams(gameNumber: number, d: number): GameParams {
   };
 }
 
-export type Difficulty = 'facile' | 'normale' | 'difficile';
+export type Difficulty = '1' | '2' | '3' | '4' | '5' | 'ultra';
+
+type FixedTier = '1' | '2' | '3' | '4' | '5';
 
 // range di colpi raggiungibile ad ogni livello: si parte dal minimo e il
 // match-up (superficie + stile + forza, vedi diffScore) sposta verso il massimo
-const SEQ_RANGE: Record<Difficulty, { min: number; max: number }> = {
-  facile: { min: 3, max: 6 },
-  normale: { min: 4, max: 8 },
-  difficile: { min: 5, max: 10 },
+const SEQ_RANGE: Record<FixedTier, { min: number; max: number }> = {
+  '1': { min: 3, max: 6 },
+  '2': { min: 4, max: 8 },
+  '3': { min: 5, max: 10 },
+  '4': { min: 6, max: 12 },
+  '5': { min: 8, max: 16 },
 };
 
-// velocità fissa per livello, indipendente dal match-up
+// velocità fissa per livello, indipendente dal match-up (dal 3 in su resta
+// quella di "difficile": a salire cambia solo la lunghezza sequenza)
 const SPEED_BY_TIER: Record<Difficulty, { showMs: number; inputMsPerStep: number }> = {
-  facile: { showMs: 480, inputMsPerStep: 1300 },
-  normale: { showMs: 420, inputMsPerStep: 1100 },
-  difficile: { showMs: 360, inputMsPerStep: 950 },
+  '1': { showMs: 480, inputMsPerStep: 1300 },
+  '2': { showMs: 420, inputMsPerStep: 1100 },
+  '3': { showMs: 360, inputMsPerStep: 950 },
+  '4': { showMs: 360, inputMsPerStep: 950 },
+  '5': { showMs: 360, inputMsPerStep: 950 },
+  ultra: { showMs: 360, inputMsPerStep: 950 },
 };
 
-/** Parametri del game per i 3 livelli standard: sequenza modulata dal match-up, velocità fissa. */
-export function matchParams(tier: Difficulty, me: Player, opp: Player, surface: Surface): GameParams {
-  const range = SEQ_RANGE[tier];
+/**
+ * Parametri del game per i livelli standard (1-5): sequenza modulata dal
+ * match-up entro il range del livello, velocità fissa. Il livello "ultra" è
+ * come il 5 ma la sequenza si allunga di un colpo ad ogni game (come la
+ * formula originale in `gameParams`), senza un massimo.
+ */
+export function matchParams(
+  tier: Difficulty,
+  me: Player,
+  opp: Player,
+  surface: Surface,
+  gameNumber: number,
+): GameParams {
   const modifier = diffScore(me, opp, surface);
-  const seqLength = Math.max(range.min, Math.min(range.max, range.min + modifier));
   const speed = SPEED_BY_TIER[tier];
+
+  const seqLength =
+    tier === 'ultra'
+      ? Math.max(8, 7 + gameNumber + modifier)
+      : Math.max(SEQ_RANGE[tier].min, Math.min(SEQ_RANGE[tier].max, SEQ_RANGE[tier].min + modifier));
+
   return { seqLength, showMs: speed.showMs, gapMs: 130, inputMsPerStep: speed.inputMsPerStep };
 }
 

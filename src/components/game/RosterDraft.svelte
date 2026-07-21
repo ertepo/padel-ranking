@@ -5,7 +5,7 @@
   export let cpuRoster: Player[];
   export let allPlayers: Player[];
   export let surface: string;
-  export let onConfirm: (selected: Player[], difficulty: 'facile' | 'normale' | 'difficile') => void;
+  export let onConfirm: (selected: Player[]) => void;
 
   // il banner sticky deve fermarsi sotto l'header del sito (anch'esso sticky),
   // non sotto la cima del viewport: misuriamo la sua altezza reale a runtime
@@ -21,12 +21,12 @@
     cemento: 'Cemento',
   };
 
-  const DIFFICULTY_OPTIONS: { value: 'facile' | 'normale' | 'difficile'; number: string; color: string; textColor: string }[] = [
-    { value: 'facile', number: '1', color: 'var(--verde-tennis)', textColor: 'text-white' },
-    { value: 'normale', number: '2', color: 'var(--giallo-club)', textColor: 'text-black' },
-    { value: 'difficile', number: '3', color: 'var(--rosso-padel)', textColor: 'text-white' },
-  ];
-  let difficulty: 'facile' | 'normale' | 'difficile' = 'normale';
+  // stesso colore campo usato nel tabellone di gioco (ScambioBoard)
+  const surfaceColors: Record<string, string> = {
+    erba: '#578a33',
+    terra: '#ad5f18',
+    cemento: '#3b6582',
+  };
 
   // esattamente 1 tennista di forza 5, 2 di forza 4, 2 di forza 3, 1 di forza 2
   const QUOTAS: Record<number, number> = { 5: 1, 4: 2, 3: 2, 2: 1 };
@@ -78,10 +78,11 @@
     </p>
     <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
       {#each cpuRoster as player}
-        <div class="min-w-0 border-2 border-black bg-white p-2 text-center">
+        <div class="min-w-0 border-4 bg-white p-2 text-center" style={`border-color:${surfaceColors[player.surface]}`}>
           <p class={`font-black ${nameClass(player.name)} leading-tight break-words`}>{player.name}</p>
           <p class="text-[10px] uppercase font-bold text-slate-500">{STYLE_LABELS[player.style]}</p>
           <p class="text-xs" aria-label={`Forza ${player.strength}`}>{strengthDots(player.strength)}</p>
+          <p class="text-[9px] uppercase font-bold text-slate-400">{surfaceLabels[player.surface] || player.surface}</p>
         </div>
       {/each}
     </div>
@@ -122,7 +123,8 @@
                 type="button"
                 on:click={() => toggle(player)}
                 disabled={!selected.includes(player) && (selected.length >= 6 || quotaFull(player.strength))}
-                class={`min-w-0 border-2 border-black p-2 text-left transition-colors ${
+                style={`border-color:${surfaceColors[player.surface]}`}
+                class={`min-w-0 border-4 p-2 text-left transition-colors ${
                   selected.includes(player)
                     ? 'bg-[var(--giallo-club)]'
                     : 'bg-white hover:bg-slate-100 disabled:opacity-40 disabled:hover:bg-white'
@@ -131,6 +133,7 @@
                 <p class={`font-black ${nameClass(player.name)} leading-tight break-words`}>{player.name}</p>
                 <p class="text-[10px] uppercase font-bold text-slate-500">{STYLE_LABELS[player.style]}</p>
                 <p class="text-xs" aria-label={`Forza ${player.strength}`}>{strengthDots(player.strength)}</p>
+                <p class="text-[9px] uppercase font-bold text-slate-400">{surfaceLabels[player.surface] || player.surface}</p>
               </button>
             {/each}
           </div>
@@ -141,30 +144,12 @@
 
 </div>
 
-<div class="fixed inset-x-0 bottom-0 z-[1000] border-t-2 border-black bg-white p-3 flex items-center gap-2">
-  <div class="flex flex-col gap-1 flex-1">
-    <p class="text-[9px] uppercase tracking-widest font-black text-slate-600 text-center">Difficoltà</p>
-    <div class="flex gap-1">
-      {#each DIFFICULTY_OPTIONS as opt}
-        <button
-          type="button"
-          on:click={() => (difficulty = opt.value)}
-          style={difficulty === opt.value ? `background:${opt.color}` : ''}
-          class={`flex-1 min-w-0 border-2 border-black py-2 text-center font-black text-base transition-colors ${
-            difficulty === opt.value ? opt.textColor : 'bg-white hover:bg-slate-100'
-          }`}
-        >
-          {opt.number}
-        </button>
-      {/each}
-    </div>
-  </div>
-
+<div class="fixed inset-x-0 bottom-0 z-[1000] border-t-2 border-black bg-white p-3 flex items-center justify-center">
   <button
     type="button"
-    class="club-btn-yellow px-4 py-3 font-black uppercase tracking-widest text-xs sm:text-sm shrink-0 disabled:opacity-40"
+    class="club-btn-yellow px-6 py-3 font-black uppercase tracking-widest disabled:opacity-40"
     disabled={selected.length !== 6}
-    on:click={() => onConfirm(selected, difficulty)}
+    on:click={() => onConfirm(selected)}
   >
     Scendi in campo
   </button>
