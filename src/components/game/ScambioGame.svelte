@@ -142,14 +142,14 @@
   let cpuCurrentPlayer: Player;
   let playerCurrentPlayer: Player;
   let currentParams: ReturnType<typeof matchParams>;
-  let difficulty: Difficulty = '2';
+  let difficulty: Difficulty = '1';
 
   const DIFFICULTY_OPTIONS: { value: Difficulty; label: string; color: string; textColor: string }[] = [
-    { value: '1', label: '1', color: 'var(--verde-tennis)', textColor: 'text-white' },
-    { value: '2', label: '2', color: 'var(--giallo-club)', textColor: 'text-black' },
-    { value: '3', label: '3', color: 'var(--rosso-padel)', textColor: 'text-white' },
-    { value: '4', label: '4', color: '#7a1010', textColor: 'text-white' },
-    { value: '5', label: '5', color: '#1a1a1a', textColor: 'text-white' },
+    { value: '1', label: '1', color: 'var(--blu-bilanciato)', textColor: 'text-white' },
+    { value: '2', label: '2', color: 'var(--verde-tennis)', textColor: 'text-black' },
+    { value: '3', label: '3', color: 'var(--giallo-club)', textColor: 'text-white' },
+    { value: '4', label: '4', color: 'var(--rosso-padel)', textColor: 'text-white' },
+    { value: '5', label: '5', color: 'var(--viola-tennis)', textColor: 'text-white' },
     { value: 'ultra', label: 'ULTRA', color: '#000000', textColor: 'text-white' },
   ];
 
@@ -356,7 +356,7 @@
       </div>
 
       <p class="mt-2 max-w-xl text-xs font-bold text-slate-500">
-        La prima volta abbina il nickname a nome e cognome, così resta solo tuo: compare nella
+        La prima volta abbina il nickname a nome e cognome, così resta solo tuo: solo il nickname compare nella
         <a href="/game/classifica" class="underline hover:text-black">classifica</a> insieme al punteggio.
       </p>
 

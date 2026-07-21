@@ -8,6 +8,10 @@ const { data: scores, error } = await supabase
   .order('points', { ascending: false })
   .limit(50);
 
+const { count: totalMatches } = await supabase
+  .from('legends_game_score')
+  .select('id', { count: 'exact', head: true });
+
 const topScores = scores || [];
 
 const DIFFICULTY_LABELS: Record<string, string> = {
@@ -21,15 +25,15 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 ---
 
 <Layout
-  title="Classifica Gioco dello scambio"
+  title="Classifica Gioco delle Leggende"
   headerTheme="tennis"
-  description="La classifica arcade del Gioco delle leggende: i punteggi più alti del gioco dello scambio, con nickname e risultato di ogni partita."
+  description="La classifica arcade del Gioco delle Leggende: i punteggi più alti, con nickname e risultato di ogni partita."
 >
   <section class="mb-8">
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">Tennis</p>
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Classifica</h1>
     <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
-      I punteggi più alti del gioco dello scambio: si guadagna in base ai game vinti, alla lunghezza della sequenza e alla velocità di risposta.
+      I punteggi più alti del gioco delle leggende: si guadagna in base ai game vinti, alla lunghezza della sequenza e alla velocità di risposta.
     </p>
   </section>
 
@@ -40,8 +44,9 @@ const DIFFICULTY_LABELS: Record<string, string> = {
   }
 
   <div class="club-card overflow-hidden">
-    <div class="bg-[var(--giallo-club)] border-b-2 border-black p-4">
+    <div class="bg-[var(--giallo-club)] border-b-2 border-black p-4 flex items-center justify-between gap-4">
       <h2 class="text-xl font-black uppercase">Top 50</h2>
+      <p class="font-black text-sm uppercase">Tot partite {totalMatches ?? 0}</p>
     </div>
 
     <div class="hidden md:grid grid-cols-[4rem_1fr_8rem_6rem_10rem] gap-3 px-4 py-2 bg-slate-100 border-b-2 border-black font-black text-xs uppercase text-slate-600">
