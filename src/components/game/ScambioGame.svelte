@@ -253,7 +253,7 @@
       <p class="text-sm uppercase tracking-widest font-black text-slate-600">Tennis</p>
       <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Gioco delle leggende</h1>
       <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
-        Scegli il tuo roster di 6 leggende del tennis e sfida l'avversario': memorizza la sequenza di colpi e ripetila prima che scada il tempo. Primo a 6 game vince il match.
+        Scegli il tuo roster di 6 leggende del tennis e sfida l'avversario: memorizza la sequenza di colpi e ripetila prima che scada il tempo. Primo a 6 game vince il match.
       </p>
 
       <div class="mt-6 flex flex-col sm:flex-row gap-3 max-w-xl">
