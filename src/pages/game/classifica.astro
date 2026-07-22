@@ -49,12 +49,13 @@ const DIFFICULTY_LABELS: Record<string, string> = {
       <p class="font-black text-sm uppercase">Tot partite {totalMatches ?? 0}</p>
     </div>
 
-    <div class="hidden md:grid grid-cols-[4rem_1fr_8rem_6rem_10rem] gap-3 px-4 py-2 bg-slate-100 border-b-2 border-black font-black text-xs uppercase text-slate-600">
+    <div class="hidden md:grid grid-cols-[4rem_1fr_8rem_6rem_10rem_6rem] gap-3 px-4 py-2 bg-slate-100 border-b-2 border-black font-black text-xs uppercase text-slate-600">
       <div>Pos</div>
       <div>Nickname</div>
       <div class="text-right">Risultato</div>
       <div class="text-right">Livello</div>
       <div class="text-right">Punti</div>
+      <div class="text-right">Sfida</div>
     </div>
 
     {
@@ -68,7 +69,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
         topScores.map((score, index) => {
           const difficultyLabel = DIFFICULTY_LABELS[score.difficulty] || score.difficulty || '—';
           return (
-          <div class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_8rem_6rem_10rem] gap-3 items-center p-4 bg-white">
+          <div class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_8rem_6rem_10rem_6rem] gap-3 items-center p-4 bg-white">
             <div class="text-3xl font-black text-black">#{index + 1}</div>
 
             <div>
@@ -83,6 +84,15 @@ const DIFFICULTY_LABELS: Record<string, string> = {
             <div class="hidden md:block text-right font-bold">{difficultyLabel}</div>
 
             <div class="hidden md:block text-right font-black text-2xl text-black">{score.points}</div>
+
+            <div class="text-right">
+              <a
+                href={`/game?replay=${score.id}`}
+                class="club-btn inline-block px-3 py-1.5 text-xs font-black uppercase tracking-widest"
+              >
+                Rigioca
+              </a>
+            </div>
           </div>
           );
         })

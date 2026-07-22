@@ -2,15 +2,31 @@
   import { onDestroy, onMount } from 'svelte';
   import { slide } from 'svelte/transition';
   import playersData from '../../lib/game/players.json';
-  import { matchParams, type Difficulty, type Player, type Surface } from '../../lib/game/matchup';
+  import { matchParams, STYLE_LABELS, type Difficulty, type Player, type Surface } from '../../lib/game/matchup';
+  import type { ReplayConfig } from '../../lib/game/replay';
   import RosterDraft from './RosterDraft.svelte';
   import GameSetup from './GameSetup.svelte';
   import DeciderSetup from './DeciderSetup.svelte';
   import ScambioBoard from './ScambioBoard.svelte';
   import Scoreboard from './Scoreboard.svelte';
 
+  export let replayConfig: ReplayConfig | null = null;
+
   const ALL_PLAYERS = playersData as Player[];
   const SURFACES: Surface[] = ['terra', 'erba', 'cemento'];
+
+  const SURFACE_LABELS: Record<Surface, string> = { terra: 'Terra rossa', erba: 'Erba', cemento: 'Cemento' };
+  const SURFACE_COLORS: Record<Surface, string> = { erba: '#578a33', terra: '#ad5f18', cemento: '#3b6582' };
+
+  function strengthDots(strength: number) {
+    return '★'.repeat(strength) + '☆'.repeat(5 - strength);
+  }
+
+  function nameClass(name: string) {
+    if (name.length >= 12) return 'text-[10px] tracking-tight';
+    if (name.length >= 8) return 'text-xs';
+    return 'text-sm';
+  }
 
   function pickRandom<T>(arr: T[], count: number): T[] {
     const copy = [...arr];
@@ -39,6 +55,7 @@
     document.body.style.overflow = phase === 'setup' || phase === 'playing' ? 'hidden' : '';
   }
   onDestroy(() => {
+    clearTimeout(shareStatusTimeout);
     if (typeof document === 'undefined') return;
     const footer = document.querySelector('footer');
     if (footer) footer.style.display = '';
@@ -103,9 +120,12 @@
     }
   }
 
+  let lastScoreId: string | number | null = null;
+
   async function submitScore() {
+    lastScoreId = null;
     try {
-      await fetch('/api/game-scores', {
+      const res = await fetch('/api/game-scores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -114,15 +134,50 @@
           match_score: `${playerScore}-${cpuScore}`,
           points: totalPoints,
           difficulty,
+          surface,
+          player_roster: playerRoster.map((p) => p.name),
+          cpu_roster: cpuRoster.map((p) => p.name),
         }),
       });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.id != null) lastScoreId = data.id;
     } catch {
       // punteggio non salvato: non blocchiamo la fine partita per un errore di rete
     }
   }
 
-  let surface: Surface = SURFACES[Math.floor(Math.random() * SURFACES.length)];
-  let cpuRoster: Player[] = pickRandom(ALL_PLAYERS, 6);
+  let shareStatus: '' | 'copied' | 'error' = '';
+  let shareStatusTimeout: ReturnType<typeof setTimeout> | undefined;
+
+  async function shareMatch() {
+    if (!lastScoreId) return;
+    const url = `${window.location.origin}/game?replay=${lastScoreId}`;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: 'Gioco delle leggende', text: 'Batti il mio punteggio!', url });
+      } catch {
+        // condivisione nativa annullata dall'utente: nessun fallback necessario
+      }
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      shareStatus = 'copied';
+    } catch {
+      shareStatus = 'error';
+    }
+    clearTimeout(shareStatusTimeout);
+    shareStatusTimeout = setTimeout(() => (shareStatus = ''), 2500);
+  }
+
+  // vero finché non si preme "Nuova partita": mostra il roster bloccato della
+  // sfida invece del draft libero, in coerenza con superficie/difficoltà
+  let replayActive = !!replayConfig;
+
+  let surface: Surface = replayConfig?.surface ?? SURFACES[Math.floor(Math.random() * SURFACES.length)];
+  let cpuRoster: Player[] = replayConfig?.cpuRoster ?? pickRandom(ALL_PLAYERS, 6);
   let playerRoster: Player[] = [];
 
   let playerScore = 0;
@@ -142,7 +197,7 @@
   let cpuCurrentPlayer: Player;
   let playerCurrentPlayer: Player;
   let currentParams: ReturnType<typeof matchParams>;
-  let difficulty: Difficulty = '1';
+  let difficulty: Difficulty = replayConfig?.difficulty ?? '1';
 
   const DIFFICULTY_OPTIONS: { value: Difficulty; label: string; color: string; textColor: string }[] = [
     { value: '1', label: '1', color: 'var(--blu-bilanciato)', textColor: 'text-white' },
@@ -157,6 +212,7 @@
 
   function startMatch() {
     phase = 'draft';
+    replayActive = false;
     surface = SURFACES[Math.floor(Math.random() * SURFACES.length)];
     cpuRoster = pickRandom(ALL_PLAYERS, 6);
     playerRoster = [];
@@ -168,6 +224,26 @@
     usedByCpuNames = new Set();
     deciderActive = false;
     deciderWinnerIsPlayer = null;
+    lastScoreId = null;
+  }
+
+  // "Rigioca": stessa superficie/difficoltà/roster già in memoria, nessuna
+  // dipendenza dal salvataggio precedente. Sequenza colpi e abbinamento
+  // CPU-per-game restano casuali come in una partita normale.
+  function replaySameMatch() {
+    phase = 'setup';
+    playerScore = 0;
+    cpuScore = 0;
+    gameNumber = 1;
+    totalPoints = 0;
+    usedByPlayerNames = new Set();
+    usedByCpuNames = new Set();
+    deciderActive = false;
+    deciderWinnerIsPlayer = null;
+    lastScoreId = null;
+    cpuCurrentPlayer = randomFrom(cpuRoster);
+    playerCurrentPlayer = playerRoster[0];
+    window.scrollTo(0, 0);
   }
 
   async function onDraftConfirm(selected: Player[]) {
@@ -257,6 +333,12 @@
       <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
         Scegli il tuo roster di 6 leggende del tennis e sfida l'avversario: memorizza la sequenza di colpi e ripetila prima che scada il tempo. Primo a 6 game vince il match.
       </p>
+
+      {#if replayActive && replayConfig}
+        <div class="mt-4 max-w-3xl border-2 border-black bg-[var(--giallo-club)] p-4 font-black text-sm uppercase tracking-widest">
+          Stai giocando la sfida di {replayConfig.challengerNickname || 'un amico'} — superficie {SURFACE_LABELS[replayConfig.surface]}, difficoltà {DIFFICULTY_OPTIONS.find((o) => o.value === replayConfig.difficulty)?.label ?? replayConfig.difficulty} — punteggio da battere: {replayConfig.targetPoints}
+        </div>
+      {/if}
 
       <button
         type="button"
@@ -367,16 +449,19 @@
       {/if}
 
       <div class="mt-6 max-w-xl">
-        <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-1">Difficoltà</p>
+        <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-1">
+          {replayActive ? 'Difficoltà (fissata dalla sfida)' : 'Difficoltà'}
+        </p>
         <div class="flex gap-1">
           {#each DIFFICULTY_OPTIONS as opt}
             <button
               type="button"
-              on:click={() => (difficulty = opt.value)}
+              on:click={() => { if (!replayActive) difficulty = opt.value; }}
+              disabled={replayActive}
               style={difficulty === opt.value ? `background:${opt.color}` : ''}
-              class={`flex-1 min-w-0 border-2 border-black py-2 text-center font-black text-sm transition-colors ${
+              class={`flex-1 min-w-0 border-2 border-black py-2 text-center font-black text-sm transition-colors disabled:cursor-default ${
                 difficulty === opt.value ? opt.textColor : 'bg-white hover:bg-slate-100'
-              }`}
+              } ${replayActive && difficulty !== opt.value ? 'opacity-30' : ''}`}
             >
               {opt.label}
             </button>
@@ -389,7 +474,47 @@
   {/if}
 
   {#if phase === 'draft'}
-    <RosterDraft {cpuRoster} allPlayers={ALL_PLAYERS} {surface} onConfirm={onDraftConfirm} />
+    {#if replayActive && replayConfig}
+      <section class="club-card p-4 md:p-6 flex flex-col gap-6">
+        <div>
+          <p class="text-s uppercase tracking-widest font-black text-slate-600 mb-2">Il tuo roster (fissato dalla sfida)</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+            {#each replayConfig.playerRoster as player}
+              <div class="min-w-0 border-4 bg-white p-2 text-center" style={`border-color:${SURFACE_COLORS[player.surface]}`}>
+                <p class={`font-black ${nameClass(player.name)} leading-tight break-words`}>{player.name}</p>
+                <p class="text-[10px] uppercase font-bold text-slate-500">{STYLE_LABELS[player.style]}</p>
+                <p class="text-xs" aria-label={`Forza ${player.strength}`}>{strengthDots(player.strength)}</p>
+                <p class="text-[9px] uppercase font-bold text-slate-400">{SURFACE_LABELS[player.surface]}</p>
+              </div>
+            {/each}
+          </div>
+        </div>
+
+        <div>
+          <p class="text-s uppercase tracking-widest font-black text-slate-600 mb-2">Avversario</p>
+          <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2">
+            {#each cpuRoster as player}
+              <div class="min-w-0 border-4 bg-white p-2 text-center" style={`border-color:${SURFACE_COLORS[player.surface]}`}>
+                <p class={`font-black ${nameClass(player.name)} leading-tight break-words`}>{player.name}</p>
+                <p class="text-[10px] uppercase font-bold text-slate-500">{STYLE_LABELS[player.style]}</p>
+                <p class="text-xs" aria-label={`Forza ${player.strength}`}>{strengthDots(player.strength)}</p>
+                <p class="text-[9px] uppercase font-bold text-slate-400">{SURFACE_LABELS[player.surface]}</p>
+              </div>
+            {/each}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="club-btn-yellow self-center px-6 py-3 font-black uppercase tracking-widest"
+          on:click={() => onDraftConfirm(replayConfig.playerRoster)}
+        >
+          Scendi in campo
+        </button>
+      </section>
+    {:else}
+      <RosterDraft {cpuRoster} allPlayers={ALL_PLAYERS} {surface} onConfirm={onDraftConfirm} />
+    {/if}
   {:else if phase === 'setup'}
     <div
       class="fixed inset-x-0 bottom-0 z-40 flex flex-col gap-6 px-4 pt-4 pb-4"
@@ -441,8 +566,19 @@
         <p class="font-black text-3xl">{totalPoints}</p>
       </div>
 
-      <div class="flex flex-col sm:flex-row gap-3">
-        <button type="button" class="club-btn-yellow px-6 py-3 font-black uppercase tracking-widest" on:click={startMatch}>
+      <div class="flex flex-col sm:flex-row flex-wrap justify-center gap-3">
+        <button type="button" class="club-btn-yellow px-6 py-3 font-black uppercase tracking-widest" on:click={replaySameMatch}>
+          Rigioca
+        </button>
+        <button
+          type="button"
+          class="club-btn px-6 py-3 font-black uppercase tracking-widest disabled:opacity-40"
+          disabled={!lastScoreId}
+          on:click={shareMatch}
+        >
+          {shareStatus === 'copied' ? 'Link copiato!' : shareStatus === 'error' ? 'Errore link' : 'Condividi partita'}
+        </button>
+        <button type="button" class="club-btn px-6 py-3 font-black uppercase tracking-widest" on:click={startMatch}>
           Nuova partita
         </button>
         <a href="/game/classifica" class="club-btn px-6 py-3 font-black uppercase tracking-widest text-center">

@@ -7,6 +7,15 @@ export const prerender = false;
 const NICKNAME_MAX_LENGTH = 20;
 const MATCH_SCORE_PATTERN = /^\d{1,2}-\d{1,2}$/;
 const VALID_DIFFICULTIES = new Set(['1', '2', '3', '4', '5', 'ultra']);
+const VALID_SURFACES = new Set(['terra', 'erba', 'cemento']);
+const ROSTER_SIZE = 6;
+
+function parseRoster(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length !== ROSTER_SIZE) return null;
+  const names = value.map((v) => (typeof v === 'string' ? v.trim() : ''));
+  if (names.some((n) => !n)) return null;
+  return names;
+}
 
 export const POST: APIRoute = async ({ request }) => {
   const requestUrl = new URL(request.url);
@@ -16,7 +25,16 @@ export const POST: APIRoute = async ({ request }) => {
     return Response.json({ error: 'Origine richiesta non valida.' }, { status: 403 });
   }
 
-  let body: { nickname?: unknown; nomecognome?: unknown; match_score?: unknown; points?: unknown; difficulty?: unknown };
+  let body: {
+    nickname?: unknown;
+    nomecognome?: unknown;
+    match_score?: unknown;
+    points?: unknown;
+    difficulty?: unknown;
+    surface?: unknown;
+    player_roster?: unknown;
+    cpu_roster?: unknown;
+  };
   try {
     body = await request.json();
   } catch {
@@ -28,6 +46,9 @@ export const POST: APIRoute = async ({ request }) => {
   const matchScore = typeof body.match_score === 'string' ? body.match_score.trim() : '';
   const points = typeof body.points === 'number' && Number.isFinite(body.points) ? Math.round(body.points) : NaN;
   const difficulty = typeof body.difficulty === 'string' ? body.difficulty.trim() : '';
+  const surface = typeof body.surface === 'string' ? body.surface.trim() : '';
+  const playerRoster = parseRoster(body.player_roster);
+  const cpuRoster = parseRoster(body.cpu_roster);
 
   if (!nickname) {
     return Response.json({ error: 'Nickname mancante.' }, { status: 400 });
@@ -41,6 +62,12 @@ export const POST: APIRoute = async ({ request }) => {
   if (!VALID_DIFFICULTIES.has(difficulty)) {
     return Response.json({ error: 'Difficoltà non valida.' }, { status: 400 });
   }
+  if (!VALID_SURFACES.has(surface)) {
+    return Response.json({ error: 'Superficie non valida.' }, { status: 400 });
+  }
+  if (!playerRoster || !cpuRoster) {
+    return Response.json({ error: 'Roster non valido.' }, { status: 400 });
+  }
 
   const supabase = getSupabaseAdmin();
 
@@ -52,13 +79,23 @@ export const POST: APIRoute = async ({ request }) => {
     return Response.json({ error: verification.error }, { status: 409 });
   }
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('legends_game_score')
-    .insert({ nickname, match_score: matchScore, points, difficulty });
+    .insert({
+      nickname,
+      match_score: matchScore,
+      points,
+      difficulty,
+      surface,
+      player_roster: playerRoster,
+      cpu_roster: cpuRoster,
+    })
+    .select('id')
+    .single();
 
   if (error) {
     return Response.json({ error: error.message }, { status: 400 });
   }
 
-  return Response.json({ ok: true });
+  return Response.json({ ok: true, id: data.id });
 };

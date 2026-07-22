@@ -1,6 +1,22 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import ScambioGame from '../components/game/ScambioGame.svelte';
+import { supabase } from '../lib/supabase';
+import playersData from '../lib/game/players.json';
+import { buildReplayConfig } from '../lib/game/replay';
+import type { Player } from '../lib/game/matchup';
+
+const replayId = Astro.url.searchParams.get('replay');
+let replayConfig = null;
+
+if (replayId) {
+  const { data } = await supabase
+    .from('legends_game_score')
+    .select('surface, difficulty, player_roster, cpu_roster, nickname, points')
+    .eq('id', replayId)
+    .maybeSingle();
+  replayConfig = buildReplayConfig(data, playersData as Player[]);
+}
 ---
 
 <Layout
@@ -8,5 +24,5 @@ import ScambioGame from '../components/game/ScambioGame.svelte';
   headerTheme="tennis"
   description="Sfida il tuo avversario in questo campo virtuale: scegli i tuoi 6 tennisti leggendari e ripeti la sequenza di colpi prima che scada il tempo."
 >
-  <ScambioGame client:load />
+  <ScambioGame client:load {replayConfig} />
 </Layout>
