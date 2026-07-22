@@ -360,6 +360,9 @@
           <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
         </svg>
       </button>
+      <a href="/game/classifica" class="club-btn px-6 py-3 font-black uppercase tracking-widest text-center">
+          Classifica
+        </a>
 
       {#if regolamentoOpen}
         <div id="regolamento-panel" transition:slide={{ duration: 220 }}>
@@ -576,7 +579,7 @@
           disabled={!lastScoreId}
           on:click={shareMatch}
         >
-          {shareStatus === 'copied' ? 'Link copiato!' : shareStatus === 'error' ? 'Errore link' : 'Condividi partita'}
+          {shareStatus === 'copied' ? 'Link copiato!' : shareStatus === 'error' ? 'Errore link' : 'Sfida qualcuno a giocare questa identica partita'}
         </button>
         <button type="button" class="club-btn px-6 py-3 font-black uppercase tracking-widest" on:click={startMatch}>
           Nuova partita
