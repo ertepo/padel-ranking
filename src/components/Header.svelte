@@ -255,6 +255,17 @@
             </a>
 
             <a
+              href="/game/quindici"
+              class="club-btn inline-flex items-center gap-2 px-4 py-2"
+              on:click={() => (isArcadeOpen = false)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M14 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM4 0a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 10a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+              </svg>
+              Quindici
+            </a>
+
+            <a
               href="/game/classifica"
               class="club-btn inline-flex items-center gap-2 px-4 py-2"
               on:click={() => (isArcadeOpen = false)}
@@ -504,6 +515,20 @@
                 <path d="M0 9.665v1.717a1 1 0 0 0 .553.894l6.553 3.277a2 2 0 0 0 1.788 0l6.553-3.277a1 1 0 0 0 .553-.894V9.665c0-.1-.06-.19-.152-.23L9.5 6.715v.993l5.227 2.178a.125.125 0 0 1 .001.23l-5.94 2.546a2 2 0 0 1-1.576 0l-5.94-2.546a.125.125 0 0 1 .001-.23L6.5 7.708l-.013-.988L.152 9.435a.25.25 0 0 0-.152.23"/>
               </svg>
               Legends Game
+            </a>
+
+            <a
+              href="/game/quindici"
+              class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
+              on:click={() => {
+                isArcadeOpen = false;
+                isOpen = false;
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M14 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM4 0a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 10a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+              </svg>
+              Quindici
             </a>
 
             <a

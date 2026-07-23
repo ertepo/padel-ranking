@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Quindici — il 2048 del tennis</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --court:#16382C;
+    --court-deep:#0C241C;
+    --court-cell:#1E4A3A;
+    --line:#F2F5EF;
+    --ball:#D8FF3E;
+    --clay:#C4623C;
+    --gold:#E8C87A;
+    --ink:#0C241C;
+    --muted:#7FA394;
+    --display:"Saira Condensed", "Arial Narrow", sans-serif;
+    --body:"Inter", system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:
+      radial-gradient(120% 90% at 50% 0%, #1A4536 0%, var(--court-deep) 70%);
+    color:var(--line);
+    font-family:var(--body);
+    display:flex;justify-content:center;
+    padding:20px 16px 40px;
+    -webkit-tap-highlight-color:transparent;
+    overscroll-behavior:none;
+  }
+  .wrap{width:100%;max-width:440px;}
+
+  /* ---- testata ---- */
+  .masthead{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin-bottom:14px;}
+  h1{
+    font-family:var(--display);font-weight:700;font-size:38px;
+    letter-spacing:.14em;text-transform:uppercase;line-height:1;
+    color:var(--line);
+  }
+  h1 em{font-style:normal;color:var(--ball);}
+  .tagline{font-size:11px;color:var(--muted);letter-spacing:.04em;text-align:right;max-width:150px;line-height:1.35;}
+
+  /* ---- tabellone ---- */
+  .scoreboard{
+    display:grid;grid-template-columns:1fr auto 1fr;align-items:center;
+    background:#0A1E17;border:1px solid #23503F;border-radius:10px;
+    padding:10px 14px;margin-bottom:8px;
+  }
+  .side{display:flex;align-items:center;gap:10px;}
+  .side.opp{justify-content:flex-end;}
+  .side .who{font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);}
+  .side.you .who{color:var(--ball);}
+  .games{
+    font-family:var(--display);font-weight:700;font-size:34px;line-height:1;
+    min-width:34px;text-align:center;
+  }
+  .side.you .games{color:var(--ball);}
+  .side.opp .games{color:var(--clay);}
+  .games.bump{animation:bump .35s ease;}
+  @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.35)}100%{transform:scale(1)}}
+  .vs{font-size:10px;letter-spacing:.18em;color:var(--muted);text-transform:uppercase;}
+
+  .statusline{
+    font-size:12px;color:var(--muted);text-align:center;height:18px;margin-bottom:12px;
+    transition:color .2s;
+  }
+  .statusline.you{color:var(--ball);}
+  .statusline.opp{color:var(--clay);}
+
+  /* ---- campo ---- */
+  .court{position:relative;padding:14px;}
+  .edge{position:absolute;background:transparent;border-radius:3px;transition:background .12s;pointer-events:none;}
+  .edge.top,.edge.bottom{left:14px;right:14px;height:5px;}
+  .edge.left,.edge.right{top:14px;bottom:14px;width:5px;}
+  .edge.top{top:4px;background:rgba(216,255,62,.28);}
+  .edge.bottom{bottom:4px;}
+  .edge.left{left:4px;}
+  .edge.right{right:4px;}
+  .edge.flash-you{background:var(--ball);box-shadow:0 0 18px rgba(216,255,62,.8);}
+  .edge.flash-opp{background:var(--clay);box-shadow:0 0 18px rgba(196,98,60,.8);}
+
+  .yourside{
+    position:absolute;top:-4px;left:50%;transform:translateX(-50%);
+    font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--ball);
+    background:var(--court-deep);padding:0 8px;
+  }
+
+  .board{
+    position:relative;width:100%;aspect-ratio:1;
+    background:var(--court);border:2px solid #2A5C48;border-radius:8px;
+    touch-action:none;
+  }
+  .cell{position:absolute;background:var(--court-cell);border-radius:5px;}
+  .tile{
+    position:absolute;display:flex;align-items:center;justify-content:center;
+    border-radius:5px;font-family:var(--display);font-weight:700;
+    transition:transform .11s ease-out;
+    will-change:transform;
+  }
+  .tile span{line-height:1;}
+  .t15{background:var(--line);color:var(--ink);}
+  .t30{background:var(--ball);color:var(--ink);}
+  .t40{background:var(--clay);color:#FFF3EC;}
+  .tAD{background:#081712;color:var(--gold);border:1.5px solid var(--gold);}
+  .tile.spawn{animation:spawn .16s ease-out;}
+  @keyframes spawn{from{transform:var(--pos) scale(.4);opacity:0}}
+  .tile.pop{animation:pop .18s ease-out;}
+  @keyframes pop{50%{transform:var(--pos) scale(1.16)}}
+  .tile.gone{animation:gone .2s ease-in forwards;z-index:5;}
+  @keyframes gone{to{transform:var(--pos) scale(1.5);opacity:0}}
+
+  /* ---- comandi ---- */
+  .controls{display:flex;gap:8px;margin-top:16px;}
+  button{
+    flex:1;font-family:var(--body);font-size:13px;font-weight:500;
+    background:transparent;color:var(--line);
+    border:1px solid #2A5C48;border-radius:6px;padding:10px;cursor:pointer;
+    transition:background .15s,border-color .15s;
+  }
+  button:hover{background:#1B4436;border-color:#3C7A61;}
+  button:focus-visible{outline:2px solid var(--ball);outline-offset:2px;}
+
+  .rules{
+    margin-top:12px;font-size:13px;line-height:1.6;color:#B9D2C7;
+    background:#0A1E17;border:1px solid #23503F;border-radius:8px;padding:14px 16px;
+  }
+  .rules[hidden]{display:none;}
+  .rules h2{font-family:var(--display);font-size:15px;letter-spacing:.1em;
+    text-transform:uppercase;color:var(--line);margin-bottom:8px;font-weight:700;}
+  .rules p{margin-bottom:8px;}
+  .rules p:last-child{margin-bottom:0;}
+  .rules b{color:var(--ball);font-weight:600;}
+  .chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:10px 0;font-family:var(--display);font-size:13px;}
+  .chip{padding:3px 8px;border-radius:4px;}
+
+  /* ---- fine set ---- */
+  .overlay{
+    position:absolute;inset:14px;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;gap:6px;text-align:center;
+    background:rgba(8,23,18,.93);border-radius:8px;z-index:10;padding:20px;
+  }
+  .overlay[hidden]{display:none;}
+  .overlay .verdict{font-family:var(--display);font-size:34px;letter-spacing:.1em;text-transform:uppercase;}
+  .overlay .final{font-family:var(--display);font-size:56px;line-height:1;}
+  .overlay .note{font-size:12px;color:var(--muted);max-width:240px;}
+  .win .verdict,.win .final{color:var(--ball);}
+  .lose .verdict,.lose .final{color:var(--clay);}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation-duration:.01ms !important;transition-duration:.01ms !important;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="masthead">
+    <h1>Quin<em>dici</em></h1>
+    <p class="tagline">somma i punti.<br>il game si chiude verso l'alto.</p>
+  </div>
+
+  <div class="scoreboard">
+    <div class="side you"><span class="games" id="gYou">0</span><span class="who">tu</span></div>
+    <span class="vs">games</span>
+    <div class="side opp"><span class="who">avversario</span><span class="games" id="gOpp">0</span></div>
+  </div>
+
+  <p class="statusline" id="status">Muovi le tessere con le frecce o con uno swipe.</p>
+
+  <div class="court">
+    <span class="yourside">il tuo lato</span>
+    <div class="edge top" id="eTop"></div>
+    <div class="edge bottom" id="eBottom"></div>
+    <div class="edge left" id="eLeft"></div>
+    <div class="edge right" id="eRight"></div>
+    <div class="board" id="board"></div>
+    <div class="overlay" id="overlay" hidden>
+      <p class="verdict" id="verdict"></p>
+      <p class="final" id="final"></p>
+      <p class="note" id="note"></p>
+    </div>
+  </div>
+
+  <div class="controls">
+    <button id="btnNew">Nuova partita</button>
+    <button id="btnRules" aria-expanded="false">Regole</button>
+  </div>
+
+  <div class="rules" id="rules" hidden>
+    <h2>Come si gioca</h2>
+    <p>Sposti tutte le tessere in una direzione. Due tessere compatibili che si scontrano si sommano.</p>
+    <div class="chain">
+      <span class="chip t15">15</span>+<span class="chip t15">15</span>=<span class="chip t30">30</span>
+      &nbsp;<span class="chip t30">30</span>+<span class="chip t30">30</span>=<span class="chip t40">40</span>
+      &nbsp;<span class="chip t40">40</span>+<span class="chip t40">40</span>=<span class="chip tAD">AD</span>
+    </div>
+    <p>Il <b>15 si somma a tutto</b>: con un 15 il 30 diventa 40, e il 40 chiude il game. Le altre coppie (30+40, 40+AD…) non si sommano.</p>
+    <p>Il game si chiude con <b>40+15</b>, <b>AD+15</b> o <b>AD+AD</b>. Le due tessere spariscono e la casella resta libera.</p>
+    <p>Chi prende il game dipende dalla direzione: <b>solo verso l'alto il punto è tuo</b>. Chiuderlo in basso, a destra o a sinistra lo regala all'avversario.</p>
+    <p>Vince il set chi arriva a 6 games con 2 di scarto. Sul 5 pari si va a 7, sul 6 pari decide un game secco: 7-6.</p>
+    <p>Se resti senza mosse, il game va all'avversario e il campo si azzera.</p>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  var N = 4;
+  var board = document.getElementById('board');
+  var overlay = document.getElementById('overlay');
+  var statusEl = document.getElementById('status');
+  var gYouEl = document.getElementById('gYou');
+  var gOppEl = document.getElementById('gOpp');
+  var edges = {
+    up: document.getElementById('eTop'),
+    down: document.getElementById('eBottom'),
+    left: document.getElementById('eLeft'),
+    right: document.getElementById('eRight')
+  };
+
+  var tiles = [];      // {id,val,r,c}
+  var els = {};        // id -> DOM element
+  var nextId = 1;
+  var gamesYou = 0, gamesOpp = 0;
+  var locked = false, finished = false;
+  var cell = 0, gap = 0;
+
+  // ---------- regole di fusione ----------
+  // ritorna: valore risultante | 'POINT' (game) | null (non si sommano)
+  function mergeRule(a, b){
+    var k = [String(a), String(b)].sort().join('|');
+    switch(k){
+      case '15|15': return 30;
+      case '15|30': return 40;
+      case '30|30': return 40;
+      case '40|40': return 'AD';
+      case '15|40': return 'POINT';
+      case '15|AD': return 'POINT';
+      case 'AD|AD': return 'POINT';
+      default: return null;
+    }
+  }
+
+  // ---------- geometria ----------
+  function measure(){
+    var w = board.clientWidth;
+    gap = Math.round(w * 0.026);
+    cell = (w - gap * (N + 1)) / N;
+    board.innerHTML = '';
+    for(var r=0;r<N;r++){
+      for(var c=0;c<N;c++){
+        var d = document.createElement('div');
+        d.className = 'cell';
+        d.style.width = cell+'px'; d.style.height = cell+'px';
+        d.style.left = pos(c)+'px'; d.style.top = pos(r)+'px';
+        board.appendChild(d);
+      }
+    }
+    els = {};
+    tiles.forEach(function(t){ createEl(t); });
+    tiles.forEach(function(t){ place(t); });
+  }
+  function pos(i){ return gap + i * (cell + gap); }
+
+  function fontFor(val){
+    var len = String(val).length;
+    return Math.round(cell * (len > 2 ? 0.36 : 0.42));
+  }
+
+  function createEl(t){
+    var e = document.createElement('div');
+    e.className = 'tile t' + t.val;
+    e.style.width = cell+'px'; e.style.height = cell+'px';
+    e.style.fontSize = fontFor(t.val)+'px';
+    e.innerHTML = '<span>' + t.val + '</span>';
+    board.appendChild(e);
+    els[t.id] = e;
+    return e;
+  }
+
+  function place(t){
+    var e = els[t.id];
+    if(!e) return;
+    var tr = 'translate(' + pos(t.c) + 'px,' + pos(t.r) + 'px)';
+    e.style.setProperty('--pos', tr);
+    e.style.transform = tr;
+  }
+
+  function render(){
+    tiles.forEach(function(t){
+      if(!els[t.id]) createEl(t);
+      place(t);
+    });
+  }
+
+  // ---------- stato ----------
+  function occupied(){
+    var m = {};
+    tiles.forEach(function(t){ m[t.r + ',' + t.c] = t; });
+    return m;
+  }
+
+  function spawn(flag){
+    var occ = occupied(), free = [];
+    for(var r=0;r<N;r++) for(var c=0;c<N;c++) if(!occ[r+','+c]) free.push([r,c]);
+    if(!free.length) return null;
+    var p = free[Math.floor(Math.random()*free.length)];
+    var t = { id: nextId++, val: Math.random() < 0.8 ? 15 : 30, r: p[0], c: p[1] };
+    tiles.push(t);
+    var e = createEl(t);
+    place(t);
+    if(flag !== false) e.classList.add('spawn');
+    return t;
+  }
+
+  // ---------- movimento ----------
+  // linee ordinate a partire dal bordo verso cui si spinge
+  function lines(dir){
+    var occ = occupied(), out = [];
+    for(var i=0;i<N;i++){
+      var line = [], slotOf = [];
+      for(var j=0;j<N;j++){
+        var r, c;
+        if(dir === 'up'){ r = j; c = i; }
+        else if(dir === 'down'){ r = N-1-j; c = i; }
+        else if(dir === 'left'){ r = i; c = j; }
+        else { r = i; c = N-1-j; }
+        slotOf.push([r,c]);
+        var t = occ[r+','+c];
+        if(t) line.push(t);
+      }
+      out.push({ tiles: line, slots: slotOf });
+    }
+    return out;
+  }
+
+  function buildPlan(dir){
+    var plan = { slots: [], points: 0, changed: false };
+    lines(dir).forEach(function(L){
+      var arr = L.tiles, i = 0, p = 0;
+      while(i < arr.length){
+        var a = arr[i], b = arr[i+1];
+        var res = b ? mergeRule(a.val, b.val) : null;
+        if(res === 'POINT'){
+          plan.slots.push({ type:'point', tiles:[a,b], at:L.slots[p] });
+          plan.points++;
+          plan.changed = true;
+          i += 2;
+          continue;                       // la casella resta libera
+        }
+        if(res !== null){
+          plan.slots.push({ type:'merge', tiles:[a,b], val:res, at:L.slots[p] });
+          plan.changed = true;
+          i += 2; p++;
+          continue;
+        }
+        plan.slots.push({ type:'keep', tiles:[a], at:L.slots[p] });
+        if(a.r !== L.slots[p][0] || a.c !== L.slots[p][1]) plan.changed = true;
+        i++; p++;
+      }
+    });
+    return plan;
+  }
+
+  function canMove(){
+    return ['up','down','left','right'].some(function(d){ return buildPlan(d).changed; });
+  }
+
+  function move(dir){
+    if(locked || finished) return;
+    var plan = buildPlan(dir);
+    if(!plan.changed) return;
+    locked = true;
+
+    // fase 1: tutte le tessere scivolano al posto assegnato
+    plan.slots.forEach(function(s){
+      s.tiles.forEach(function(t){ t.r = s.at[0]; t.c = s.at[1]; });
+    });
+    render();
+
+    // fase 2: risolvo fusioni, punti e nuova tessera
+    setTimeout(function(){ finalize(plan, dir); }, 120);
+  }
+
+  function finalize(plan, dir){
+    var next = [];
+    plan.slots.forEach(function(s){
+      if(s.type === 'keep'){ next.push(s.tiles[0]); return; }
+      s.tiles.forEach(function(t){ remove(t, s.type === 'point'); });
+      if(s.type === 'merge'){
+        var t = { id: nextId++, val: s.val, r: s.at[0], c: s.at[1] };
+        next.push(t);
+        var e = createEl(t); place(t); e.classList.add('pop');
+      }
+    });
+    tiles = next;
+
+    if(plan.points > 0) award(dir, plan.points);
+    if(finished){ locked = false; return; }
+
+    spawn();
+
+    if(!canMove()){
+      setTimeout(function(){
+        award('down', 1, true);
+        if(!finished) reset(false);
+        locked = false;
+      }, 220);
+      return;
+    }
+    locked = false;
+  }
+
+  function remove(t, burst){
+    var e = els[t.id];
+    if(!e) return;
+    delete els[t.id];
+    e.classList.add('gone');
+    if(!burst) e.style.opacity = '0';
+    setTimeout(function(){ if(e.parentNode) e.parentNode.removeChild(e); }, 220);
+  }
+
+  // ---------- punteggio ----------
+  function award(dir, n, deadlock){
+    var mine = dir === 'up';
+    if(mine) gamesYou += n; else gamesOpp += n;
+
+    var el = mine ? gYouEl : gOppEl;
+    el.textContent = mine ? gamesYou : gamesOpp;
+    el.classList.remove('bump'); void el.offsetWidth; el.classList.add('bump');
+
+    flash(dir, mine);
+    statusEl.className = 'statusline ' + (mine ? 'you' : 'opp');
+    if(deadlock){
+      statusEl.textContent = 'Campo bloccato: game all\u2019avversario.';
+    } else if(mine){
+      statusEl.textContent = n > 1 ? n + ' games chiusi verso l\u2019alto.' : 'Game tuo.';
+    } else {
+      statusEl.textContent = n > 1 ? n + ' games regalati all\u2019avversario.' : 'Game all\u2019avversario: era chiuso dalla parte sbagliata.';
+    }
+    checkSet();
+  }
+
+  function setOver(a, b){ return (a >= 6 && a - b >= 2) || a === 7; }
+
+  function checkSet(){
+    var youWin = setOver(gamesYou, gamesOpp);
+    var oppWin = setOver(gamesOpp, gamesYou);
+    if(!youWin && !oppWin) return;
+    finished = true;
+    overlay.hidden = false;
+    overlay.className = 'overlay ' + (youWin ? 'win' : 'lose');
+    document.getElementById('verdict').textContent = youWin ? 'Set tuo' : 'Set avversario';
+    document.getElementById('final').textContent = gamesYou + '-' + gamesOpp;
+    document.getElementById('note').textContent = youWin
+      ? 'Chiuso dal tuo lato del campo.'
+      : 'Troppi games chiusi verso il basso o di lato.';
+  }
+
+  function flash(dir, mine){
+    var e = edges[dir];
+    if(!e) return;
+    e.classList.add(mine ? 'flash-you' : 'flash-opp');
+    setTimeout(function(){ e.classList.remove('flash-you','flash-opp'); }, 320);
+  }
+
+  // ---------- partita ----------
+  function reset(full){
+    tiles.forEach(function(t){ var e = els[t.id]; if(e && e.parentNode) e.parentNode.removeChild(e); });
+    tiles = []; els = {};
+    if(full !== false){
+      gamesYou = 0; gamesOpp = 0; finished = false;
+      gYouEl.textContent = '0'; gOppEl.textContent = '0';
+      overlay.hidden = true;
+      statusEl.className = 'statusline';
+      statusEl.textContent = 'Muovi le tessere con le frecce o con uno swipe.';
+    }
+    spawn(); spawn();
+  }
+
+  // ---------- input ----------
+  var keys = {
+    ArrowUp:'up', ArrowDown:'down', ArrowLeft:'left', ArrowRight:'right',
+    w:'up', s:'down', a:'left', d:'right', W:'up', S:'down', A:'left', D:'right'
+  };
+  document.addEventListener('keydown', function(ev){
+    var dir = keys[ev.key];
+    if(!dir) return;
+    ev.preventDefault();
+    move(dir);
+  });
+
+  var sx = 0, sy = 0, tracking = false;
+  board.addEventListener('touchstart', function(ev){
+    var t = ev.changedTouches[0];
+    sx = t.clientX; sy = t.clientY; tracking = true;
+  }, {passive:true});
+  board.addEventListener('touchmove', function(ev){ if(tracking) ev.preventDefault(); }, {passive:false});
+  board.addEventListener('touchend', function(ev){
+    if(!tracking) return;
+    tracking = false;
+    var t = ev.changedTouches[0];
+    var dx = t.clientX - sx, dy = t.clientY - sy;
+    if(Math.max(Math.abs(dx), Math.abs(dy)) < 24) return;
+    move(Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : (dy > 0 ? 'down' : 'up'));
+  });
+
+  document.getElementById('btnNew').addEventListener('click', function(){ reset(true); });
+  var rulesEl = document.getElementById('rules');
+  var btnRules = document.getElementById('btnRules');
+  btnRules.addEventListener('click', function(){
+    var open = rulesEl.hidden;
+    rulesEl.hidden = !open;
+    btnRules.setAttribute('aria-expanded', String(open));
+  });
+
+  var rt;
+  window.addEventListener('resize', function(){
+    clearTimeout(rt);
+    rt = setTimeout(measure, 120);
+  });
+
+  // ---------- avvio ----------
+  measure();
+  spawn(); spawn();
+})();
+</script>
+</body>
+</html>
