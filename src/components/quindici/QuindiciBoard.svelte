@@ -47,12 +47,13 @@
     return Math.round(cell * (String(step).length > 2 ? 0.34 : 0.42));
   }
 
-  // colore base di ogni livello: 0 blu, 1 verde, 2 giallo, 3 rosso, 4 nero
+  // colore base di ogni livello: 0 blu, 1 verde, 2 giallo, 3 rosso, 4 viola, 5 nero
   const LEVEL_COLORS = [
     'var(--blu-padel)',
     'var(--verde-tennis)',
     'var(--giallo-club)',
     'var(--rosso-padel)',
+    'var(--viola-tennis)',
     'black',
   ];
   // livelli il cui colore resta chiaro anche alla massima intensità (il giallo

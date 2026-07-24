@@ -17,13 +17,17 @@ Non c'è avversario: è un gioco a giocatore singolo.
 coppia **(livello, step)**:
 
 - `step` è `0 | 15 | 30 | 40 | "AD"`.
-- `level` va da `0` a `MAX_LEVEL` (4).
+- `level` va da `0` a `MAX_LEVEL` (5).
 - Lo step `0` è il "seme"/jolly di ogni livello, livello 0 compreso: spawna
   direttamente per il livello 0, mentre dal livello 1 in su nasce quando il
   livello precedente si completa.
 
-Etichetta mostrata sulla tessera: `15`/`30`/`40`/`AD` al livello 0,
-`1.0`/`2.15`/`3.AD`/… dal livello 1 in su.
+Sulla tessera si vedono due informazioni separate: lo **step** al centro
+(`15`/`30`/`40`/`AD`, oppure una pallina colorata per lo step `0`) e il
+**livello** in piccolo nell'angolo in alto a sinistra. Il colore di sfondo
+codifica entrambe le cose insieme: una tinta base per livello (0 blu, 1 verde,
+2 giallo, 3 rosso, 4 viola, 5 nero) che si fa più intensa man mano che lo step
+sale verso `AD`.
 
 ### Movimento
 Swipe/freccia in una delle 4 direzioni. Tutte le tessere scorrono verso quel
@@ -67,7 +71,7 @@ tessera `0` del livello successivo — una tessera vera e propria, che resta sul
 campo e va fatta crescere di nuovo lungo la stessa scala, isolata da tutto il
 resto.
 
-Se il livello appena completato è il **livello massimo** (`MAX_LEVEL`, 4), non
+Se il livello appena completato è il **livello massimo** (`MAX_LEVEL`, 5), non
 nasce nessuna tessera: le due tessere che si fondono spariscono e basta e la
 partita è **vinta**.
 
@@ -136,7 +140,7 @@ export interface MoveResult {
   state: GameState;
 }
 
-export const MAX_LEVEL = 4;
+export const MAX_LEVEL = 5;
 
 export function valueLabel(v: Value): string;
 export function newGame(seed?: number): GameState;
@@ -176,9 +180,10 @@ mulberry32), così i test sono ripetibili.
   `touch-action: none` sulla griglia e `preventDefault` sul `touchmove`, o su
   mobile la pagina scrolla invece di giocare.
 - Rispetta `prefers-reduced-motion`.
-- Il livello di ogni tessera va reso visivamente distinguibile (es. colore del
-  bordo), oltre allo step (colore di sfondo): sono due informazioni diverse e
-  vanno lette entrambe a colpo d'occhio.
+- Il livello e lo step sono due informazioni diverse e vanno lette entrambe a
+  colpo d'occhio: il colore di sfondo li codifica insieme (tinta per livello,
+  intensità crescente per step), e il numero di livello è scritto anche per
+  esteso nell'angolo in alto a sinistra della tessera.
 - Grafica: adattala al design system del sito, non copiare i colori del
   prototipo. Deve stare accanto all'altro gioco già presente sul sito.
 
@@ -199,12 +204,18 @@ mulberry32), così i test sono ripetibili.
 3. **Livelli**: eliminata anche l'uscita dai bordi e il concetto di
    avversario. Completare la scala non fa più uscire nulla dal campo: fa
    nascere il seme (`0`) di un nuovo livello, una scala identica ma isolata.
-   Il gioco diventa a giocatore singolo: l'obiettivo è arrivare al livello
+   Il gioco diventa a giocatore singolo: l'obiettivo è superare il livello
    massimo (vittoria) prima di restare senza mosse (game over). In questa
    prima versione il jolly restava `15` e `0` si sommava solo con un altro `0`.
-4. **Jolly spostato su `0` (attuale)**: il ruolo di jolly passa dal `15` allo
-   step `0`. `15` diventa un doppione normale come `30`/`40`/`AD` (si somma
-   solo con un altro `15`). Il livello 0, non avendo mai una tessera `0` sul
-   campo, perde la scorciatoia del jolly e procede solo per raddoppi diretti;
-   dal livello 1 in su il seme `0` nato dal completamento del livello
-   precedente accelera invece la progressione.
+4. **Jolly spostato su `0`**: il ruolo di jolly passa dal `15` allo step `0`.
+   `15` diventa un doppione normale come `30`/`40`/`AD` (si somma solo con un
+   altro `15`).
+5. **Spawn dello `0` anche al livello base, `MAX_LEVEL` a 5, nuova
+   colorazione (attuale)**: lo spawn genera direttamente tessere `0` (80%) e
+   `15` (20%) invece di `15`/`30` — il jolly è quindi disponibile fin
+   dall'inizio della partita, non solo dal livello 1 in su. `MAX_LEVEL` sale
+   da 4 a 5, con i colori viola (livello 4) e nero (livello 5) aggiunti alla
+   scala blu/verde/giallo/rosso. Il bordo colorato per livello viene sostituito
+   da uno sfondo colorato (tinta per livello, intensità per step) più un
+   numero di livello nell'angolo della tessera; lo step `0` non mostra più un
+   numero ma una pallina piena dello stesso colore del livello.

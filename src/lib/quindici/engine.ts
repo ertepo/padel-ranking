@@ -52,7 +52,7 @@ export interface MoveResult {
 }
 
 const SIZE = 4;
-export const MAX_LEVEL = 4;
+export const MAX_LEVEL = 5;
 
 /** Etichetta mostrata sulla tessera: "15" per il livello base, "2.40" dal livello 1 in su. */
 export function valueLabel(v: Value): string {

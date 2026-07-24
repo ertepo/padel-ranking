@@ -73,7 +73,7 @@
     <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
       Il 2048 del tennis: somma le tessere lungo la scala 15-30-40-AD. Completarla non chiude il
       punto, ma apre il <b>livello successivo</b> — una scala tutta nuova, che parte da 0 e
-      interagisce solo con sé stessa. Arriva al livello {MAX_LEVEL} per vincere.
+      interagisce solo con sé stessa. Supera il livello {MAX_LEVEL} per vincere.
     </p>
 
     <button
@@ -128,10 +128,11 @@
               Lo 0 è jolly
             </h3>
             <p class="mt-1 text-sm font-semibold leading-relaxed">
-              Dal livello 1 in su nasce anche una tessera "0": è lei il jolly, si somma con
-              qualsiasi tessera del suo livello e la fa avanzare (0+15→30, 0+30→40); con il 40 o
-              con l'AD completa direttamente il livello. Il 15 invece non è più jolly: si somma
-              solo con un altro 15, esattamente come 30, 40 e AD si sommano solo con sé stessi.
+              La tessera "0" è il jolly di ogni livello, incluso quello base: è lei a spawnare più
+              spesso. Si somma con qualsiasi altra tessera del suo livello e la fa avanzare
+              (0+15→30, 0+30→40); con il 40 o con l'AD completa direttamente il livello. Il 15
+              invece non è jolly: si somma solo con un altro 15, esattamente come 30, 40 e AD si
+              sommano solo con sé stessi. Sul campo lo "0" non ha un numero: è una pallina colorata.
             </p>
           </div>
 
@@ -141,9 +142,12 @@
             </h3>
             <p class="mt-1 text-sm font-semibold leading-relaxed">
               Completare la scala di un livello (con il jolly 0, oppure con AD+AD) fa nascere il
-              <b>seme del livello successivo</b>, la tessera "0": si riconosce dal bordo colorato.
-              Da lì riparte la stessa scala, ma <b>isolata</b>: non si fonde mai con le tessere di
-              un livello diverso. Arriva a completare il livello {MAX_LEVEL} per vincere la partita.
+              <b>seme del livello successivo</b>. Da lì riparte la stessa scala, ma
+              <b>isolata</b>: non si fonde mai con le tessere di un livello diverso. Ogni livello ha
+              un colore (0 blu, 1 verde, 2 giallo, 3 rosso, 4 viola, 5 nero), sempre più intenso man
+              mano che la tessera cresce lungo la scala; il numero del livello è scritto anche
+              nell'angolo in alto a sinistra di ogni tessera. Supera il livello {MAX_LEVEL} per
+              vincere la partita.
             </p>
           </div>
 
