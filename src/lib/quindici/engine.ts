@@ -162,6 +162,23 @@ function freeCells(tiles: Tile[]): [number, number][] {
   return free;
 }
 
+// Preferisce celle "isolate" (riga e colonna ancora libere da altre tessere),
+// poi celle con almeno la colonna libera, prima di ripiegare su una cella
+// qualsiasi: evita che i nuovi spawn si accumulino sempre sulle stesse righe
+// o colonne già occupate, accelerando per sbaglio le fusioni verso G.
+function spawnCandidates(tiles: Tile[], free: [number, number][]): [number, number][] {
+  const occupiedRows = new Set(tiles.map((t) => t.row));
+  const occupiedCols = new Set(tiles.map((t) => t.col));
+
+  const isolated = free.filter(([r, c]) => !occupiedRows.has(r) && !occupiedCols.has(c));
+  if (isolated.length > 0) return isolated;
+
+  const freeColumn = free.filter(([, c]) => !occupiedCols.has(c));
+  if (freeColumn.length > 0) return freeColumn;
+
+  return free;
+}
+
 function spawnTile(
   tiles: Tile[],
   nextId: number,
@@ -170,11 +187,13 @@ function spawnTile(
   const free = freeCells(tiles);
   if (free.length === 0) return null;
 
+  const candidates = spawnCandidates(tiles, free);
+
   const pickRoll = mulberry32Step(rngSeed);
-  const idx = Math.min(free.length - 1, Math.floor(pickRoll.value * free.length));
+  const idx = Math.min(candidates.length - 1, Math.floor(pickRoll.value * candidates.length));
   const valueRoll = mulberry32Step(pickRoll.nextState);
   const value: Value = valueRoll.value < 0.8 ? 15 : 30;
-  const [row, col] = free[idx];
+  const [row, col] = candidates[idx];
 
   return {
     tile: { id: nextId, value, row, col },
