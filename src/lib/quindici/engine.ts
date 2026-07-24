@@ -1,7 +1,7 @@
 // Logica pura del gioco "Quindici" — nessuna dipendenza dal DOM o da Svelte.
 // Vedi docs/quindici/quindici-spec.md per le regole complete.
 
-export type Value = 15 | 30 | 40 | 'AD';
+export type Value = 15 | 30 | 40 | 'AD' | 'G';
 export type Dir = 'up' | 'down' | 'left' | 'right';
 
 export interface Tile {
@@ -23,15 +23,15 @@ export interface GameState {
 /** Esito di una mossa: descrive l'animazione, non solo il risultato. */
 export interface MoveResult {
   moved: boolean;
-  /** posizioni verso cui animare le tessere prima di risolvere le fusioni */
+  /** posizioni verso cui animare le tessere prima di risolvere fusioni/uscite */
   slides: { id: number; row: number; col: number }[];
   /** tessere che spariscono, con il motivo */
-  removed: { id: number; reason: 'merged' | 'point' }[];
-  /** tessere nate da una fusione, da far comparire con un pop */
+  removed: { id: number; reason: 'merged' | 'exit' }[];
+  /** tessere nate da una fusione (compresa la G), da far comparire con un pop */
   created: Tile[];
   /** tessera nuova di spawn */
   spawned: Tile | null;
-  /** games assegnati da questa mossa */
+  /** games assegnati da questa mossa (una tessera G uscita dal bordo) */
   pointsTo: 'player' | 'opponent' | null;
   pointsCount: number;
   deadlock: boolean;
@@ -40,31 +40,18 @@ export interface MoveResult {
 
 const SIZE = 4;
 
-/**
- * Punto aperto §5 della spec: se il 15 jolly rende troppo facile regalare
- * games all'avversario, si può provare a rendere neutre le chiusure a
- * sinistra/destra (solo il basso punisce). Spenta di default.
- */
-export const NEUTRAL_LEFT_RIGHT_CLOSE = false;
-
-export function mergeRule(a: Value, b: Value): Value | 'POINT' | null {
+export function mergeRule(a: Value, b: Value): Value | null {
   const key = [String(a), String(b)].sort().join('|');
   switch (key) {
     case '15|15': return 30;
     case '15|30': return 40;
     case '30|30': return 40;
     case '40|40': return 'AD';
-    case '15|40': return 'POINT';
-    case '15|AD': return 'POINT';
-    case 'AD|AD': return 'POINT';
+    case '15|40': return 'G';
+    case '15|AD': return 'G';
+    case 'AD|AD': return 'G';
     default: return null;
   }
-}
-
-function recipientFor(dir: Dir): 'player' | 'opponent' | null {
-  if (dir === 'up') return 'player';
-  if (dir === 'down') return 'opponent';
-  return NEUTRAL_LEFT_RIGHT_CLOSE ? null : 'opponent';
 }
 
 function setOver(a: number, b: number): boolean {
@@ -83,12 +70,12 @@ function mulberry32Step(state: number): { value: number; nextState: number } {
 type PlanSlot =
   | { type: 'keep'; tile: Tile; at: [number, number] }
   | { type: 'merge'; a: Tile; b: Tile; value: Value; at: [number, number] }
-  | { type: 'point'; a: Tile; b: Tile; at: [number, number] };
+  | { type: 'exit'; tile: Tile };
 
 interface Plan {
   slots: PlanSlot[];
   changed: boolean;
-  pointCount: number;
+  exitCount: number;
 }
 
 function slotFor(dir: Dir, i: number, j: number): [number, number] {
@@ -106,7 +93,8 @@ function buildPlan(tiles: Tile[], dir: Dir): Plan {
 
   const slots: PlanSlot[] = [];
   let changed = false;
-  let pointCount = 0;
+  let exitCount = 0;
+  const canExit = dir === 'up' || dir === 'down';
 
   for (let i = 0; i < SIZE; i++) {
     const slotCoords: [number, number][] = [];
@@ -118,21 +106,28 @@ function buildPlan(tiles: Tile[], dir: Dir): Plan {
       if (t) line.push(t);
     }
 
+    const edgeSlot = slotCoords[0];
+
     let idx = 0;
     let p = 0;
     while (idx < line.length) {
       const a = line[idx];
+
+      // una tessera G già ferma contro il bordo verso cui si spinge esce dal
+      // campo invece di restare ferma: serve un secondo swipe nella stessa
+      // direzione per "espellerla" e guadagnare il game.
+      if (canExit && a.value === 'G' && a.row === edgeSlot[0] && a.col === edgeSlot[1]) {
+        slots.push({ type: 'exit', tile: a });
+        exitCount++;
+        changed = true;
+        idx += 1;
+        continue;
+      }
+
       const b = line[idx + 1];
       const res = b ? mergeRule(a.value, b.value) : null;
       const at = slotCoords[p];
 
-      if (res === 'POINT') {
-        slots.push({ type: 'point', a, b: b!, at });
-        pointCount++;
-        changed = true;
-        idx += 2;
-        continue;
-      }
       if (res !== null) {
         slots.push({ type: 'merge', a, b: b!, value: res, at });
         changed = true;
@@ -147,7 +142,7 @@ function buildPlan(tiles: Tile[], dir: Dir): Plan {
     }
   }
 
-  return { slots, changed, pointCount };
+  return { slots, changed, exitCount };
 }
 
 export function canMove(state: GameState): boolean {
@@ -236,7 +231,7 @@ export function move(state: GameState, dir: Dir): MoveResult {
   if (!plan.changed) return noop;
 
   const slides: { id: number; row: number; col: number }[] = [];
-  const removed: { id: number; reason: 'merged' | 'point' }[] = [];
+  const removed: { id: number; reason: 'merged' | 'exit' }[] = [];
   const created: Tile[] = [];
   const keptTiles: Tile[] = [];
 
@@ -258,11 +253,11 @@ export function move(state: GameState, dir: Dir): MoveResult {
       created.push(tile);
       keptTiles.push(tile);
     } else {
-      slides.push({ id: slot.a.id, row: slot.at[0], col: slot.at[1] });
-      slides.push({ id: slot.b.id, row: slot.at[0], col: slot.at[1] });
-      removed.push({ id: slot.a.id, reason: 'point' });
-      removed.push({ id: slot.b.id, reason: 'point' });
-      // casella resta libera: nessuna tessera creata
+      // exit: la tessera scivola oltre il bordo verso cui si spinge e sparisce
+      const exitRow = dir === 'up' ? -1 : dir === 'down' ? SIZE : slot.tile.row;
+      const exitCol = dir === 'left' ? -1 : dir === 'right' ? SIZE : slot.tile.col;
+      slides.push({ id: slot.tile.id, row: exitRow, col: exitCol });
+      removed.push({ id: slot.tile.id, reason: 'exit' });
     }
   }
 
@@ -271,14 +266,11 @@ export function move(state: GameState, dir: Dir): MoveResult {
   let pointsTo: 'player' | 'opponent' | null = null;
   let pointsCount = 0;
 
-  if (plan.pointCount > 0) {
-    const recipient = recipientFor(dir);
-    if (recipient) {
-      pointsTo = recipient;
-      pointsCount = plan.pointCount;
-      if (recipient === 'player') gamesPlayer = Math.min(7, gamesPlayer + pointsCount);
-      else gamesOpponent = Math.min(7, gamesOpponent + pointsCount);
-    }
+  if (plan.exitCount > 0) {
+    pointsTo = dir === 'up' ? 'player' : 'opponent';
+    pointsCount = plan.exitCount;
+    if (pointsTo === 'player') gamesPlayer = Math.min(7, gamesPlayer + pointsCount);
+    else gamesOpponent = Math.min(7, gamesOpponent + pointsCount);
   }
 
   let status: GameState['status'] = 'playing';

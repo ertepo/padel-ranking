@@ -58,6 +58,7 @@
       case 30: return 'bg-[var(--giallo-club)] text-black border-2 border-black';
       case 40: return 'bg-[var(--viola-tennis)] text-white border-2 border-black';
       case 'AD': return 'bg-black text-[var(--giallo-club)] border-2 border-[var(--giallo-club)]';
+      case 'G': return 'tile-g text-white border-2 border-black';
     }
   }
 
@@ -125,30 +126,25 @@
     dispatch('swipe', dir);
   }
 
-  function edgeClass(dir: Dir, isYourSide: boolean): string {
-    const base = 'absolute rounded-full transition-colors duration-150';
-    const position =
-      dir === 'up' ? 'left-3 right-3 top-1 h-1.5'
-      : dir === 'down' ? 'left-3 right-3 bottom-1 h-1.5'
-      : dir === 'left' ? 'top-3 bottom-3 left-1 w-1.5'
-      : 'top-3 bottom-3 right-1 w-1.5';
+  function edgeClass(dir: 'up' | 'down'): string {
+    const base = 'absolute left-3 right-3 h-1.5 rounded-full transition-colors duration-150';
+    const position = dir === 'up' ? 'top-1' : 'bottom-1';
+    const restColor = dir === 'up' ? 'bg-[var(--verde-tennis)]/40' : 'bg-[var(--rosso-padel)]/40';
     if (flashDir === dir) {
       return `${base} ${position} ${flashMine ? 'bg-[var(--verde-tennis)]' : 'bg-[var(--rosso-padel)]'}`;
     }
-    return `${base} ${position} ${isYourSide ? 'bg-[var(--verde-tennis)]/30' : 'bg-black/10'}`;
+    return `${base} ${position} ${restColor}`;
   }
 </script>
 
 <div class="club-card p-4 md:p-6 flex flex-col gap-2">
-  <p class="text-center text-xs uppercase tracking-widest font-black text-slate-600">
-    Il tuo lato: chiudi il game verso l'alto
+  <p class="text-center text-xs uppercase tracking-widest font-black" style="color:var(--verde-tennis)">
+    ▲ fai uscire la G da qui: game tuo
   </p>
 
   <div class="relative">
-    <div class={edgeClass('up', true)}></div>
-    <div class={edgeClass('down', false)}></div>
-    <div class={edgeClass('left', false)}></div>
-    <div class={edgeClass('right', false)}></div>
+    <div class={edgeClass('up')}></div>
+    <div class={edgeClass('down')}></div>
 
     <div
       bind:this={boardEl}
@@ -178,6 +174,10 @@
       {/each}
     </div>
   </div>
+
+  <p class="text-center text-xs uppercase tracking-widest font-black" style="color:var(--rosso-padel)">
+    ▼ da qui è game avversario
+  </p>
 </div>
 
 <style>
@@ -189,6 +189,14 @@
   }
   .tile-spawn { animation: quindici-spawn 160ms ease-out; }
   .tile-pop { animation: quindici-pop 180ms ease-out; }
+  .tile-g {
+    background: linear-gradient(
+      180deg,
+      var(--verde-tennis) 0%, var(--verde-tennis) 48%,
+      black 48%, black 52%,
+      var(--rosso-padel) 52%, var(--rosso-padel) 100%
+    );
+  }
   @media (prefers-reduced-motion: reduce) {
     * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
   }

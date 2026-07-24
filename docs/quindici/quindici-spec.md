@@ -14,7 +14,7 @@ separata dalla UI.
 ## 1. Regole di gioco
 
 ### Griglia
-4x4. Ogni cella è vuota o contiene una tessera con valore `15 | 30 | 40 | "AD"`.
+4x4. Ogni cella è vuota o contiene una tessera con valore `15 | 30 | 40 | "AD" | "G"`.
 
 ### Movimento
 Swipe/freccia in una delle 4 direzioni. Tutte le tessere scorrono verso quel
@@ -34,25 +34,35 @@ una uguale.
 | 15 + 30 | 40 |
 | 30 + 30 | 40 |
 | 40 + 40 | AD |
-| 15 + 40 | **game** |
-| 15 + AD | **game** |
-| AD + AD | **game** |
+| 15 + 40 | **G** |
+| 15 + AD | **G** |
+| AD + AD | **G** |
 | 30 + 40 | non si fondono |
 | 30 + AD | non si fondono |
 | 40 + AD | non si fondono |
+| G + qualsiasi | non si fonde mai (nemmeno G + G) |
 
-### Chiusura del game
-Le fusioni marcate **game** non producono una tessera: entrambe spariscono e la
-casella resta **libera**. Le tessere rimanenti della linea si compattano
-nello spazio liberato.
+### La tessera G e l'uscita dal campo
+A differenza delle altre, la tessera **G non sparisce quando nasce**: resta
+sul campo come una tessera vera e propria, si sposta con le altre ma non si
+fonde mai con niente.
 
-Chi si aggiudica il game dipende **solo dalla direzione della mossa**:
+Solo il bordo **sopra** e il bordo **sotto** contano qualcosa; sinistra e
+destra sono muri normali (una G che li tocca resta lì ferma, non esce mai).
 
-- swipe **verso l'alto** → il game è del giocatore;
-- swipe verso il basso, a sinistra o a destra → il game va all'avversario.
+Il meccanismo è in due tempi:
 
-Una singola mossa può chiudere più game contemporaneamente: contano tutti, e
-vanno tutti allo stesso lato (la direzione è una sola).
+1. Fai scorrere la G finché non resta ferma contro il bordo sopra o sotto
+   (come una tessera qualunque che sbatte contro il muro: si ferma, non esce).
+2. Con la G già ferma contro quel bordo, uno swipe **successivo nella stessa
+   direzione** la fa uscire dal campo: la casella si libera e il game va
+   assegnato.
+
+- G uscita dal bordo **sopra** → il game è del giocatore.
+- G uscita dal bordo **sotto** → il game va all'avversario.
+
+Una singola mossa può far uscire più G contemporaneamente (una per colonna):
+contano tutte, e vanno tutte allo stesso lato (la direzione è una sola).
 
 ### Punteggio del set
 Si contano i games. Vince il set chi:
@@ -82,16 +92,19 @@ punteggio del set. Se quel game chiude il set, vince l'avversario.
 ## 2. Architettura richiesta
 
 ```
-src/lib/quindici/engine.ts      logica pura, zero DOM, zero Svelte
-src/lib/quindici/engine.test.ts test unitari (vitest, se già presente nel repo)
-src/components/Quindici.svelte  UI, input, animazioni
-src/pages/giochi/quindici.astro pagina, con <Quindici client:load />
+src/lib/quindici/engine.ts             logica pura, zero DOM, zero Svelte
+src/components/quindici/QuindiciBoard.svelte  griglia, tessere, animazioni, swipe
+src/components/quindici/QuindiciGame.svelte   scoreboard, regole, input, stato partita
+src/pages/game/quindici.astro          pagina, con <QuindiciGame client:load />
 ```
+
+(`/game` e `/game/classifica` sono già le route del gioco esistente sul sito:
+Quindici segue la stessa convenzione invece di una cartella `/giochi` a parte.)
 
 ### API dell'engine
 
 ```ts
-export type Value = 15 | 30 | 40 | 'AD';
+export type Value = 15 | 30 | 40 | 'AD' | 'G';
 export type Dir = 'up' | 'down' | 'left' | 'right';
 
 export interface Tile { id: number; value: Value; row: number; col: number; }
@@ -106,15 +119,15 @@ export interface GameState {
 /** Esito di una mossa: descrive l'animazione, non solo il risultato. */
 export interface MoveResult {
   moved: boolean;
-  /** posizioni verso cui animare le tessere prima di risolvere le fusioni */
+  /** posizioni verso cui animare le tessere prima di risolvere fusioni/uscite */
   slides: { id: number; row: number; col: number }[];
   /** tessere che spariscono, con il motivo */
-  removed: { id: number; reason: 'merged' | 'point' }[];
-  /** tessere nate da una fusione, da far comparire con un pop */
+  removed: { id: number; reason: 'merged' | 'exit' }[];
+  /** tessere nate da una fusione (compresa la G), da far comparire con un pop */
   created: Tile[];
   /** tessera nuova di spawn */
   spawned: Tile | null;
-  /** games assegnati da questa mossa */
+  /** games assegnati da questa mossa (una G uscita dal bordo sopra/sotto) */
   pointsTo: 'player' | 'opponent' | null;
   pointsCount: number;
   deadlock: boolean;
@@ -124,22 +137,27 @@ export interface MoveResult {
 export function newGame(seed?: number): GameState;
 export function move(state: GameState, dir: Dir): MoveResult;
 export function canMove(state: GameState): boolean;
-export function mergeRule(a: Value, b: Value): Value | 'POINT' | null;
+export function mergeRule(a: Value, b: Value): Value | null;
 ```
 
 L'engine deve essere **deterministico se gli passi un seed** (RNG semplice tipo
 mulberry32), così i test sono ripetibili.
 
 ### Test minimi da scrivere
-1. `mergeRule` copre tutte le 10 combinazioni della tabella.
-2. 40 e 15 in colonna, swipe up → `pointsTo === 'player'`, casella libera.
-3. Stessa configurazione, swipe down → `pointsTo === 'opponent'`.
-4. Una mossa che chiude 2 game insieme → `pointsCount === 2`.
-5. Una tessera nata da fusione non si rifonde nella stessa mossa.
-6. `[15, 15, 15]` su una riga, swipe left → `[30, 15]`, non `[30, 30]` né `[40]`.
-7. Mossa che non muove niente → `moved === false`, nessuno spawn.
-8. Punteggio: 5-5 → serve il 7; 6-6 → 7-6 chiude; 6-4 chiude; 6-5 no.
-9. Stallo → game all'avversario e griglia con 2 tessere.
+1. `mergeRule` copre tutte le combinazioni della tabella, inclusi i tre casi
+   che producono G e il fatto che G non si fonde mai (nemmeno con un'altra G).
+2. 40 e 15 in colonna con la cella sopra libera, swipe up due volte: la prima
+   compatta la G nata dalla fusione contro il bordo sopra (nessun punto
+   ancora), la seconda la fa uscire → `pointsTo === 'player'`.
+3. Stessa configurazione ma contro il bordo sotto, doppio swipe down →
+   `pointsTo === 'opponent'`.
+4. Uno swipe left o right con una G già al muro non la fa mai uscire.
+5. Una mossa che fa uscire 2 G insieme (una per colonna) → `pointsCount === 2`.
+6. Una tessera nata da fusione non si rifonde nella stessa mossa.
+7. `[15, 15, 15]` su una riga, swipe left → `[30, 15]`, non `[30, 30]` né `[40]`.
+8. Mossa che non muove niente → `moved === false`, nessuno spawn.
+9. Punteggio: 5-5 → serve il 7; 6-6 → 7-6 chiude; 6-4 chiude; 6-5 no.
+10. Stallo → game all'avversario e griglia con 2 tessere.
 
 ---
 
@@ -154,10 +172,11 @@ mulberry32), così i test sono ripetibili.
   `touch-action: none` sulla griglia e `preventDefault` sul `touchmove`, o su
   mobile la pagina scrolla invece di giocare.
 - Rispetta `prefers-reduced-motion`.
-- La direzione è la meccanica centrale del gioco: va resa visibile. Nel
-  prototipo il bordo superiore della griglia è marcato come "il tuo lato" e il
-  bordo lampeggia del colore di chi ha appena preso il game. Mantieni questa
-  idea o sostituiscila con qualcosa di equivalente, ma non lasciarla implicita.
+- La direzione è la meccanica centrale del gioco: va resa visibile. Bordo
+  sopra e bordo sotto vanno marcati in modo permanente (es. tinta verde/rossa)
+  come "zona tua"/"zona avversario", e devono lampeggiare più intensamente
+  quando una G esce da quel lato. Sinistra e destra sono muri neutri, senza
+  alcuna colorazione legata al punteggio.
 - Grafica: adattala al design system del sito, non copiare i colori del
   prototipo. Deve stare accanto all'altro gioco già presente sul sito.
 
@@ -167,10 +186,16 @@ mulberry32), così i test sono ripetibili.
 - Il set si chiude correttamente compresi i casi 7-5 e 7-6.
 - La pagina è linkata dalla sezione giochi del sito.
 
-## 5. Punto aperto sul bilanciamento
-Il 15 jolly rende facile chiudere per sbaglio un 40 o un AD nella direzione
-sbagliata, quindi l'avversario potrebbe prendere troppi games. Se dopo qualche
-partita di prova il set finisce quasi sempre 0-6, la modifica da valutare è:
-le chiusure a **sinistra e destra non danno il game a nessuno** (la casella si
-libera e basta), lasciando solo il basso come errore punito. Non implementarla
-adesso: tienila dietro una costante di configurazione così si prova in un minuto.
+## 5. Bilanciamento (risolto)
+La prima versione assegnava il game istantaneamente a ogni fusione che
+produceva una chiusura, in base alla sola direzione della mossa — il 15 jolly
+rendeva troppo facile regalare games all'avversario per sbaglio, e le uscite
+laterali (sinistra/destra → avversario) aggiungevano un altro modo di
+sbagliare senza offrire un vantaggio equivalente al giocatore.
+
+La revisione attuale introduce la tessera **G** persistente: il game non è più
+un evento istantaneo di una singola fusione, ma richiede di manovrare
+deliberatamente la G fino al bordo giusto e poi espellerla con un secondo
+swipe. Questo dà al giocatore il tempo di accorgersi di una G pericolosa vicino
+al bordo sotto e provare a spostarla altrove prima che esca, ed elimina del
+tutto le uscite laterali (ora semplici muri neutri).

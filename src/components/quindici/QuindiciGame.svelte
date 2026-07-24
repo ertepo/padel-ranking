@@ -10,7 +10,7 @@
   let boardRef: QuindiciBoard;
   let rulesOpen = false;
 
-  let statusText = 'Muovi le tessere con le frecce o con uno swipe.';
+  let statusText = 'Crea una G e falla uscire dal bordo giusto.';
   let statusTone: 'neutral' | 'player' | 'opponent' = 'neutral';
   let bump: 'player' | 'opponent' | null = null;
   let bumpTimeout: ReturnType<typeof setTimeout>;
@@ -30,14 +30,17 @@
       bump = 'opponent';
     } else if (result.pointsTo === 'player') {
       statusTone = 'player';
-      statusText = result.pointsCount > 1 ? `${result.pointsCount} games chiusi verso l’alto.` : 'Game tuo.';
+      statusText =
+        result.pointsCount > 1
+          ? `${result.pointsCount} G uscite dal tuo bordo: game tuoi.`
+          : 'La G è uscita dal tuo bordo: game tuo.';
       bump = 'player';
     } else if (result.pointsTo === 'opponent') {
       statusTone = 'opponent';
       statusText =
         result.pointsCount > 1
-          ? `${result.pointsCount} games regalati all’avversario.`
-          : 'Game all’avversario: era chiuso dalla parte sbagliata.';
+          ? `${result.pointsCount} G uscite dal basso: game regalati.`
+          : 'La G è uscita dal basso: game all’avversario.';
       bump = 'opponent';
     }
 
@@ -76,7 +79,7 @@
     state = newGame();
     resetCount += 1;
     statusTone = 'neutral';
-    statusText = 'Muovi le tessere con le frecce o con uno swipe.';
+    statusText = 'Crea una G e falla uscire dal bordo giusto.';
     bump = null;
   }
 </script>
@@ -86,9 +89,9 @@
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">Tennis</p>
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Quindici</h1>
     <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
-      Il 2048 del tennis: sposta tutte le tessere in una direzione, il 15 è jolly e si somma a
-      qualsiasi punto. Il game si chiude solo se lo mandi verso l'alto — nelle altre direzioni lo
-      regali all'avversario.
+      Il 2048 del tennis: somma le tessere per costruire la <b>G</b>, la tessera del game. Poi
+      spingila fuori dal campo con un altro swipe: falla uscire dal bordo sopra e il game è tuo,
+      dal bordo sotto è dell'avversario.
     </p>
 
     <button
@@ -133,24 +136,34 @@
             <span class="border-2 border-black px-2 py-1 text-white" style="background:var(--viola-tennis)">40</span>+<span class="border-2 border-black px-2 py-1 text-white" style="background:var(--viola-tennis)">40</span>=<span class="border-2 px-2 py-1 bg-black" style="color:var(--giallo-club); border-color:var(--giallo-club)">AD</span>
           </div>
 
+          <div class="flex flex-wrap items-center gap-2 font-black text-sm">
+            <span class="border-2 border-black bg-white px-2 py-1 text-black">15</span>+<span class="border-2 border-black px-2 py-1 text-white" style="background:var(--viola-tennis)">40</span>=<span class="border-2 border-black px-2 py-1 text-white" style="background:linear-gradient(180deg, var(--verde-tennis) 0 48%, black 48% 52%, var(--rosso-padel) 52% 100%)">G</span>
+            <span class="mx-2 text-slate-500">·</span>
+            <span class="border-2 border-black bg-white px-2 py-1 text-black">15</span>+<span class="border-2 px-2 py-1 bg-black" style="color:var(--giallo-club); border-color:var(--giallo-club)">AD</span>=<span class="border-2 border-black px-2 py-1 text-white" style="background:linear-gradient(180deg, var(--verde-tennis) 0 48%, black 48% 52%, var(--rosso-padel) 52% 100%)">G</span>
+            <span class="mx-2 text-slate-500">·</span>
+            <span class="border-2 px-2 py-1 bg-black" style="color:var(--giallo-club); border-color:var(--giallo-club)">AD</span>+<span class="border-2 px-2 py-1 bg-black" style="color:var(--giallo-club); border-color:var(--giallo-club)">AD</span>=<span class="border-2 border-black px-2 py-1 text-white" style="background:linear-gradient(180deg, var(--verde-tennis) 0 48%, black 48% 52%, var(--rosso-padel) 52% 100%)">G</span>
+          </div>
+
           <div>
             <h3 class="font-black text-lg uppercase tracking-widest" style="color: var(--verde-tennis)">
               Il 15 è jolly
             </h3>
             <p class="mt-1 text-sm font-semibold leading-relaxed">
-              Il 15 si somma a qualsiasi tessera: con un 15 il 40 chiude il game, così come l'AD. Le
+              Il 15 si somma a qualsiasi tessera: con un 15 il 40 diventa G, così come l'AD. Le
               altre coppie diverse (30+40, 40+AD…) non si sommano.
             </p>
           </div>
 
           <div>
             <h3 class="font-black text-lg uppercase tracking-widest" style="color: var(--rosso-padel)">
-              Direzione e game
+              La tessera G
             </h3>
             <p class="mt-1 text-sm font-semibold leading-relaxed">
-              Quando due tessere si sommano fino a chiudere il game (40+15, AD+15 o AD+AD), spariscono
-              e la casella resta libera. <b>Solo verso l'alto il game è tuo</b>: chiuderlo in basso, a
-              destra o a sinistra lo regala all'avversario.
+              A differenza delle altre tessere, la G <b>non sparisce</b> quando nasce: resta sul
+              campo come una tessera vera, e non si somma con niente. Spostala fino al bordo sopra
+              o sotto, poi spingila fuori con un altro swipe nella stessa direzione: <b>dal bordo
+              sopra il game è tuo</b>, dal bordo sotto è dell'avversario. A destra e a sinistra la G
+              resta bloccata contro il muro, non esce mai.
             </p>
           </div>
 
@@ -219,8 +232,8 @@
         <p class="font-black text-6xl text-white leading-none">{state.gamesPlayer}-{state.gamesOpponent}</p>
         <p class="text-xs font-semibold text-slate-300 max-w-xs">
           {state.status === 'won'
-            ? 'Chiuso dal tuo lato del campo.'
-            : 'Troppi games chiusi verso il basso o di lato.'}
+            ? 'Hai spinto abbastanza G fuori dal tuo bordo.'
+            : 'Troppe G uscite dal bordo sotto.'}
         </p>
         <button
           type="button"
