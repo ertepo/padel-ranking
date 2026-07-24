@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { slide } from 'svelte/transition';
-  import { move, newGame, type Dir, type GameState } from '../../lib/quindici/engine';
+  import { MAX_LEVEL, move, newGame, type Dir, type GameState } from '../../lib/quindici/engine';
   import QuindiciBoard from './QuindiciBoard.svelte';
 
   let state: GameState = newGame();
@@ -10,9 +10,8 @@
   let boardRef: QuindiciBoard;
   let rulesOpen = false;
 
-  let statusText = 'Crea una G e falla uscire dal bordo giusto.';
-  let statusTone: 'neutral' | 'player' | 'opponent' = 'neutral';
-  let bump: 'player' | 'opponent' | null = null;
+  let statusText = 'Muovi le tessere con le frecce o con uno swipe.';
+  let bump = false;
   let bumpTimeout: ReturnType<typeof setTimeout>;
 
   async function handleMove(dir: Dir) {
@@ -21,32 +20,16 @@
     if (!result.moved) return;
 
     locked = true;
-    await boardRef.applyMove(result, dir);
+    await boardRef.applyMove(result);
     state = result.state;
 
-    if (result.deadlock) {
-      statusTone = 'opponent';
-      statusText = 'Campo bloccato: game all’avversario.';
-      bump = 'opponent';
-    } else if (result.pointsTo === 'player') {
-      statusTone = 'player';
-      statusText =
-        result.pointsCount > 1
-          ? `${result.pointsCount} G uscite dal tuo bordo: game tuoi.`
-          : 'La G è uscita dal tuo bordo: game tuo.';
-      bump = 'player';
-    } else if (result.pointsTo === 'opponent') {
-      statusTone = 'opponent';
-      statusText =
-        result.pointsCount > 1
-          ? `${result.pointsCount} G uscite dal basso: game regalati.`
-          : 'La G è uscita dal basso: game all’avversario.';
-      bump = 'opponent';
-    }
-
-    if (bump) {
+    if (result.levelUp !== null) {
+      statusText = `Livello ${result.levelUp} raggiunto!`;
+      bump = true;
       clearTimeout(bumpTimeout);
-      bumpTimeout = setTimeout(() => (bump = null), 350);
+      bumpTimeout = setTimeout(() => (bump = false), 350);
+    } else if (state.status === 'playing') {
+      statusText = 'Muovi le tessere con le frecce o con uno swipe.';
     }
 
     locked = false;
@@ -78,9 +61,8 @@
   function newMatch() {
     state = newGame();
     resetCount += 1;
-    statusTone = 'neutral';
-    statusText = 'Crea una G e falla uscire dal bordo giusto.';
-    bump = null;
+    statusText = 'Muovi le tessere con le frecce o con uno swipe.';
+    bump = false;
   }
 </script>
 
@@ -89,9 +71,9 @@
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">Tennis</p>
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Quindici</h1>
     <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
-      Il 2048 del tennis: somma le tessere per costruire la <b>G</b>, la tessera del game. Poi
-      spingila fuori dal campo con un altro swipe: falla uscire dal bordo sopra e il game è tuo,
-      dal bordo sotto è dell'avversario.
+      Il 2048 del tennis: somma le tessere lungo la scala 15-30-40-AD. Completarla non chiude il
+      punto, ma apre il <b>livello successivo</b> — una scala tutta nuova, che parte da 0 e
+      interagisce solo con sé stessa. Arriva al livello {MAX_LEVEL} per vincere.
     </p>
 
     <button
@@ -135,46 +117,43 @@
             <span class="mx-2 text-slate-500">·</span>
             <span class="border-2 border-black px-2 py-1 text-white" style="background:var(--viola-tennis)">40</span>+<span class="border-2 border-black px-2 py-1 text-white" style="background:var(--viola-tennis)">40</span>=<span class="border-2 px-2 py-1 bg-black" style="color:var(--giallo-club); border-color:var(--giallo-club)">AD</span>
           </div>
-
           <div class="flex flex-wrap items-center gap-2 font-black text-sm">
-            <span class="border-2 border-black bg-white px-2 py-1 text-black">15</span>+<span class="border-2 border-black px-2 py-1 text-white" style="background:var(--viola-tennis)">40</span>=<span class="border-2 border-black px-2 py-1 text-white" style="background:linear-gradient(180deg, var(--verde-tennis) 0 48%, black 48% 52%, var(--rosso-padel) 52% 100%)">G</span>
+            <span class="border-2 border-black bg-slate-200 px-2 py-1 text-black">0</span>+<span class="border-2 border-black bg-white px-2 py-1 text-black">15</span>=<span class="border-2 border-black px-2 py-1 text-black" style="background:var(--giallo-club)">30</span>
             <span class="mx-2 text-slate-500">·</span>
-            <span class="border-2 border-black bg-white px-2 py-1 text-black">15</span>+<span class="border-2 px-2 py-1 bg-black" style="color:var(--giallo-club); border-color:var(--giallo-club)">AD</span>=<span class="border-2 border-black px-2 py-1 text-white" style="background:linear-gradient(180deg, var(--verde-tennis) 0 48%, black 48% 52%, var(--rosso-padel) 52% 100%)">G</span>
-            <span class="mx-2 text-slate-500">·</span>
-            <span class="border-2 px-2 py-1 bg-black" style="color:var(--giallo-club); border-color:var(--giallo-club)">AD</span>+<span class="border-2 px-2 py-1 bg-black" style="color:var(--giallo-club); border-color:var(--giallo-club)">AD</span>=<span class="border-2 border-black px-2 py-1 text-white" style="background:linear-gradient(180deg, var(--verde-tennis) 0 48%, black 48% 52%, var(--rosso-padel) 52% 100%)">G</span>
+            <span class="border-2 px-2 py-1 bg-black" style="color:var(--giallo-club); border-color:var(--giallo-club)">AD</span>+<span class="border-2 px-2 py-1 bg-black" style="color:var(--giallo-club); border-color:var(--giallo-club)">AD</span>=<span class="border-2 px-2 py-1 bg-slate-200 text-black" style="border-color:var(--blu-padel)">1.0</span>
           </div>
 
           <div>
             <h3 class="font-black text-lg uppercase tracking-widest" style="color: var(--verde-tennis)">
-              Il 15 è jolly
+              Lo 0 è jolly
             </h3>
             <p class="mt-1 text-sm font-semibold leading-relaxed">
-              Il 15 si somma a qualsiasi tessera: con un 15 il 40 diventa G, così come l'AD. Le
-              altre coppie diverse (30+40, 40+AD…) non si sommano.
+              Dal livello 1 in su nasce anche una tessera "0": è lei il jolly, si somma con
+              qualsiasi tessera del suo livello e la fa avanzare (0+15→30, 0+30→40); con il 40 o
+              con l'AD completa direttamente il livello. Il 15 invece non è più jolly: si somma
+              solo con un altro 15, esattamente come 30, 40 e AD si sommano solo con sé stessi.
             </p>
           </div>
 
           <div>
             <h3 class="font-black text-lg uppercase tracking-widest" style="color: var(--rosso-padel)">
-              La tessera G
+              I livelli
             </h3>
             <p class="mt-1 text-sm font-semibold leading-relaxed">
-              A differenza delle altre tessere, la G <b>non sparisce</b> quando nasce: resta sul
-              campo come una tessera vera, e non si somma con niente. Spostala fino al bordo sopra
-              o sotto, poi spingila fuori con un altro swipe nella stessa direzione: <b>dal bordo
-              sopra il game è tuo</b>, dal bordo sotto è dell'avversario. A destra e a sinistra la G
-              resta bloccata contro il muro, non esce mai.
+              Completare la scala di un livello (con il jolly 0, oppure con AD+AD) fa nascere il
+              <b>seme del livello successivo</b>, la tessera "0": si riconosce dal bordo colorato.
+              Da lì riparte la stessa scala, ma <b>isolata</b>: non si fonde mai con le tessere di
+              un livello diverso. Arriva a completare il livello {MAX_LEVEL} per vincere la partita.
             </p>
           </div>
 
           <div>
             <h3 class="font-black text-lg uppercase tracking-widest" style="color: var(--blu-padel)">
-              Il set
+              Fine partita
             </h3>
             <p class="mt-1 text-sm font-semibold leading-relaxed">
-              Vince chi arriva a 6 games con almeno 2 di scarto. Sul 5 pari si va a 7; sul 6 pari
-              decide il game successivo, 7-6. Se resti senza mosse possibili, il game va
-              all'avversario e il campo si azzera.
+              Se resti senza mosse possibili la partita finisce lì: game over, come in un 2048
+              qualunque.
             </p>
           </div>
         </div>
@@ -182,37 +161,15 @@
     {/if}
   </section>
 
-  <div class="grid grid-cols-[1fr_auto_1fr] items-center border-2 border-black bg-white px-4 py-3 max-w-md w-full mx-auto">
-    <div class="flex items-center gap-2">
-      <span
-        class={`text-3xl font-black leading-none ${bump === 'player' ? 'quindici-bump' : ''}`}
-        style="color:var(--verde-tennis)"
-      >
-        {state.gamesPlayer}
-      </span>
-      <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">tu</span>
-    </div>
-    <span class="text-[10px] uppercase tracking-widest font-black text-slate-400">games</span>
-    <div class="flex items-center justify-end gap-2">
-      <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">avversario</span>
-      <span
-        class={`text-3xl font-black leading-none ${bump === 'opponent' ? 'quindici-bump' : ''}`}
-        style="color:var(--rosso-padel)"
-      >
-        {state.gamesOpponent}
-      </span>
-    </div>
+  <div class="flex items-center justify-center gap-3 border-2 border-black bg-white px-4 py-3 max-w-md w-full mx-auto">
+    <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">Livello</span>
+    <span class={`text-3xl font-black leading-none ${bump ? 'quindici-bump' : ''}`}>
+      {state.highestLevel}
+    </span>
+    <span class="text-xs font-black text-slate-400">/ {MAX_LEVEL}</span>
   </div>
 
-  <p
-    class={`text-center text-xs font-black uppercase tracking-widest h-4 transition-colors ${
-      statusTone === 'player'
-        ? 'text-[var(--verde-tennis)]'
-        : statusTone === 'opponent'
-          ? 'text-[var(--rosso-padel)]'
-          : 'text-slate-500'
-    }`}
-  >
+  <p class="text-center text-xs font-black uppercase tracking-widest h-4 text-slate-500">
     {statusText}
   </p>
 
@@ -227,13 +184,13 @@
           class="font-black text-3xl uppercase tracking-widest"
           style={`color:${state.status === 'won' ? 'var(--verde-tennis)' : 'var(--rosso-padel)'}`}
         >
-          {state.status === 'won' ? 'Set tuo' : 'Set avversario'}
+          {state.status === 'won' ? 'Hai vinto!' : 'Game over'}
         </p>
-        <p class="font-black text-6xl text-white leading-none">{state.gamesPlayer}-{state.gamesOpponent}</p>
+        <p class="font-black text-xl text-white">Livello raggiunto: {state.highestLevel}</p>
         <p class="text-xs font-semibold text-slate-300 max-w-xs">
           {state.status === 'won'
-            ? 'Hai spinto abbastanza G fuori dal tuo bordo.'
-            : 'Troppe G uscite dal bordo sotto.'}
+            ? `Hai completato il livello ${MAX_LEVEL}.`
+            : 'Nessuna mossa possibile.'}
         </p>
         <button
           type="button"

@@ -1,20 +1,29 @@
 # Quindici — specifica di implementazione
 
-Gioco puzzle a griglia per **tie-break.it** (Astro + Svelte + Supabase).
-È un 2048 in cui le tessere sono i punti del tennis e la direzione dello swipe
-decide a chi va il game.
+Gioco puzzle a griglia per **tie-break.it** (Astro + Svelte). È un 2048 in cui
+le tessere sono i punteggi del tennis (15, 30, 40, AD): completare la scala
+non chiude una partita contro un avversario, ma sblocca il **livello
+successivo** — una scala identica ma isolata, che riparte da zero. L'obiettivo
+è arrivare più in alto possibile, come la tessera massima nel 2048 originale.
 
-Riferimento funzionante: `quindici-prototype.html` — prototipo in HTML/JS puro,
-già giocabile e con le regole corrette. Va usato come oracolo del comportamento,
-**non** come codice da copiare: la logica va riscritta in TypeScript puro e
-separata dalla UI.
+Non c'è avversario: è un gioco a giocatore singolo.
 
 ---
 
 ## 1. Regole di gioco
 
 ### Griglia
-4x4. Ogni cella è vuota o contiene una tessera con valore `15 | 30 | 40 | "AD" | "G"`.
+4x4. Ogni cella è vuota o contiene una tessera. Una tessera è definita da una
+coppia **(livello, step)**:
+
+- `step` è `0 | 15 | 30 | 40 | "AD"`.
+- `level` va da `0` a `MAX_LEVEL` (4).
+- Lo step `0` è il "seme"/jolly di ogni livello, livello 0 compreso: spawna
+  direttamente per il livello 0, mentre dal livello 1 in su nasce quando il
+  livello precedente si completa.
+
+Etichetta mostrata sulla tessera: `15`/`30`/`40`/`AD` al livello 0,
+`1.0`/`2.15`/`3.AD`/… dal livello 1 in su.
 
 ### Movimento
 Swipe/freccia in una delle 4 direzioni. Tutte le tessere scorrono verso quel
@@ -22,80 +31,71 @@ bordo e si compattano, come in 2048. Se nulla si muove e nulla si fonde, la
 mossa non è valida: non si spawna nulla e il turno non cambia.
 
 Vale la regola classica di 2048: **una tessera nata da una fusione non può
-fondersi di nuovo nella stessa mossa**.
+fondersi di nuovo nella stessa mossa**. Non ci sono uscite dai bordi: nessuna
+tessera lascia mai il campo per merito della direzione della mossa.
 
 ### Fusioni
-Il **15 è jolly: si somma a qualsiasi tessera**. Le altre si sommano solo con
-una uguale.
+**Due tessere si fondono solo se sono dello stesso livello.** Tessere di
+livelli diversi non interagiscono mai, anche se adiacenti (si comportano come
+valori incompatibili: bloccano semplicemente lo scorrimento).
 
-| Coppia | Risultato |
+All'interno dello stesso livello, il jolly è lo **step `0`** (dove esiste): si
+somma con qualsiasi altro step dello stesso livello e lo fa avanzare. `15` non
+è più jolly: si somma solo con un altro `15`, esattamente come `30`, `40` e
+`AD` si sommano solo con sé stessi.
+
+| Coppia (stesso livello) | Risultato |
 |---|---|
+| 0 + 0 | 15 |
+| 0 + 15 | 30 |
+| 0 + 30 | 40 |
+| 0 + 40 | **livello successivo** (step 0), o **vittoria** al livello massimo |
+| 0 + AD | **livello successivo**, o **vittoria** |
 | 15 + 15 | 30 |
-| 15 + 30 | 40 |
 | 30 + 30 | 40 |
 | 40 + 40 | AD |
-| 15 + 40 | **G** |
-| 15 + AD | **G** |
-| AD + AD | **G** |
-| 30 + 40 | non si fondono |
-| 30 + AD | non si fondono |
-| 40 + AD | non si fondono |
-| G + qualsiasi | non si fonde mai (nemmeno G + G) |
+| AD + AD | **livello successivo**, o **vittoria** |
+| 15 + 30, 15 + 40, 15 + AD, 30 + 40, 30 + AD, 40 + AD | non si fondono |
 
-### La tessera G e l'uscita dal campo
-A differenza delle altre, la tessera **G non sparisce quando nasce**: resta
-sul campo come una tessera vera e propria, si sposta con le altre ma non si
-fonde mai con niente.
+Il livello 0 si comporta come tutti gli altri: lo spawn genera direttamente
+tessere `0` (jolly), quindi il jolly è disponibile fin dall'inizio della
+partita, non solo dal livello 1 in su.
 
-Solo il bordo **sopra** e il bordo **sotto** contano qualcosa; sinistra e
-destra sono muri normali (una G che li tocca resta lì ferma, non esce mai).
+### Livelli e vittoria
+Completare la scala di un livello (una delle tre combinazioni sopra) crea la
+tessera `0` del livello successivo — una tessera vera e propria, che resta sul
+campo e va fatta crescere di nuovo lungo la stessa scala, isolata da tutto il
+resto.
 
-Il meccanismo è in due tempi:
-
-1. Fai scorrere la G finché non resta ferma contro il bordo sopra o sotto
-   (come una tessera qualunque che sbatte contro il muro: si ferma, non esce).
-2. Con la G già ferma contro quel bordo, uno swipe **successivo nella stessa
-   direzione** la fa uscire dal campo: la casella si libera e il game va
-   assegnato.
-
-- G uscita dal bordo **sopra** → il game è del giocatore.
-- G uscita dal bordo **sotto** → il game va all'avversario.
-
-Una singola mossa può far uscire più G contemporaneamente (una per colonna):
-contano tutte, e vanno tutte allo stesso lato (la direzione è una sola).
-
-### Punteggio del set
-Si contano i games. Vince il set chi:
-
-- arriva a 6 con almeno 2 di scarto (6-0 … 6-4);
-- sul 5 pari, arriva a 7 (7-5);
-- sul 6 pari, vince il game successivo (7-6).
-
-Formula: `vince(a, b) = (a >= 6 && a - b >= 2) || a === 7`.
-Il punteggio non può superare 7.
+Se il livello appena completato è il **livello massimo** (`MAX_LEVEL`, 4), non
+nasce nessuna tessera: le due tessere che si fondono spariscono e basta e la
+partita è **vinta**.
 
 ### Spawn
-Dopo ogni mossa valida compare **una** tessera in una cella libera a caso:
-80% `15`, 20% `30`. A inizio partita si spawnano 2 tessere.
+Dopo ogni mossa valida compare **una** tessera in una cella libera a caso,
+sempre di livello 0: 80% step `0`, 20% step `15`. A inizio partita se ne
+spawnano 2.
 
-### Stallo
-Se non esiste nessuna mossa valida in nessuna direzione: **un game
-all'avversario** e la griglia si azzera (2 nuove tessere), mantenendo il
-punteggio del set. Se quel game chiude il set, vince l'avversario.
+Lo spawn preferisce celle "isolate" (riga e colonna ancora del tutto libere da
+altre tessere); se non esistono, preferisce almeno una colonna libera; solo
+come ultima risorsa sceglie una cella libera qualsiasi. Questo evita che le
+nuove tessere si accumulino sempre sulle stesse righe/colonne già occupate,
+accelerando per sbaglio le fusioni.
 
-### Cosa NON succede
-- La griglia **non** si azzera dopo ogni game vinto o perso, solo dopo uno stallo.
-- Non c'è timer, non c'è turno dell'avversario: l'avversario è solo un contatore.
+### Game over
+Se non esiste nessuna mossa valida in nessuna direzione, la partita finisce
+lì: **game over**, come in un 2048 qualunque. Nessun reset, nessun punteggio
+verso un avversario: il campo resta fermo nella posizione finale.
 
 ---
 
 ## 2. Architettura richiesta
 
 ```
-src/lib/quindici/engine.ts             logica pura, zero DOM, zero Svelte
+src/lib/quindici/engine.ts                    logica pura, zero DOM, zero Svelte
 src/components/quindici/QuindiciBoard.svelte  griglia, tessere, animazioni, swipe
-src/components/quindici/QuindiciGame.svelte   scoreboard, regole, input, stato partita
-src/pages/game/quindici.astro          pagina, con <QuindiciGame client:load />
+src/components/quindici/QuindiciGame.svelte   indicatore di livello, regole, input, stato partita
+src/pages/game/quindici.astro                 pagina, con <QuindiciGame client:load />
 ```
 
 (`/game` e `/game/classifica` sono già le route del gioco esistente sul sito:
@@ -104,60 +104,64 @@ Quindici segue la stessa convenzione invece di una cartella `/giochi` a parte.)
 ### API dell'engine
 
 ```ts
-export type Value = 15 | 30 | 40 | 'AD' | 'G';
+export type Step = 0 | 15 | 30 | 40 | 'AD';
+export interface Value { level: number; step: Step; }
 export type Dir = 'up' | 'down' | 'left' | 'right';
 
 export interface Tile { id: number; value: Value; row: number; col: number; }
 
 export interface GameState {
   tiles: Tile[];
-  gamesPlayer: number;
-  gamesOpponent: number;
-  status: 'playing' | 'won' | 'lost';
+  highestLevel: number; // livello più alto raggiunto finora
+  status: 'playing' | 'won' | 'over';
 }
 
 /** Esito di una mossa: descrive l'animazione, non solo il risultato. */
 export interface MoveResult {
   moved: boolean;
-  /** posizioni verso cui animare le tessere prima di risolvere fusioni/uscite */
+  /** posizioni verso cui animare le tessere prima di risolvere le fusioni */
   slides: { id: number; row: number; col: number }[];
-  /** tessere che spariscono, con il motivo */
-  removed: { id: number; reason: 'merged' | 'exit' }[];
-  /** tessere nate da una fusione (compresa la G), da far comparire con un pop */
+  /** tessere che spariscono (fuse, o nella fusione finale di vittoria) */
+  removed: { id: number; reason: 'merged' }[];
+  /** tessere nate da una fusione, da far comparire con un pop */
   created: Tile[];
   /** tessera nuova di spawn */
   spawned: Tile | null;
-  /** games assegnati da questa mossa (una G uscita dal bordo sopra/sotto) */
-  pointsTo: 'player' | 'opponent' | null;
-  pointsCount: number;
-  deadlock: boolean;
+  /** livello raggiunto per la prima volta con questa mossa, se presente */
+  levelUp: number | null;
+  /** questa mossa ha completato il livello massimo: partita vinta */
+  won: boolean;
+  /** questa mossa ha portato a un campo senza mosse possibili: game over */
+  gameOver: boolean;
   state: GameState;
 }
 
+export const MAX_LEVEL = 4;
+
+export function valueLabel(v: Value): string;
 export function newGame(seed?: number): GameState;
 export function move(state: GameState, dir: Dir): MoveResult;
 export function canMove(state: GameState): boolean;
-export function mergeRule(a: Value, b: Value): Value | null;
+export function mergeRule(a: Value, b: Value): Value | 'WIN' | null;
 ```
 
 L'engine deve essere **deterministico se gli passi un seed** (RNG semplice tipo
 mulberry32), così i test sono ripetibili.
 
 ### Test minimi da scrivere
-1. `mergeRule` copre tutte le combinazioni della tabella, inclusi i tre casi
-   che producono G e il fatto che G non si fonde mai (nemmeno con un'altra G).
-2. 40 e 15 in colonna con la cella sopra libera, swipe up due volte: la prima
-   compatta la G nata dalla fusione contro il bordo sopra (nessun punto
-   ancora), la seconda la fa uscire → `pointsTo === 'player'`.
-3. Stessa configurazione ma contro il bordo sotto, doppio swipe down →
-   `pointsTo === 'opponent'`.
-4. Uno swipe left o right con una G già al muro non la fa mai uscire.
-5. Una mossa che fa uscire 2 G insieme (una per colonna) → `pointsCount === 2`.
-6. Una tessera nata da fusione non si rifonde nella stessa mossa.
-7. `[15, 15, 15]` su una riga, swipe left → `[30, 15]`, non `[30, 30]` né `[40]`.
-8. Mossa che non muove niente → `moved === false`, nessuno spawn.
-9. Punteggio: 5-5 → serve il 7; 6-6 → 7-6 chiude; 6-4 chiude; 6-5 no.
-10. Stallo → game all'avversario e griglia con 2 tessere.
+1. `mergeRule` copre tutte le combinazioni della tabella per un livello con
+   step `0` (0 jolly su 15/30/40/AD, 15/30/40/AD si sommano solo con sé stessi).
+2. `mergeRule` tra due tessere di livello diverso è sempre `null`.
+3. `0 + 0` dello stesso livello dà `15` dello stesso livello.
+4. Completare un livello (0+40, 0+AD o AD+AD) sotto il livello massimo crea
+   `{ level: level+1, step: 0 }`; al livello massimo restituisce `'WIN'`.
+5. Una tessera nata da fusione non si rifonde nella stessa mossa.
+6. `[15, 15, 15]` su una riga, swipe left → `[30, 15]`, non `[30, 30]` né `[40]`.
+7. Mossa che non muove niente → `moved === false`, nessuno spawn.
+8. Una mossa che completa il livello massimo → `won === true`, nessuna
+   tessera creata, le due tessere sparite.
+9. Uno stallo (nessuna mossa possibile in nessuna direzione) → `gameOver ===
+   true`, `status === 'over'`, il campo non cambia.
 
 ---
 
@@ -172,30 +176,35 @@ mulberry32), così i test sono ripetibili.
   `touch-action: none` sulla griglia e `preventDefault` sul `touchmove`, o su
   mobile la pagina scrolla invece di giocare.
 - Rispetta `prefers-reduced-motion`.
-- La direzione è la meccanica centrale del gioco: va resa visibile. Bordo
-  sopra e bordo sotto vanno marcati in modo permanente (es. tinta verde/rossa)
-  come "zona tua"/"zona avversario", e devono lampeggiare più intensamente
-  quando una G esce da quel lato. Sinistra e destra sono muri neutri, senza
-  alcuna colorazione legata al punteggio.
+- Il livello di ogni tessera va reso visivamente distinguibile (es. colore del
+  bordo), oltre allo step (colore di sfondo): sono due informazioni diverse e
+  vanno lette entrambe a colpo d'occhio.
 - Grafica: adattala al design system del sito, non copiare i colori del
   prototipo. Deve stare accanto all'altro gioco già presente sul sito.
 
 ## 4. Fatto quando
 - I test passano.
 - Si gioca con tastiera su desktop e con swipe su mobile, senza che la pagina scrolli.
-- Il set si chiude correttamente compresi i casi 7-5 e 7-6.
+- Si vede chiaramente il livello attuale, e le schermate di vittoria e di game over.
 - La pagina è linkata dalla sezione giochi del sito.
 
-## 5. Bilanciamento (risolto)
-La prima versione assegnava il game istantaneamente a ogni fusione che
-produceva una chiusura, in base alla sola direzione della mossa — il 15 jolly
-rendeva troppo facile regalare games all'avversario per sbaglio, e le uscite
-laterali (sinistra/destra → avversario) aggiungevano un altro modo di
-sbagliare senza offrire un vantaggio equivalente al giocatore.
-
-La revisione attuale introduce la tessera **G** persistente: il game non è più
-un evento istantaneo di una singola fusione, ma richiede di manovrare
-deliberatamente la G fino al bordo giusto e poi espellerla con un secondo
-swipe. Questo dà al giocatore il tempo di accorgersi di una G pericolosa vicino
-al bordo sotto e provare a spostarla altrove prima che esca, ed elimina del
-tutto le uscite laterali (ora semplici muri neutri).
+## 5. Storia delle revisioni
+1. **Uscita direzionale**: ogni fusione che chiudeva la scala assegnava
+   subito un game in base alla sola direzione della mossa (su = giocatore,
+   giù/sinistra/destra = avversario). Il 15 jolly rendeva troppo facile
+   regalare games per sbaglio.
+2. **Tessera G persistente**: la chiusura smette di essere istantanea. Nasce
+   una tessera "G" che va manovrata fino al bordo giusto e poi espulsa con un
+   secondo swipe nella stessa direzione; le uscite laterali vengono rimosse.
+3. **Livelli**: eliminata anche l'uscita dai bordi e il concetto di
+   avversario. Completare la scala non fa più uscire nulla dal campo: fa
+   nascere il seme (`0`) di un nuovo livello, una scala identica ma isolata.
+   Il gioco diventa a giocatore singolo: l'obiettivo è arrivare al livello
+   massimo (vittoria) prima di restare senza mosse (game over). In questa
+   prima versione il jolly restava `15` e `0` si sommava solo con un altro `0`.
+4. **Jolly spostato su `0` (attuale)**: il ruolo di jolly passa dal `15` allo
+   step `0`. `15` diventa un doppione normale come `30`/`40`/`AD` (si somma
+   solo con un altro `15`). Il livello 0, non avendo mai una tessera `0` sul
+   campo, perde la scorciatoia del jolly e procede solo per raddoppi diretti;
+   dal livello 1 in su il seme `0` nato dal completamento del livello
+   precedente accelera invece la progressione.
