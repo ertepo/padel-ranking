@@ -266,6 +266,17 @@
             </a>
 
             <a
+              href="/game/slice"
+              class="club-btn inline-flex items-center gap-2 px-4 py-2"
+              on:click={() => (isArcadeOpen = false)}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M14 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM4 0a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 10a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+              </svg>
+              Slice
+            </a>
+
+            <a
               href="/game/classifica"
               class="club-btn inline-flex items-center gap-2 px-4 py-2"
               on:click={() => (isArcadeOpen = false)}
@@ -529,6 +540,20 @@
                 <path d="M14 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM4 0a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 10a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
               </svg>
               Quindici
+            </a>
+
+            <a
+              href="/game/slice"
+              class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
+              on:click={() => {
+                isArcadeOpen = false;
+                isOpen = false;
+              }}
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+                <path d="M14 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM4 0a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 10a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+              </svg>
+              Slice
             </a>
 
             <a

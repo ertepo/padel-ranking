@@ -1,0 +1,12 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import SliceGame from '../../components/slice/SliceGame.svelte';
+---
+
+<Layout
+  title="Slice"
+  headerTheme="tennis"
+  description="Slice: il 2048 del tennis, edizione match. Somma PUNTO e 15 e sali su per game, set e match."
+>
+  <SliceGame client:load />
+</Layout>
