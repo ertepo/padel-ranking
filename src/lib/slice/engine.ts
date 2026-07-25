@@ -26,6 +26,23 @@ export const VALUES = [1, 2, 3, 6, 12, 24, 48, 96, 192, 384, 768, 1536, 3072, 61
 
 export const MAX_LEVEL = LABELS.length - 1; // 13 (MATCH)
 
+/**
+ * Punteggio di una singola tessera, come in Threes!: non il suo valore
+ * tennis, ma 3 elevato a un esponente che sale di 1 ad ogni raddoppio.
+ * PUNTO e 15 (livelli 0-1) non contano nulla, sono solo "carburante". Così
+ * fondere due tessere identiche non lascia il punteggio invariato (la somma
+ * dei valori tennis raddoppierebbe comunque): il merge vale sempre ×3, quindi
+ * conviene sempre più che tenerle separate.
+ */
+function tileScore(level: number): number {
+  return level < 2 ? 0 : 3 ** (level - 1);
+}
+
+/** Punteggio finale: somma del punteggio (non del valore tennis) di ogni tessera in campo. */
+export function score(tiles: Tile[]): number {
+  return tiles.reduce((sum, t) => sum + tileScore(t.level), 0);
+}
+
 export interface Tile {
   id: number;
   level: number; // 0..MAX_LEVEL, indice in LABELS/VALUES
