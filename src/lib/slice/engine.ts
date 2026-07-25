@@ -238,12 +238,12 @@ function edgeCells(dir: Dir): [number, number][] {
 const BALANCE_BIAS_PER_TILE = 0.12;
 const MAX_BALANCE_BIAS = 0.3;
 
-// Le tessere che spawnano sono sempre PUNTO, 15 o 30 (20% fisso per il 30).
-// PUNTO e 15 si fondono solo fra loro (1 a 1), quindi il restante 80% non è
-// diviso a metà fissa: si guarda quanti PUNTO e quanti 15 sono già sulla
-// board e si favorisce quello più scarso. Senza questo riequilibrio, una
-// sequenza sfortunata di spawn identici (es. sei 15 di fila) blocca la board
-// perché quelle tessere si fondono solo con il loro gemello.
+// Spawn "di base": PUNTO, 15 o 30 (20% fisso per il 30). PUNTO e 15 si
+// fondono solo fra loro (1 a 1), quindi il restante 80% non è diviso a metà
+// fissa: si guarda quanti PUNTO e quanti 15 sono già sulla board e si
+// favorisce quello più scarso. Senza questo riequilibrio, una sequenza
+// sfortunata di spawn identici (es. sei 15 di fila) blocca la board perché
+// quelle tessere si fondono solo con il loro gemello.
 function pickSpawnLevel(roll: number, tiles: Tile[]): number {
   if (roll >= 0.8) return 2;
 
@@ -255,10 +255,29 @@ function pickSpawnLevel(roll: number, tiles: Tile[]): number {
   return roll < threshold ? 0 : 1;
 }
 
+/** Probabilità che uno spawn, quando è "sbloccato", sia una tessera bonus invece di PUNTO/15/30. */
+const BONUS_CHANCE = 0.12;
+
+/**
+ * Come in Threes!: man mano che la tessera più alta raggiunta cresce, iniziano
+ * a comparire di tanto in tanto tessere "bonus" già avanzate lungo la scala,
+ * non solo PUNTO/15/30. Il ventaglio di livelli papabili sale insieme al
+ * massimo raggiunto (le tre più vicine sotto di esso, mai sotto il 40) — es.
+ * raggiunto il 4°GAME spawnano anche 40/1°GAME, raggiunto il 5°GAME anche
+ * 40/1°GAME/2°GAME, e così via. Ritorna null se il bonus non è ancora attivo.
+ */
+function bonusRange(highestLevel: number): [number, number] | null {
+  const lo = Math.max(3, highestLevel - 5);
+  const hi = highestLevel - 3;
+  if (hi < lo) return null;
+  return [lo, hi];
+}
+
 function spawnTile(
   tiles: Tile[],
   nextId: number,
   rngSeed: number,
+  highestLevel: number,
   preferredCells?: [number, number][],
 ): { tile: Tile; rngSeed: number; nextId: number } | null {
   const free = freeCells(tiles);
@@ -275,13 +294,28 @@ function spawnTile(
 
   const pickRoll = mulberry32Step(rngSeed);
   const idx = Math.min(candidates.length - 1, Math.floor(pickRoll.value * candidates.length));
-  const valueRoll = mulberry32Step(pickRoll.nextState);
-  const level = pickSpawnLevel(valueRoll.value, tiles);
+
+  const bonusRoll = mulberry32Step(pickRoll.nextState);
+  const range = bonusRange(highestLevel);
+
+  let level: number;
+  let nextSeed: number;
+  if (range && bonusRoll.value < BONUS_CHANCE) {
+    const rangeRoll = mulberry32Step(bonusRoll.nextState);
+    const span = range[1] - range[0] + 1;
+    level = range[0] + Math.min(span - 1, Math.floor(rangeRoll.value * span));
+    nextSeed = rangeRoll.nextState;
+  } else {
+    const valueRoll = mulberry32Step(bonusRoll.nextState);
+    level = pickSpawnLevel(valueRoll.value, tiles);
+    nextSeed = valueRoll.nextState;
+  }
+
   const [row, col] = candidates[idx];
 
   return {
     tile: { id: nextId, level, row, col },
-    rngSeed: valueRoll.nextState,
+    rngSeed: nextSeed,
     nextId: nextId + 1,
   };
 }
@@ -295,7 +329,7 @@ function spawnMany(
   let seed = rngSeed;
   let id = nextId;
   for (let i = 0; i < count; i++) {
-    const res = spawnTile(tiles, id, seed);
+    const res = spawnTile(tiles, id, seed, 0);
     if (!res) break;
     tiles = [...tiles, res.tile];
     seed = res.rngSeed;
@@ -382,7 +416,7 @@ export function move(state: GameState, dir: Dir): MoveResult {
   let spawned: Tile | null = null;
   let finalTiles = keptTiles;
 
-  const spawnResult = spawnTile(keptTiles, nextId, rngSeed, edgeCells(dir));
+  const spawnResult = spawnTile(keptTiles, nextId, rngSeed, highestLevel, edgeCells(dir));
   if (spawnResult) {
     spawned = spawnResult.tile;
     finalTiles = [...keptTiles, spawned];
