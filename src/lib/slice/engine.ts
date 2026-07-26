@@ -251,25 +251,11 @@ function edgeCells(dir: Dir): [number, number][] {
   return cells;
 }
 
-/** Quanto ogni tessera di scarto sposta la probabilità verso il gemello mancante (max ±30 punti). */
-const BALANCE_BIAS_PER_TILE = 0.12;
-const MAX_BALANCE_BIAS = 0.3;
-
-// Spawn "di base": PUNTO, 15 o 30 (20% fisso per il 30). PUNTO e 15 si
-// fondono solo fra loro (1 a 1), quindi il restante 80% non è diviso a metà
-// fissa: si guarda quanti PUNTO e quanti 15 sono già sulla board e si
-// favorisce quello più scarso. Senza questo riequilibrio, una sequenza
-// sfortunata di spawn identici (es. sei 15 di fila) blocca la board perché
-// quelle tessere si fondono solo con il loro gemello.
-function pickSpawnLevel(roll: number, tiles: Tile[]): number {
-  if (roll >= 0.8) return 2;
-
-  const count0 = tiles.reduce((n, t) => n + (t.level === 0 ? 1 : 0), 0);
-  const count1 = tiles.reduce((n, t) => n + (t.level === 1 ? 1 : 0), 0);
-  const bias = Math.max(-MAX_BALANCE_BIAS, Math.min(MAX_BALANCE_BIAS, (count0 - count1) * BALANCE_BIAS_PER_TILE));
-  const threshold = (0.5 - bias) * 0.8; // soglia entro il budget 0.8 riservato a PUNTO/15
-
-  return roll < threshold ? 0 : 1;
+// Spawn "di base": PUNTO, 15 e 30 con la stessa probabilità, un terzo ciascuno.
+function pickSpawnLevel(roll: number): number {
+  if (roll < 1 / 3) return 0;
+  if (roll < 2 / 3) return 1;
+  return 2;
 }
 
 /** Probabilità che uno spawn, quando è "sbloccato", sia una tessera bonus invece di PUNTO/15/30. */
@@ -324,7 +310,7 @@ function spawnTile(
     nextSeed = rangeRoll.nextState;
   } else {
     const valueRoll = mulberry32Step(bonusRoll.nextState);
-    level = pickSpawnLevel(valueRoll.value, tiles);
+    level = pickSpawnLevel(valueRoll.value);
     nextSeed = valueRoll.nextState;
   }
 
