@@ -288,7 +288,12 @@ function bonusRange(highestLevel: number): [number, number] | null {
 // bonus dalla lunghezza del mazzo (accorciandolo raddoppierebbe per sbaglio),
 // lo slot entra solo in circa metà dei mazzi: così resta ~1 bonus ogni 25
 // pescate. Quando pescato, si risolve nella finestra bonus corrente.
-const BAG_PER_LEVEL = 4;
+// Composizione del mazzo: quante PUNTO / 15 / 30 per mazzo. PUNTO e 15 restano
+// uguali (dipendenza reciproca: uno spawn sbilanciato accumula l'eccedenza),
+// ma il 30 è favorito — è la proporzione ~30/30/40 osservata nel Threes! reale
+// prima del 48, e il 30 (che si auto-accoppia) alleggerisce l'intasamento da
+// carburante.
+const BAG_COMPOSITION = [3, 3, 4]; // PUNTO, 15, 30
 const BONUS_SLOT = -1;
 const MAX_RUN = 3;
 const BONUS_BAG_CHANCE = 0.5;
@@ -337,7 +342,7 @@ function makeBag(
 
   const base: number[] = [];
   for (let level = 0; level <= 2; level++) {
-    for (let k = 0; k < BAG_PER_LEVEL; k++) base.push(level);
+    for (let k = 0; k < BAG_COMPOSITION[level]; k++) base.push(level);
   }
   if (withBonus) base.push(BONUS_SLOT);
 
