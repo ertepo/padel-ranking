@@ -57,6 +57,10 @@ export interface GameState {
   status: 'playing' | 'won' | 'over';
   /** stato del RNG mulberry32: rende lo spawn deterministico dato un seed. */
   rngSeed: number;
+  /** mazzo delle prossime tessere da spawnare: si pesca dal fondo, si rimescola da vuoto. */
+  bag: number[];
+  /** livello della prossima tessera in uscita, già impegnato: è quello mostrato in anteprima. */
+  nextLevel: number;
 }
 
 /** Esito di una mossa: descrive l'animazione, non solo il risultato. */
@@ -251,16 +255,6 @@ function edgeCells(dir: Dir): [number, number][] {
   return cells;
 }
 
-// Spawn "di base": PUNTO, 15 e 30 con la stessa probabilità, un terzo ciascuno.
-function pickSpawnLevel(roll: number): number {
-  if (roll < 1 / 3) return 0;
-  if (roll < 2 / 3) return 1;
-  return 2;
-}
-
-/** Probabilità che uno spawn, quando è "sbloccato", sia una tessera bonus invece di PUNTO/15/30. */
-const BONUS_CHANCE = 0.12;
-
 /**
  * Come in Threes!: man mano che la tessera più alta raggiunta cresce, iniziano
  * a comparire di tanto in tanto tessere "bonus" già avanzate lungo la scala,
@@ -276,11 +270,143 @@ function bonusRange(highestLevel: number): [number, number] | null {
   return [lo, hi];
 }
 
-function spawnTile(
+// Sistema a "mazzo" (bag) come in Threes!, invece di un RNG puro a ogni mossa:
+// il mazzo contiene un numero fisso di PUNTO/15/30 (più eventualmente una
+// tessera bonus), lo si mescola e lo si pesca fino a esaurirlo, poi si
+// rimescola. Così su ogni mazzo esce esattamente lo stesso numero di ciascuna
+// tessera. Il mazzo è volutamente corto (4 di ciascuna): PUNTO e 15 sono
+// carburante a dipendenza reciproca (PUNTO si fonde solo con 15 e viceversa),
+// e un mazzo lungo può farne uscire troppi di uno prima dell'altro — con 8 di
+// ciascuna si accumulavano fino a 7 PUNTO spaiati. A 4 lo sbilancio massimo
+// scende a 4, così arrivano più interlacciati e si accoppiano prima.
+// Due vincoli tengono corte le serie, come nel Threes! reale (max 3-4):
+//  1) si rimescola finché nessuna tessera compare più di MAX_RUN volte di
+//     fila DENTRO il mazzo;
+//  2) al confine, il mazzo nuovo non può iniziare con la stessa tessera
+//     appena pescata, così nessuna serie attraversa la ricarica.
+// Lo slot bonus è una singola carta. Per non far dipendere la frequenza dei
+// bonus dalla lunghezza del mazzo (accorciandolo raddoppierebbe per sbaglio),
+// lo slot entra solo in circa metà dei mazzi: così resta ~1 bonus ogni 25
+// pescate. Quando pescato, si risolve nella finestra bonus corrente.
+const BAG_PER_LEVEL = 4;
+const BONUS_SLOT = -1;
+const MAX_RUN = 3;
+const BONUS_BAG_CHANCE = 0.5;
+
+function maxRunLength(bag: number[]): number {
+  let max = 1;
+  let run = 1;
+  for (let i = 1; i < bag.length; i++) {
+    run = bag[i] === bag[i - 1] ? run + 1 : 1;
+    if (run > max) max = run;
+  }
+  return max;
+}
+
+function shuffleBag(bag: number[], rngSeed: number): number {
+  let seed = rngSeed;
+  for (let i = bag.length - 1; i > 0; i--) {
+    const roll = mulberry32Step(seed);
+    seed = roll.nextState;
+    const j = Math.floor(roll.value * (i + 1));
+    const tmp = bag[i];
+    bag[i] = bag[j];
+    bag[j] = tmp;
+  }
+  return seed;
+}
+
+// `avoid`: livello appena pescato dal mazzo precedente (o null all'inizio). Il
+// mazzo si pesca dal fondo, quindi la prossima tessera è l'ultima dell'array.
+// `bonusUnlocked`: se il bonus è disponibile; lo slot entra comunque solo in
+// circa metà dei mazzi (BONUS_BAG_CHANCE), per non legarne la frequenza alla
+// lunghezza del mazzo.
+function makeBag(
+  rngSeed: number,
+  bonusUnlocked: boolean,
+  avoid: number | null,
+): { bag: number[]; rngSeed: number } {
+  let seed = rngSeed;
+
+  let withBonus = false;
+  if (bonusUnlocked) {
+    const bonusRoll = mulberry32Step(seed);
+    seed = bonusRoll.nextState;
+    withBonus = bonusRoll.value < BONUS_BAG_CHANCE;
+  }
+
+  const base: number[] = [];
+  for (let level = 0; level <= 2; level++) {
+    for (let k = 0; k < BAG_PER_LEVEL; k++) base.push(level);
+  }
+  if (withBonus) base.push(BONUS_SLOT);
+
+  let bag = base.slice();
+  for (let attempt = 0; attempt < 200; attempt++) {
+    seed = shuffleBag(bag, seed);
+    const runOk = maxRunLength(bag) <= MAX_RUN;
+    const boundaryOk = avoid === null || bag[bag.length - 1] !== avoid;
+    if (runOk && boundaryOk) break;
+    bag = base.slice();
+  }
+  return { bag, rngSeed: seed };
+}
+
+function drawFromBag(
+  bag: number[],
+  rngSeed: number,
+  highestLevel: number,
+): { level: number; bag: number[]; rngSeed: number } {
+  const bonusUnlocked = bonusRange(highestLevel) !== null;
+  let currentBag = bag;
+  let seed = rngSeed;
+
+  // solo alla primissima pescata di una partita (mazzo vuoto, nessun confine)
+  if (currentBag.length === 0) {
+    const refilled = makeBag(seed, bonusUnlocked, null);
+    currentBag = refilled.bag;
+    seed = refilled.rngSeed;
+  }
+
+  const newBag = currentBag.slice();
+  const drawn = newBag.pop() as number;
+
+  let level: number;
+  if (drawn !== BONUS_SLOT) {
+    level = drawn;
+  } else {
+    // slot bonus: si risolve nella finestra bonus corrente (che può solo
+    // crescere, quindi se lo slot è nel mazzo è per forza ancora valido)
+    const range = bonusRange(highestLevel);
+    if (range) {
+      const roll = mulberry32Step(seed);
+      const span = range[1] - range[0] + 1;
+      level = range[0] + Math.min(span - 1, Math.floor(roll.value * span));
+      seed = roll.nextState;
+    } else {
+      level = 2;
+    }
+  }
+
+  // ricarica subito, ora che conosciamo la tessera appena pescata: così il
+  // vincolo di confine tiene e nessuna serie attraversa il confine del mazzo.
+  let outBag = newBag;
+  if (outBag.length === 0) {
+    const refilled = makeBag(seed, bonusUnlocked, level);
+    outBag = refilled.bag;
+    seed = refilled.rngSeed;
+  }
+
+  return { level, bag: outBag, rngSeed: seed };
+}
+
+// Piazza una tessera di livello GIÀ deciso (quello annunciato dall'anteprima)
+// in una cella libera: qui si sceglie solo la posizione, non il valore.
+function placeTile(
   tiles: Tile[],
   nextId: number,
   rngSeed: number,
-  highestLevel: number,
+  level: number,
   preferredCells?: [number, number][],
 ): { tile: Tile; rngSeed: number; nextId: number } | null {
   const free = freeCells(tiles);
@@ -297,48 +423,36 @@ function spawnTile(
 
   const pickRoll = mulberry32Step(rngSeed);
   const idx = Math.min(candidates.length - 1, Math.floor(pickRoll.value * candidates.length));
-
-  const bonusRoll = mulberry32Step(pickRoll.nextState);
-  const range = bonusRange(highestLevel);
-
-  let level: number;
-  let nextSeed: number;
-  if (range && bonusRoll.value < BONUS_CHANCE) {
-    const rangeRoll = mulberry32Step(bonusRoll.nextState);
-    const span = range[1] - range[0] + 1;
-    level = range[0] + Math.min(span - 1, Math.floor(rangeRoll.value * span));
-    nextSeed = rangeRoll.nextState;
-  } else {
-    const valueRoll = mulberry32Step(bonusRoll.nextState);
-    level = pickSpawnLevel(valueRoll.value);
-    nextSeed = valueRoll.nextState;
-  }
-
   const [row, col] = candidates[idx];
 
   return {
     tile: { id: nextId, level, row, col },
-    rngSeed: nextSeed,
+    rngSeed: pickRoll.nextState,
     nextId: nextId + 1,
   };
 }
 
+// Board iniziale: pesca un livello dal mazzo e lo piazza, ripetuto `count` volte.
 function spawnMany(
   count: number,
   rngSeed: number,
   nextId: number,
-): { tiles: Tile[]; rngSeed: number; nextId: number } {
+): { tiles: Tile[]; rngSeed: number; nextId: number; bag: number[] } {
   let tiles: Tile[] = [];
   let seed = rngSeed;
   let id = nextId;
+  let bag: number[] = [];
   for (let i = 0; i < count; i++) {
-    const res = spawnTile(tiles, id, seed, 0);
-    if (!res) break;
-    tiles = [...tiles, res.tile];
-    seed = res.rngSeed;
-    id = res.nextId;
+    const draw = drawFromBag(bag, seed, 0);
+    seed = draw.rngSeed;
+    bag = draw.bag;
+    const placed = placeTile(tiles, id, seed, draw.level);
+    if (!placed) break;
+    tiles = [...tiles, placed.tile];
+    seed = placed.rngSeed;
+    id = placed.nextId;
   }
-  return { tiles, rngSeed: seed, nextId: id };
+  return { tiles, rngSeed: seed, nextId: id, bag };
 }
 
 export function newGame(seed?: number): GameState {
@@ -346,11 +460,15 @@ export function newGame(seed?: number): GameState {
   const countRoll = mulberry32Step(initialSeed);
   const initialCount = 3 + Math.floor(countRoll.value * 4); // 3..6 tessere iniziali
   const spawnResult = spawnMany(initialCount, countRoll.nextState, 1);
+  // prima anteprima: la tessera che uscirà alla prima mossa
+  const firstDraw = drawFromBag(spawnResult.bag, spawnResult.rngSeed, 0);
   return {
     tiles: spawnResult.tiles,
     highestLevel: 0,
     status: 'playing',
-    rngSeed: spawnResult.rngSeed,
+    rngSeed: firstDraw.rngSeed,
+    bag: firstDraw.bag,
+    nextLevel: firstDraw.level,
   };
 }
 
@@ -411,29 +529,50 @@ export function move(state: GameState, dir: Dir): MoveResult {
   }
 
   if (won) {
-    const newState: GameState = { tiles: keptTiles, highestLevel, status: 'won', rngSeed: state.rngSeed };
+    const newState: GameState = {
+      tiles: keptTiles, highestLevel, status: 'won', rngSeed: state.rngSeed, bag: state.bag, nextLevel: state.nextLevel,
+    };
     return { moved: true, slides, removed, created, spawned: null, levelUp, won: true, gameOver: false, state: newState };
   }
 
   let rngSeed = state.rngSeed;
+  let bag = state.bag;
+  let nextLevel = state.nextLevel;
   let spawned: Tile | null = null;
   let finalTiles = keptTiles;
 
-  const spawnResult = spawnTile(keptTiles, nextId, rngSeed, highestLevel, edgeCells(dir));
-  if (spawnResult) {
-    spawned = spawnResult.tile;
+  // spawna la tessera già annunciata dall'anteprima; il valore era deciso,
+  // qui si decide solo dove (bordo opposto allo swipe)
+  const placed = placeTile(keptTiles, nextId, rngSeed, state.nextLevel, edgeCells(dir));
+  if (placed) {
+    spawned = placed.tile;
     finalTiles = [...keptTiles, spawned];
-    rngSeed = spawnResult.rngSeed;
+    rngSeed = placed.rngSeed;
+
+    // la prossima anteprima si pesca dal mazzo VECCHIO: la tessera che era in
+    // coda viene sempre onorata, anche se questa mossa cambia livello
+    const draw = drawFromBag(bag, rngSeed, highestLevel);
+    nextLevel = draw.level;
+    rngSeed = draw.rngSeed;
+    bag = draw.bag;
+
+    // al raggiungimento di un nuovo livello il resto del mazzo si rigenera per
+    // la finestra bonus aggiornata, ma l'anteprima appena pescata resta
+    if (levelUp !== null) {
+      const regen = makeBag(rngSeed, bonusRange(highestLevel) !== null, nextLevel);
+      bag = regen.bag;
+      rngSeed = regen.rngSeed;
+    }
   }
 
   let status: GameState['status'] = 'playing';
   let gameOver = false;
-  if (!canMove({ tiles: finalTiles, highestLevel, status, rngSeed })) {
+  if (!canMove({ tiles: finalTiles, highestLevel, status, rngSeed, bag, nextLevel })) {
     status = 'over';
     gameOver = true;
   }
 
-  const newState: GameState = { tiles: finalTiles, highestLevel, status, rngSeed };
+  const newState: GameState = { tiles: finalTiles, highestLevel, status, rngSeed, bag, nextLevel };
 
   return { moved: true, slides, removed, created, spawned, levelUp, won: false, gameOver, state: newState };
 }

@@ -13,6 +13,7 @@
   let statusText = 'Muovi le tessere con le frecce o con uno swipe.';
   let bump = false;
   let bumpTimeout: ReturnType<typeof setTimeout>;
+  let debugSpawnCount = 0; // DEBUG TEMPORANEO
 
   const NICKNAME_KEY = 'tie-break:slice-nickname';
   const NOMECOGNOME_KEY = 'tie-break:slice-nomecognome';
@@ -70,6 +71,20 @@
     }
   }
 
+  // colore della mini-tessera in anteprima, coerente con SliceBoard
+  function previewBg(level: number): string {
+    if (level <= 1) return 'var(--giallo-paglierino)';
+    if (level === 2) return 'var(--verde-tennis)';
+    if (level === 3) return 'var(--viola-tennis)';
+    if (level >= 4 && level <= 9) return 'white';
+    if (level >= 10 && level <= 12) return 'var(--rosa-salmone)';
+    return 'var(--giallo-club)';
+  }
+
+  function previewText(level: number): string {
+    return level === 2 || level === 3 ? 'white' : 'black';
+  }
+
   async function handleMove(dir: Dir) {
     if (locked || state.status !== 'playing') return;
     const result = move(state, dir);
@@ -78,6 +93,13 @@
     locked = true;
     await boardRef.applyMove(result);
     state = result.state;
+
+    // DEBUG TEMPORANEO: log (livello massimo, tessera entrata) per diagnosi bonus.
+    // Il numero progressivo evita che la console accorpi righe identiche.
+    if (result.spawned) {
+      debugSpawnCount += 1;
+      console.log(`[slice] #${debugSpawnCount} livello=${LABELS[state.highestLevel]} | entrata=${LABELS[result.spawned.level]}`);
+    }
 
     if (result.levelUp !== null) {
       statusText = `${LABELS[result.levelUp]} raggiunto!`;
@@ -127,6 +149,7 @@
     bump = false;
     scoreSaved = false;
     nicknameError = '';
+    debugSpawnCount = 0; // DEBUG TEMPORANEO
   }
 </script>
 
@@ -262,11 +285,27 @@
     {/if}
   </section>
 
-  <div class="flex items-center justify-center gap-3 border-2 border-black bg-white px-4 py-3 max-w-md w-full mx-auto">
-    <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">Livello</span>
-    <span class={`text-2xl font-black leading-none ${bump ? 'slice-bump' : ''}`}>
-      {LABELS[state.highestLevel]}
-    </span>
+  <div class="flex items-stretch justify-center gap-3 max-w-md w-full mx-auto">
+    <div class="flex-1 flex items-center justify-center gap-3 border-2 border-black bg-white px-4 py-3">
+      <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">Livello</span>
+      <span class={`text-2xl font-black leading-none ${bump ? 'slice-bump' : ''}`}>
+        {LABELS[state.highestLevel]}
+      </span>
+    </div>
+
+    <div class="flex items-center gap-2 border-2 border-black bg-white px-3 py-2">
+      <span class="text-[10px] uppercase tracking-widest font-black text-slate-600 leading-tight">Pros<br>sima</span>
+      <div
+        class="flex items-center justify-center border-2 border-black h-12 w-12 shrink-0 font-black text-center leading-none"
+        style={`background:${previewBg(state.nextLevel)};color:${previewText(state.nextLevel)};font-size:${LABELS[state.nextLevel].length > 2 ? 9 : 15}px`}
+      >
+        {#if state.nextLevel === 0}
+          <span class="block h-4 w-4 rounded-full border border-black" style="background:var(--giallo-club)"></span>
+        {:else}
+          {LABELS[state.nextLevel]}
+        {/if}
+      </div>
+    </div>
   </div>
 
   <p class="text-center text-xs font-black uppercase tracking-widest h-4 text-slate-500">
