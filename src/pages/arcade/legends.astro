@@ -1,10 +1,10 @@
 ---
-import Layout from '../layouts/Layout.astro';
-import ScambioGame from '../components/game/ScambioGame.svelte';
-import { supabase } from '../lib/supabase';
-import playersData from '../lib/game/players.json';
-import { buildReplayConfig } from '../lib/game/replay';
-import type { Player } from '../lib/game/matchup';
+import Layout from '../../layouts/Layout.astro';
+import ScambioGame from '../../components/game/ScambioGame.svelte';
+import { supabase } from '../../lib/supabase';
+import playersData from '../../lib/game/players.json';
+import { buildReplayConfig } from '../../lib/game/replay';
+import type { Player } from '../../lib/game/matchup';
 
 const replayId = Astro.url.searchParams.get('replay');
 let replayConfig = null;

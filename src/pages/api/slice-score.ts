@@ -14,7 +14,7 @@ export const POST: APIRoute = async ({ request }) => {
     return Response.json({ error: 'Origine richiesta non valida.' }, { status: 403 });
   }
 
-  let body: { nickname?: unknown; nomecognome?: unknown; points?: unknown };
+  let body: { nickname?: unknown; nomecognome?: unknown; points?: unknown; boardSnapshot?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -24,6 +24,11 @@ export const POST: APIRoute = async ({ request }) => {
   const nickname = typeof body.nickname === 'string' ? body.nickname.trim().slice(0, NICKNAME_MAX_LENGTH) : '';
   const nomecognome = typeof body.nomecognome === 'string' ? body.nomecognome.trim() : '';
   const points = typeof body.points === 'number' && Number.isFinite(body.points) ? Math.round(body.points) : NaN;
+  // 16 valori (livello o vuoto) separati da virgola: vedi src/lib/slice/engine.ts serializeBoard.
+  const boardSnapshot =
+    typeof body.boardSnapshot === 'string' && /^[0-9,]*$/.test(body.boardSnapshot)
+      ? body.boardSnapshot.slice(0, 200)
+      : null;
 
   if (!nickname) {
     return Response.json({ error: 'Nickname mancante.' }, { status: 400 });
@@ -41,7 +46,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   const { data, error } = await supabase
     .from('slice_game_score')
-    .insert({ nickname, points })
+    .insert({ nickname, points, board_snapshot: boardSnapshot })
     .select('id')
     .single();
 

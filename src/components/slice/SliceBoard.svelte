@@ -1,15 +1,21 @@
 <script lang="ts">
   import { createEventDispatcher, onDestroy, onMount } from 'svelte';
   import { LABELS, type Dir, type MoveResult, type Tile } from '../../lib/slice/engine';
+  import { tileBackground, tileTextColor } from '../../lib/slice/tileStyle';
 
   export let initialTiles: Tile[];
+  /** Quando impostata, la board mostra bersagli cliccabili invece di reagire allo swipe. */
+  export let selectMode: 'row' | 'col' | 'value' | null = null;
 
-  const dispatch = createEventDispatcher<{ swipe: Dir }>();
+  const dispatch = createEventDispatcher<{
+    swipe: Dir;
+    select: { row: number } | { col: number } | { level: number };
+  }>();
 
   const SIZE = 4;
   const SLIDE_MS = 80;
 
-  type TileState = 'idle' | 'spawn' | 'pop';
+  type TileState = 'idle' | 'spawn' | 'pop' | 'vanish';
   interface RenderTile extends Tile {
     state: TileState;
   }
@@ -50,22 +56,6 @@
     return Math.round(cell * 0.42);
   }
 
-  // colore e testo per livello: PUNTO (pallina), 15, 30, 40, GAME, SET, MATCH.
-  // PUNTO e 15 sono entrambi gialli: è un indizio visivo che si fondono solo fra loro.
-  function tileBackground(level: number): string {
-    if (level === 0 || level === 1) return 'var(--giallo-paglierino)';
-    if (level === 2) return 'var(--verde-tennis)';
-    if (level === 3) return 'var(--viola-tennis)';
-    if (level >= 4 && level <= 9) return 'white';
-    if (level >= 10 && level <= 12) return 'var(--rosa-salmone)';
-    return 'var(--giallo-club)'; // MATCH
-  }
-
-  function tileTextColor(level: number): string {
-    if (level === 2 || level === 3) return 'white';
-    return 'black';
-  }
-
   function ballBackground(): string {
     return 'var(--giallo-club)';
   }
@@ -93,6 +83,31 @@
     renderTiles = renderTiles.map((t) => ({ ...t, state: 'idle' }));
   }
 
+  /**
+   * Da chiamare dopo un potere che cancella tessere (riga/colonna/valore): a
+   * differenza di applyMove, nessuna tessera scorre, alcune spariscono e
+   * basta. Le tessere rimaste sono già passate come `remainingTiles` (stesso
+   * riferimento id): senza questa sincronizzazione esplicita `renderTiles`
+   * (interno, aggiornato solo qui e in applyMove) continuerebbe a mostrare
+   * quelle cancellate come "fantasmi" finché una nuova tessera non ne
+   * riusasse per caso la stessa cella.
+   */
+  export async function applyPowerClear(remainingTiles: Tile[]) {
+    const remainingIds = new Set(remainingTiles.map((t) => t.id));
+    renderTiles = renderTiles.map((t) =>
+      remainingIds.has(t.id) ? t : { ...t, state: 'vanish' },
+    );
+
+    await wait(160);
+
+    renderTiles = remainingTiles.map((t) => ({ ...t, state: 'idle' }));
+  }
+
+  /** Sincronizzazione istantanea (senza animazione): usata per l'undo. */
+  export function syncTiles(tiles: Tile[]) {
+    renderTiles = tiles.map((t) => ({ ...t, state: 'idle' }));
+  }
+
   let touchStart: { x: number; y: number } | null = null;
   const SWIPE_THRESHOLD = 24;
 
@@ -107,6 +122,10 @@
 
   function onTouchEnd(e: TouchEvent) {
     if (!touchStart) return;
+    if (selectMode) {
+      touchStart = null;
+      return;
+    }
     const t = e.changedTouches[0];
     const dx = t.clientX - touchStart.x;
     const dy = t.clientY - touchStart.y;
@@ -139,7 +158,7 @@
       <div
         class={`absolute flex items-center justify-center border-2 border-black font-black text-center transition-transform duration-[80ms] ease-out ${
           tile.state === 'spawn' ? 'tile-spawn' : ''
-        } ${tile.state === 'pop' ? 'tile-pop' : ''}`}
+        } ${tile.state === 'pop' ? 'tile-pop' : ''} ${tile.state === 'vanish' ? 'tile-vanish' : ''}`}
         style={`width:${cell}px;height:${cell}px;font-size:${fontSize(tile.level)}px;background:${tileBackground(tile.level)};color:${tileTextColor(tile.level)};--pos:translate(${pos(tile.col)}px,${pos(tile.row)}px);transform:var(--pos)`}
       >
         {#if tile.level === 0}
@@ -158,6 +177,38 @@
         {/if}
       </div>
     {/each}
+
+    {#if selectMode === 'row'}
+      {#each Array(SIZE) as _, r}
+        <button
+          type="button"
+          class="select-overlay absolute"
+          style={`left:0px;top:${pos(r)}px;width:100%;height:${cell}px`}
+          on:click={() => dispatch('select', { row: r })}
+          aria-label={`Cancella riga ${r + 1}`}
+        ></button>
+      {/each}
+    {:else if selectMode === 'col'}
+      {#each Array(SIZE) as _, c}
+        <button
+          type="button"
+          class="select-overlay absolute"
+          style={`top:0px;left:${pos(c)}px;height:100%;width:${cell}px`}
+          on:click={() => dispatch('select', { col: c })}
+          aria-label={`Cancella colonna ${c + 1}`}
+        ></button>
+      {/each}
+    {:else if selectMode === 'value'}
+      {#each renderTiles as tile (tile.id)}
+        <button
+          type="button"
+          class="select-overlay-tile absolute"
+          style={`width:${cell}px;height:${cell}px;left:${pos(tile.col)}px;top:${pos(tile.row)}px`}
+          on:click={() => dispatch('select', { level: tile.level })}
+          aria-label={`Cancella tutte le tessere ${LABELS[tile.level]}`}
+        ></button>
+      {/each}
+    {/if}
   </div>
 </div>
 
@@ -168,12 +219,34 @@
   @keyframes slice-pop {
     50% { transform: var(--pos) scale(1.16); }
   }
+  @keyframes slice-vanish {
+    to { transform: var(--pos) scale(0.3); opacity: 0; }
+  }
   .tile-spawn { animation: slice-spawn 160ms ease-out; }
   .tile-pop { animation: slice-pop 180ms ease-out; }
+  .tile-vanish { animation: slice-vanish 160ms ease-in forwards; }
   .slice-ball {
     display: block;
     border-radius: 9999px;
     border: 1px solid black;
+  }
+  .select-overlay,
+  .select-overlay-tile {
+    padding: 0;
+    background: rgba(220, 38, 38, 0);
+    border: none;
+    cursor: pointer;
+    transition: background 100ms ease;
+  }
+  .select-overlay:hover,
+  .select-overlay:focus-visible {
+    background: rgba(220, 38, 38, 0.25);
+  }
+  .select-overlay-tile:hover,
+  .select-overlay-tile:focus-visible {
+    background: rgba(220, 38, 38, 0.35);
+    outline: 3px solid black;
+    outline-offset: -3px;
   }
   @media (prefers-reduced-motion: reduce) {
     * { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }

@@ -1,8 +1,34 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import { slide } from 'svelte/transition';
-  import { LABELS, MAX_LEVEL, move, newGame, score, type Dir, type GameState } from '../../lib/slice/engine';
+  import {
+    LABELS,
+    MAX_LEVEL,
+    activatePower,
+    canUsePower,
+    clearColumn,
+    clearRow,
+    clearValue,
+    move,
+    movesUntilPower,
+    newGame,
+    score,
+    serializeBoard,
+    type Dir,
+    type GameState,
+    type PowerType,
+  } from '../../lib/slice/engine';
   import SliceBoard from './SliceBoard.svelte';
+  import IconClearRow from './icons/IconClearRow.svelte';
+  import IconClearColumn from './icons/IconClearColumn.svelte';
+  import IconClearValue from './icons/IconClearValue.svelte';
+  import IconUndo from './icons/IconUndo.svelte';
+
+  // Feature flag temporaneo: i poteri sono implementati e funzionanti, ma non
+  // ancora pronti per essere usati dai giocatori. Tenerli nascosti (non solo
+  // disabilitati) evita di mostrare una feature a metà durante il rilascio;
+  // per riattivarli basta girare questo flag, tutta la logica resta intatta.
+  const POWERS_ENABLED = false;
 
   let state: GameState = newGame();
   let resetCount = 0;
@@ -10,7 +36,101 @@
   let boardRef: SliceBoard;
   let rulesOpen = false;
 
-  let statusText = 'Muovi le tessere con le frecce o con uno swipe.';
+  // Su mobile la board deve comparire subito, senza dover scorrere oltre
+  // titolo/descrizione/nickname: si parte da una schermata di setup e si
+  // passa alla board solo al click, cambiando il DOM nella stessa pagina
+  // (stesso pattern usato in ScambioGame per il Legends Game).
+  let started = false;
+
+  function startGame() {
+    newMatch();
+    started = true;
+    if (typeof window !== 'undefined') window.scrollTo(0, 0);
+  }
+
+  function exitGame() {
+    started = false;
+    if (typeof window !== 'undefined') window.scrollTo(0, 0);
+  }
+
+  // Nasconde il footer durante il gioco: sulla board una tessera del gioco
+  // può capitare vicino al bordo inferiore, e lo swipe rischia di scrollare
+  // fino al footer invece di muovere le tessere (stesso accorgimento usato
+  // in ScambioGame per la fase 'playing').
+  $: if (typeof document !== 'undefined') {
+    const footer = document.querySelector('footer');
+    if (footer) footer.style.display = started ? 'none' : '';
+  }
+
+  // Poteri: 'undo' scatta subito, gli altri tre aprono una selezione sulla
+  // board (riga/colonna/tessera da colpire). `previousState` è lo stato
+  // com'era prima dell'ultima azione (mossa o potere), unico livello di undo.
+  let previousState: GameState | null = null;
+  let pendingPower: Exclude<PowerType, 'undo'> | null = null;
+
+  const POWER_SELECT_MODE: Record<Exclude<PowerType, 'undo'>, 'row' | 'col' | 'value'> = {
+    clearRow: 'row',
+    clearCol: 'col',
+    clearValue: 'value',
+  };
+
+  const POWER_HINTS: Record<Exclude<PowerType, 'undo'>, string> = {
+    clearRow: 'Tocca una riga da cancellare',
+    clearCol: 'Tocca una colonna da cancellare',
+    clearValue: 'Tocca una tessera: cancella tutte quelle uguali',
+  };
+
+  function startPower(power: PowerType) {
+    if (locked || state.status !== 'playing' || !canUsePower(state, power)) return;
+    if (power === 'undo') {
+      doUndo();
+      return;
+    }
+    pendingPower = pendingPower === power ? null : power;
+  }
+
+  function cancelPower() {
+    pendingPower = null;
+  }
+
+  function doUndo() {
+    if (!previousState) return;
+    const reverted = activatePower(previousState, 'undo');
+    previousState = null;
+    pendingPower = null;
+    boardRef.syncTiles(reverted.tiles);
+    state = reverted;
+    statusText = 'Ultima mossa annullata.';
+    showDefaultHint = false;
+  }
+
+  async function onBoardSelect(e: CustomEvent<{ row?: number; col?: number; level?: number }>) {
+    if (!pendingPower || locked) return;
+    const power = pendingPower;
+    let next: GameState | null = null;
+    if (power === 'clearRow' && e.detail.row !== undefined) {
+      next = clearRow(state, e.detail.row);
+    } else if (power === 'clearCol' && e.detail.col !== undefined) {
+      next = clearColumn(state, e.detail.col);
+    } else if (power === 'clearValue' && e.detail.level !== undefined) {
+      next = clearValue(state, e.detail.level);
+    }
+    if (!next) return;
+
+    pendingPower = null;
+    locked = true;
+    await boardRef.applyPowerClear(next.tiles);
+    previousState = state;
+    state = activatePower(next, power);
+    statusText = 'Tessere rimosse dal campo.';
+    showDefaultHint = false;
+    locked = false;
+
+    if (state.status !== 'playing') submitScore();
+  }
+
+  let statusText = '';
+  let showDefaultHint = true;
   let bump = false;
   let bumpTimeout: ReturnType<typeof setTimeout>;
   let debugSpawnCount = 0; // DEBUG TEMPORANEO
@@ -56,6 +176,7 @@
           nickname: nickname.trim(),
           nomecognome: nomecognome.trim(),
           points: score(state.tiles),
+          boardSnapshot: serializeBoard(state.tiles),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -86,12 +207,13 @@
   }
 
   async function handleMove(dir: Dir) {
-    if (locked || state.status !== 'playing') return;
+    if (locked || state.status !== 'playing' || pendingPower) return;
     const result = move(state, dir);
     if (!result.moved) return;
 
     locked = true;
     await boardRef.applyMove(result);
+    previousState = state;
     state = result.state;
 
     // DEBUG TEMPORANEO: log (livello massimo, tessera entrata) per diagnosi bonus.
@@ -103,11 +225,12 @@
 
     if (result.levelUp !== null) {
       statusText = `${LABELS[result.levelUp]} raggiunto!`;
+      showDefaultHint = false;
       bump = true;
       clearTimeout(bumpTimeout);
       bumpTimeout = setTimeout(() => (bump = false), 350);
     } else if (state.status === 'playing') {
-      statusText = 'Muovi le tessere con le frecce o con uno swipe.';
+      showDefaultHint = true;
     }
 
     locked = false;
@@ -125,6 +248,10 @@
   function onKeydown(e: KeyboardEvent) {
     const target = e.target as HTMLElement | null;
     if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) return;
+    if (pendingPower) {
+      if (e.key === 'Escape') cancelPower();
+      return;
+    }
     const dir = KEY_DIRS[e.key];
     if (!dir) return;
     e.preventDefault();
@@ -138,6 +265,10 @@
 
   onDestroy(() => {
     clearTimeout(bumpTimeout);
+    if (typeof document !== 'undefined') {
+      const footer = document.querySelector('footer');
+      if (footer) footer.style.display = '';
+    }
     if (typeof window === 'undefined') return;
     window.removeEventListener('keydown', onKeydown);
   });
@@ -145,15 +276,19 @@
   function newMatch() {
     state = newGame();
     resetCount += 1;
-    statusText = 'Muovi le tessere con le frecce o con uno swipe.';
+    statusText = '';
+    showDefaultHint = true;
     bump = false;
     scoreSaved = false;
     nicknameError = '';
     debugSpawnCount = 0; // DEBUG TEMPORANEO
+    previousState = null;
+    pendingPower = null;
   }
 </script>
 
 <div class="flex flex-col gap-4">
+{#if !started}
   <section class="mb-2">
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">Tennis</p>
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Slice</h1>
@@ -283,80 +418,214 @@
     {:else if nicknameError}
       <p class="mt-2 text-xs font-black uppercase tracking-widest text-[var(--rosso-padel)]">{nicknameError}</p>
     {/if}
-  </section>
 
-  <div class="flex items-stretch justify-center gap-3 max-w-md w-full mx-auto">
-    <div class="flex-1 flex items-center justify-center gap-3 border-2 border-black bg-white px-4 py-3">
-      <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">Livello</span>
+    <div class="flex justify-center mt-6">
+      <button
+        type="button"
+        class="club-btn-yellow px-8 py-4 text-lg font-black uppercase tracking-widest"
+        on:click={startGame}
+      >
+        Inizia gioco
+      </button>
+    </div>
+  </section>
+{:else}
+  {#snippet nextPreview()}
+    <div
+      class="next-tile flex items-center justify-center border-2 border-black h-9 w-9 lg:h-16 lg:w-16 shrink-0 font-black text-center leading-none"
+      style={`background:${previewBg(state.nextLevel)};color:${previewText(state.nextLevel)};--fs-mobile:${LABELS[state.nextLevel].length > 2 ? 8 : 13}px;--fs-desktop:${LABELS[state.nextLevel].length > 2 ? 15 : 24}px`}
+    >
+      {#if state.nextLevel === 0}
+        <span class="block h-3.5 w-3.5 lg:h-6 lg:w-6 rounded-full border border-black" style="background:var(--giallo-club)"></span>
+      {:else}
+        {LABELS[state.nextLevel]}
+      {/if}
+    </div>
+  {/snippet}
+
+  {#snippet powerButtons()}
+    <button
+      type="button"
+      class="club-btn w-full px-1 py-2 text-[11px] font-black uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed"
+      disabled={locked || state.status !== 'playing' || !canUsePower(state, 'clearRow')}
+      aria-pressed={pendingPower === 'clearRow'}
+      on:click={() => startPower('clearRow')}
+    >
+      <span class="block w-9 h-9 mx-auto"><IconClearRow /></span>
+      Riga
+      {#if !canUsePower(state, 'clearRow')}
+        <span class="block text-[10px] font-bold normal-case">{movesUntilPower(state, 'clearRow')} mosse</span>
+      {/if}
+    </button>
+
+    <button
+      type="button"
+      class="club-btn w-full px-1 py-2 text-[11px] font-black uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed"
+      disabled={locked || state.status !== 'playing' || !canUsePower(state, 'clearCol')}
+      aria-pressed={pendingPower === 'clearCol'}
+      on:click={() => startPower('clearCol')}
+    >
+      <span class="block w-9 h-9 mx-auto"><IconClearColumn /></span>
+      Colonna
+      {#if !canUsePower(state, 'clearCol')}
+        <span class="block text-[10px] font-bold normal-case">{movesUntilPower(state, 'clearCol')} mosse</span>
+      {/if}
+    </button>
+
+    <button
+      type="button"
+      class="club-btn w-full px-1 py-2 text-[11px] font-black uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed"
+      disabled={locked || state.status !== 'playing' || !canUsePower(state, 'clearValue')}
+      aria-pressed={pendingPower === 'clearValue'}
+      on:click={() => startPower('clearValue')}
+    >
+      <span class="block w-9 h-9 mx-auto"><IconClearValue /></span>
+      Valore
+      {#if !canUsePower(state, 'clearValue')}
+        <span class="block text-[10px] font-bold normal-case">{movesUntilPower(state, 'clearValue')} mosse</span>
+      {/if}
+    </button>
+
+    <button
+      type="button"
+      class="club-btn w-full px-1 py-2 text-[11px] font-black uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed"
+      disabled={locked || state.status !== 'playing' || !previousState || !canUsePower(state, 'undo')}
+      on:click={() => startPower('undo')}
+    >
+      <span class="block w-9 h-9 mx-auto"><IconUndo /></span>
+      Annulla
+      {#if canUsePower(state, 'undo') === false}
+        <span class="block text-[10px] font-bold normal-case">{movesUntilPower(state, 'undo')} mosse</span>
+      {/if}
+    </button>
+  {/snippet}
+
+  <!-- Mobile: barra fissa sotto la navbar (Esci / Punti / Prossima) -->
+  <div class="lg:hidden fixed inset-x-0 top-14 z-40 flex h-14 items-center justify-between border-b-2 border-black bg-white px-4">
+    <button
+      type="button"
+      class="club-btn px-2 py-1.5 text-[11px] font-black uppercase tracking-widest"
+      on:click={exitGame}
+    >
+      ← Esci
+    </button>
+
+    <div class="flex items-baseline gap-1">
+      <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">PT:</span>
       <span class={`text-2xl font-black leading-none ${bump ? 'slice-bump' : ''}`}>
-        {LABELS[state.highestLevel]}
+        {score(state.tiles)}
       </span>
     </div>
 
-    <div class="flex items-center gap-2 border-2 border-black bg-white px-3 py-2">
-      <span class="text-[10px] uppercase tracking-widest font-black text-slate-600 leading-tight">Pros<br>sima</span>
-      <div
-        class="flex items-center justify-center border-2 border-black h-12 w-12 shrink-0 font-black text-center leading-none"
-        style={`background:${previewBg(state.nextLevel)};color:${previewText(state.nextLevel)};font-size:${LABELS[state.nextLevel].length > 2 ? 9 : 15}px`}
-      >
-        {#if state.nextLevel === 0}
-          <span class="block h-4 w-4 rounded-full border border-black" style="background:var(--giallo-club)"></span>
-        {:else}
-          {LABELS[state.nextLevel]}
-        {/if}
-      </div>
+    <div class="flex items-center gap-2">
+      <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">NEXT:</span>
+      {@render nextPreview()}
     </div>
   </div>
 
-  <p class="text-center text-xs font-black uppercase tracking-widest h-4 text-slate-500">
-    {statusText}
-  </p>
+  <div class="lg:hidden h-12" aria-hidden="true"></div>
 
-  <div class="relative max-w-md w-full mx-auto">
-    {#key resetCount}
-      <SliceBoard bind:this={boardRef} initialTiles={state.tiles} on:swipe={(e) => handleMove(e.detail)} />
-    {/key}
+  {#if pendingPower}
+    <p class="flex items-center justify-center gap-2 text-center text-xs font-black uppercase tracking-widest h-4 text-slate-700">
+      <span>{POWER_HINTS[pendingPower]}</span>
+      <button type="button" class="underline underline-offset-2" on:click={cancelPower}>Annulla</button>
+    </p>
+  {:else if showDefaultHint}
+    <p class="text-center text-xs font-black uppercase tracking-widest h-4 text-slate-500">
+      <span class="lg:hidden">Muovi le tessere con uno swipe.</span>
+      <span class="hidden lg:inline">Muovi le tessere con le frecce.</span>
+    </p>
+  {:else}
+    <p class="text-center text-xs font-black uppercase tracking-widest h-4 text-slate-500">
+      {statusText}
+    </p>
+  {/if}
 
-    {#if state.status !== 'playing'}
-      <div class="absolute inset-4 flex flex-col items-center justify-center gap-3 bg-black/90 border-2 border-black p-6 text-center">
-        <p
-          class="font-black text-3xl uppercase tracking-widest"
-          style={`color:${state.status === 'won' ? 'var(--verde-tennis)' : 'var(--rosso-padel)'}`}
-        >
-          {state.status === 'won' ? 'Hai vinto!' : 'Game over'}
-        </p>
-        <p class="font-black text-xl text-white">Livello raggiunto: {LABELS[state.highestLevel]}</p>
-        <p class="font-black text-lg" style="color: var(--giallo-club)">Punti: {score(state.tiles)}</p>
-        <p class="text-xs font-semibold text-slate-300 max-w-xs">
-          {state.status === 'won'
-            ? `Hai completato il ${LABELS[MAX_LEVEL]}.`
-            : 'Nessuna mossa possibile.'}
-        </p>
-        {#if scoreSaved}
-          <p class="text-xs font-black uppercase tracking-widest" style="color: var(--verde-tennis)">
-            Punteggio salvato!
+  <div class="flex flex-col items-center gap-4 lg:flex-row lg:items-start lg:justify-center lg:gap-6">
+    <!-- Desktop: colonna sinistra (Esci / Punti / Prossima) -->
+    <div class="hidden lg:flex lg:w-40 lg:flex-col lg:gap-3">
+      <button
+        type="button"
+        class="club-btn w-full px-3 py-3 text-xs font-black uppercase tracking-widest"
+        on:click={exitGame}
+      >
+        ← Esci
+      </button>
+
+      <div class="border-2 border-black bg-white px-3 py-3 text-center">
+        <div class="text-[10px] uppercase tracking-widest font-black text-slate-600">Punti</div>
+        <div class={`text-2xl font-black leading-none ${bump ? 'slice-bump' : ''}`}>
+          {score(state.tiles)}
+        </div>
+      </div>
+
+      <div class="flex flex-col items-center gap-2 border-2 border-black bg-white px-3 py-3">
+        <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">Prossima</span>
+        {@render nextPreview()}
+      </div>
+    </div>
+
+    <!-- Board -->
+    <div class="relative max-w-md w-full mx-auto lg:mx-0 lg:shrink-0">
+      {#key resetCount}
+        <SliceBoard
+          bind:this={boardRef}
+          initialTiles={state.tiles}
+          selectMode={pendingPower ? POWER_SELECT_MODE[pendingPower] : null}
+          on:swipe={(e) => handleMove(e.detail)}
+          on:select={onBoardSelect}
+        />
+      {/key}
+
+      {#if state.status !== 'playing'}
+        <div class="absolute inset-4 flex flex-col items-center justify-center gap-3 bg-black/90 border-2 border-black p-6 text-center">
+          <p
+            class="font-black text-3xl uppercase tracking-widest"
+            style={`color:${state.status === 'won' ? 'var(--verde-tennis)' : 'var(--rosso-padel)'}`}
+          >
+            {state.status === 'won' ? 'Hai vinto!' : 'Game over'}
           </p>
-        {:else if nicknameError}
-          <p class="text-xs font-black uppercase tracking-widest text-[var(--rosso-padel)]">{nicknameError}</p>
-        {/if}
-        <button
-          type="button"
-          class="club-btn-yellow mt-2 px-6 py-3 font-black uppercase tracking-widest"
-          on:click={newMatch}
-        >
-          Nuova partita
-        </button>
+          <p class="font-black text-xl text-white">Livello raggiunto: {LABELS[state.highestLevel]}</p>
+          <p class="font-black text-lg" style="color: var(--giallo-club)">Punti: {score(state.tiles)}</p>
+          <p class="text-xs font-semibold text-slate-300 max-w-xs">
+            {state.status === 'won'
+              ? `Hai completato il ${LABELS[MAX_LEVEL]}.`
+              : 'Nessuna mossa possibile.'}
+          </p>
+          {#if scoreSaved}
+            <p class="text-xs font-black uppercase tracking-widest" style="color: var(--verde-tennis)">
+              Punteggio salvato!
+            </p>
+          {:else if nicknameError}
+            <p class="text-xs font-black uppercase tracking-widest text-[var(--rosso-padel)]">{nicknameError}</p>
+          {/if}
+          <button
+            type="button"
+            class="club-btn-yellow mt-2 px-6 py-3 font-black uppercase tracking-widest"
+            on:click={newMatch}
+          >
+            Nuova partita
+          </button>
+        </div>
+      {/if}
+    </div>
+
+    <!-- Desktop: colonna destra (poteri) -->
+    {#if POWERS_ENABLED}
+      <div class="hidden lg:flex lg:w-32 lg:flex-col lg:gap-3">
+        {@render powerButtons()}
       </div>
     {/if}
   </div>
 
-  <div class="flex justify-center">
-    <button type="button" class="club-btn px-6 py-3 font-black uppercase tracking-widest" on:click={newMatch}>
-      Nuova partita
-    </button>
-  </div>
+  <!-- Mobile: poteri in riga sotto la board -->
+  {#if POWERS_ENABLED}
+    <div class="lg:hidden grid grid-cols-4 gap-2 max-w-md w-full mx-auto">
+      {@render powerButtons()}
+    </div>
+  {/if}
+{/if}
 </div>
-
 <style>
   @keyframes slice-bump {
     0% { transform: scale(1); }
@@ -366,5 +635,13 @@
   .slice-bump {
     display: inline-block;
     animation: slice-bump 0.35s ease;
+  }
+  .next-tile {
+    font-size: var(--fs-mobile);
+  }
+  @media (min-width: 1024px) {
+    .next-tile {
+      font-size: var(--fs-desktop);
+    }
   }
 </style>

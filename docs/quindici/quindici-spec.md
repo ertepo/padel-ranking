@@ -99,11 +99,11 @@ verso un avversario: il campo resta fermo nella posizione finale.
 src/lib/quindici/engine.ts                    logica pura, zero DOM, zero Svelte
 src/components/quindici/QuindiciBoard.svelte  griglia, tessere, animazioni, swipe
 src/components/quindici/QuindiciGame.svelte   indicatore di livello, regole, input, stato partita
-src/pages/game/quindici.astro                 pagina, con <QuindiciGame client:load />
+src/pages/arcade/quindici.astro                pagina, con <QuindiciGame client:load />
 ```
 
-(`/game` e `/game/classifica` sono già le route del gioco esistente sul sito:
-Quindici segue la stessa convenzione invece di una cartella `/giochi` a parte.)
+(`/arcade/legends` e `/arcade/classifica` sono già le route del gioco esistente sul sito:
+Quindici segue la stessa convenzione, tutti i giochi arcade vivono sotto `/arcade`.)
 
 ### API dell'engine
 

@@ -151,7 +151,7 @@
 
   async function shareMatch() {
     if (!lastScoreId) return;
-    const url = `${window.location.origin}/game?replay=${lastScoreId}`;
+    const url = `${window.location.origin}/arcade/legends?replay=${lastScoreId}`;
 
     if (navigator.share) {
       try {
@@ -360,7 +360,7 @@
           <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
         </svg>
       </button>
-      <a href="/game/classifica" class="club-btn px-6 py-3 font-black uppercase tracking-widest text-center">
+      <a href="/arcade/classifica" class="club-btn px-6 py-3 font-black uppercase tracking-widest text-center">
           Classifica
         </a>
 
@@ -442,7 +442,7 @@
 
       <p class="mt-2 max-w-xl text-xs font-bold text-slate-500">
         La prima volta abbina il nickname a nome e cognome, così resta solo tuo: solo il nickname compare nella
-        <a href="/game/classifica" class="underline hover:text-black">classifica</a> insieme al punteggio.
+        <a href="/arcade/classifica" class="underline hover:text-black">classifica</a> insieme al punteggio.
       </p>
 
       {#if checkingNickname}
@@ -584,7 +584,7 @@
         <button type="button" class="club-btn px-6 py-3 font-black uppercase tracking-widest" on:click={startMatch}>
           Nuova partita
         </button>
-        <a href="/game/classifica" class="club-btn px-6 py-3 font-black uppercase tracking-widest text-center">
+        <a href="/arcade/classifica" class="club-btn px-6 py-3 font-black uppercase tracking-widest text-center">
           Classifica
         </a>
       </div>

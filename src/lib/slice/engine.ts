@@ -61,6 +61,20 @@ export interface GameState {
   bag: number[];
   /** livello della prossima tessera in uscita, già impegnato: è quello mostrato in anteprima. */
   nextLevel: number;
+  /** mosse (swipe) effettuate finora: fa avanzare la ricarica dei poteri. */
+  moveCount: number;
+  /** per ciascun potere, il moveCount a partire dal quale torna disponibile. */
+  powerCooldowns: Record<PowerType, number>;
+}
+
+/** I quattro poteri: cancella riga/colonna/valore, o annulla l'ultima azione. */
+export type PowerType = 'clearRow' | 'clearCol' | 'clearValue' | 'undo';
+
+/** Mosse necessarie perché un potere torni disponibile dopo l'uso. */
+export const POWER_COOLDOWN_MOVES = 50;
+
+function initialPowerCooldowns(): Record<PowerType, number> {
+  return { clearRow: 0, clearCol: 0, clearValue: 0, undo: 0 };
 }
 
 /** Esito di una mossa: descrive l'animazione, non solo il risultato. */
@@ -77,6 +91,8 @@ export interface MoveResult {
 }
 
 const SIZE = 4;
+/** Lato della griglia: esposto per chi deve leggere/scrivere una board snapshot dall'esterno. */
+export const BOARD_SIZE = SIZE;
 
 /**
  * PUNTO (0) e 15 (1) si comportano come l'1 e il 2 di Threes!: non si sommano
@@ -474,6 +490,8 @@ export function newGame(seed?: number): GameState {
     rngSeed: firstDraw.rngSeed,
     bag: firstDraw.bag,
     nextLevel: firstDraw.level,
+    moveCount: 0,
+    powerCooldowns: initialPowerCooldowns(),
   };
 }
 
@@ -536,6 +554,7 @@ export function move(state: GameState, dir: Dir): MoveResult {
   if (won) {
     const newState: GameState = {
       tiles: keptTiles, highestLevel, status: 'won', rngSeed: state.rngSeed, bag: state.bag, nextLevel: state.nextLevel,
+      moveCount: state.moveCount + 1, powerCooldowns: state.powerCooldowns,
     };
     return { moved: true, slides, removed, created, spawned: null, levelUp, won: true, gameOver: false, state: newState };
   }
@@ -577,7 +596,81 @@ export function move(state: GameState, dir: Dir): MoveResult {
     gameOver = true;
   }
 
-  const newState: GameState = { tiles: finalTiles, highestLevel, status, rngSeed, bag, nextLevel };
+  const newState: GameState = {
+    tiles: finalTiles, highestLevel, status, rngSeed, bag, nextLevel,
+    moveCount: state.moveCount + 1, powerCooldowns: state.powerCooldowns,
+  };
 
   return { moved: true, slides, removed, created, spawned, levelUp, won: false, gameOver, state: newState };
+}
+
+// --- Poteri --------------------------------------------------------------
+// Non consumano una mossa (non pescano dal mazzo, non fanno avanzare
+// moveCount): agiscono solo sulle tessere già in campo. Come una mossa,
+// possono chiudere la partita se dopo la cancellazione non resta più nessuna
+// mossa possibile.
+function afterPowerClear(state: GameState, tiles: Tile[]): GameState {
+  const next: GameState = { ...state, tiles };
+  if (next.status === 'playing' && !canMove(next)) {
+    return { ...next, status: 'over' };
+  }
+  return next;
+}
+
+/** Cancella tutte le tessere sulla riga indicata. */
+export function clearRow(state: GameState, row: number): GameState {
+  return afterPowerClear(state, state.tiles.filter((t) => t.row !== row));
+}
+
+/** Cancella tutte le tessere sulla colonna indicata. */
+export function clearColumn(state: GameState, col: number): GameState {
+  return afterPowerClear(state, state.tiles.filter((t) => t.col !== col));
+}
+
+/** Cancella tutte le tessere del livello indicato, ovunque siano sul campo. */
+export function clearValue(state: GameState, level: number): GameState {
+  return afterPowerClear(state, state.tiles.filter((t) => t.level !== level));
+}
+
+/** Un potere è disponibile quando le mosse fatte hanno superato la sua ricarica. */
+export function canUsePower(state: GameState, power: PowerType): boolean {
+  return state.moveCount >= state.powerCooldowns[power];
+}
+
+/** Mosse ancora necessarie prima che il potere torni disponibile (0 se già pronto). */
+export function movesUntilPower(state: GameState, power: PowerType): number {
+  return Math.max(0, state.powerCooldowns[power] - state.moveCount);
+}
+
+/** Da chiamare dopo aver applicato l'effetto di un potere: lo rimanda in ricarica. */
+export function activatePower(state: GameState, power: PowerType): GameState {
+  return {
+    ...state,
+    powerCooldowns: { ...state.powerCooldowns, [power]: state.moveCount + POWER_COOLDOWN_MOVES },
+  };
+}
+
+// --- Board snapshot --------------------------------------------------------
+// Rappresentazione testuale della board a fine partita, salvata a corredo del
+// punteggio per poterla ridisegnare altrove (es. un "replay" statico in
+// classifica) senza portarsi dietro l'intero GameState. Celle lette riga per
+// riga a partire dall'angolo in alto a sinistra, livello (indice in LABELS)
+// separato da virgola, cella vuota = campo vuoto tra due virgole.
+
+/** Es. "0,,2,,4,5,,,,,,,,,,": 16 valori, uno per cella, riga per riga da in alto a sinistra. */
+export function serializeBoard(tiles: Tile[]): string {
+  const grid: (number | null)[] = new Array(SIZE * SIZE).fill(null);
+  for (const t of tiles) grid[t.row * SIZE + t.col] = t.level;
+  return grid.map((level) => (level === null ? '' : String(level))).join(',');
+}
+
+/** Inverso di serializeBoard: un array di 16 livelli (o null per cella vuota), riga per riga. */
+export function parseBoardSnapshot(snapshot: string): (number | null)[] {
+  const parts = snapshot.split(',');
+  return Array.from({ length: SIZE * SIZE }, (_, i) => {
+    const raw = parts[i];
+    if (raw === undefined || raw === '') return null;
+    const level = Number(raw);
+    return Number.isInteger(level) && level >= 0 && level <= MAX_LEVEL ? level : null;
+  });
 }

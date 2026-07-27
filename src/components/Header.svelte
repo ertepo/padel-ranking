@@ -243,7 +243,7 @@
             class="absolute right-0 top-full mt-3 flex min-w-56 flex-col gap-3 border-2 border-black bg-blue-100/45 p-5 pl-6 shadow-2xl backdrop-blur-xl backdrop-saturate-150"
           >
             <a
-              href="/game"
+              href="/arcade/legends"
               class="club-btn inline-flex items-center gap-2 px-4 py-2"
               on:click={() => (isArcadeOpen = false)}
             >
@@ -255,7 +255,7 @@
             </a>
 
             <a
-              href="/game/quindici"
+              href="/arcade/quindici"
               class="club-btn inline-flex items-center gap-2 px-4 py-2"
               on:click={() => (isArcadeOpen = false)}
             >
@@ -266,7 +266,7 @@
             </a>
 
             <a
-              href="/game/slice"
+              href="/arcade/slice"
               class="club-btn inline-flex items-center gap-2 px-4 py-2"
               on:click={() => (isArcadeOpen = false)}
             >
@@ -277,7 +277,7 @@
             </a>
 
             <a
-              href="/game/classifica"
+              href="/arcade/classifica"
               class="club-btn inline-flex items-center gap-2 px-4 py-2"
               on:click={() => (isArcadeOpen = false)}
             >
@@ -514,7 +514,7 @@
         <div id="mobile-arcade-menu" class="overflow-hidden" transition:slide={{ duration: 180 }}>
           <div class="flex flex-col gap-3 pl-4 pt-3 pb-2">
             <a
-              href="/game"
+              href="/arcade/legends"
               class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
               on:click={() => {
                 isArcadeOpen = false;
@@ -529,7 +529,7 @@
             </a>
 
             <a
-              href="/game/quindici"
+              href="/arcade/quindici"
               class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
               on:click={() => {
                 isArcadeOpen = false;
@@ -543,7 +543,7 @@
             </a>
 
             <a
-              href="/game/slice"
+              href="/arcade/slice"
               class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
               on:click={() => {
                 isArcadeOpen = false;
@@ -557,7 +557,7 @@
             </a>
 
             <a
-              href="/game/classifica"
+              href="/arcade/classifica"
               class="club-btn inline-flex items-center justify-center gap-2 p-4 text-center"
               on:click={() => {
                 isArcadeOpen = false;

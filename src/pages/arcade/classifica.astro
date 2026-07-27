@@ -6,7 +6,7 @@ const { data: scores, error } = await supabase
   .from('legends_game_score')
   .select('id, nickname, match_score, points, difficulty, created_at')
   .order('points', { ascending: false })
-  .limit(50);
+  .limit(15);
 
 const { count: totalMatches } = await supabase
   .from('legends_game_score')
@@ -16,9 +16,9 @@ const topScores = scores || [];
 
 const { data: sliceScores, error: sliceError } = await supabase
   .from('slice_game_score')
-  .select('id, nickname, points, created_at')
+  .select('id, nickname, points, board_snapshot, created_at')
   .order('points', { ascending: false })
-  .limit(50);
+  .limit(15);
 
 const { count: totalSliceMatches } = await supabase
   .from('slice_game_score')
@@ -48,7 +48,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
     <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
       I punteggi più alti di Legends Game: si guadagna in base ai game vinti, alla lunghezza della sequenza e alla velocità di risposta.
     </p></br>
-    <a href="/game/classifica" class=" py-3 font-black uppercase tracking-widest text-center">
+    <a href="/arcade/legends" class=" py-3 font-black uppercase tracking-widest text-center">
           ←Torna al Gioco
         </a>
   </section>
@@ -61,7 +61,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 
   <div class="club-card overflow-hidden">
     <div class="bg-[var(--giallo-club)] border-b-2 border-black p-4 flex items-center justify-between gap-4">
-      <h2 class="text-xl font-black uppercase">Top 50</h2>
+      <h2 class="text-xl font-black uppercase">Top 15</h2>
       <p class="font-black text-sm uppercase">Tot partite {totalMatches ?? 0}</p>
     </div>
 
@@ -103,7 +103,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 
             <div class="text-center">
               <a
-                href={`/game?replay=${score.id}`}
+                href={`/arcade/legends?replay=${score.id}`}
                 class="club-btn inline-block px-3 py-1.5 text-xs font-black uppercase tracking-widest"
               >
                 Fai<br>meglio
@@ -132,15 +132,16 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 
   <div class="club-card overflow-hidden">
     <div class="bg-[var(--giallo-club)] border-b-2 border-black p-4 flex items-center justify-between gap-4">
-      <h2 class="text-xl font-black uppercase">Top 50</h2>
+      <h2 class="text-xl font-black uppercase">Top 15</h2>
       <p class="font-black text-sm uppercase">Tot partite {totalSliceMatches ?? 0}</p>
     </div>
 
-    <div class="hidden md:grid grid-cols-[4rem_1fr_8rem_10rem] gap-3 px-4 py-2 bg-slate-100 border-b-2 border-black font-black text-xs uppercase text-slate-600">
+    <div class="hidden md:grid grid-cols-[4rem_1fr_8rem_10rem_6rem] gap-3 px-4 py-2 bg-slate-100 border-b-2 border-black font-black text-xs uppercase text-slate-600">
       <div>Pos</div>
       <div>Nickname</div>
       <div class="text-right">Punti</div>
       <div class="text-right">Data</div>
+      <div class="text-center">Board</div>
     </div>
 
     {
@@ -154,7 +155,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
         topSliceScores.map((score, index) => {
           const date = new Date(score.created_at).toLocaleDateString('it-IT');
           return (
-          <div class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_8rem_10rem] gap-3 items-center p-4 bg-white">
+          <div class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_8rem_10rem_6rem] gap-3 items-center p-4 bg-white">
             <div class="text-3xl font-black text-black">#{index + 1}</div>
 
             <div>
@@ -167,10 +168,71 @@ const DIFFICULTY_LABELS: Record<string, string> = {
             <div class="hidden md:block text-right font-black text-2xl text-black">{score.points}</div>
 
             <div class="hidden md:block text-right font-bold">{date}</div>
+
+            <div class="text-center">
+              {score.board_snapshot && (
+                <button
+                  type="button"
+                  class="slice-board-btn club-btn inline-block px-3 py-1.5 text-xs font-black uppercase tracking-widest"
+                  data-slice-board={score.board_snapshot}
+                >
+                  Info
+                </button>
+              )}
+            </div>
           </div>
           );
         })
       }
     </div>
   </div>
+
+  <dialog id="slice-board-modal" class="w-full max-w-xs border-2 border-black bg-white p-0 backdrop:bg-black/60">
+    <div class="flex items-center justify-between border-b-2 border-black bg-[var(--giallo-club)] px-4 py-2">
+      <h3 class="font-black uppercase tracking-widest text-sm">Board finale</h3>
+      <button type="button" id="slice-board-modal-close" class="font-black text-xl leading-none" aria-label="Chiudi">×</button>
+    </div>
+    <div id="slice-board-modal-grid" class="grid grid-cols-4 gap-1 p-4"></div>
+  </dialog>
 </Layout>
+
+<script>
+  import { LABELS, parseBoardSnapshot } from '../../lib/slice/engine';
+  import { tileBackground, tileTextColor } from '../../lib/slice/tileStyle';
+
+  const dialog = document.getElementById('slice-board-modal') as HTMLDialogElement | null;
+  const grid = document.getElementById('slice-board-modal-grid');
+  const closeBtn = document.getElementById('slice-board-modal-close');
+
+  function renderBoard(snapshot: string) {
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (const level of parseBoardSnapshot(snapshot)) {
+      const cell = document.createElement('div');
+      cell.className =
+        'aspect-square flex items-center justify-center border-2 border-black text-[10px] font-black text-center leading-none';
+      if (level === null) {
+        cell.style.background = '#e2e8f0';
+      } else {
+        cell.style.background = tileBackground(level);
+        cell.style.color = tileTextColor(level);
+        cell.textContent = LABELS[level];
+      }
+      grid.appendChild(cell);
+    }
+  }
+
+  document.querySelectorAll<HTMLButtonElement>('.slice-board-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const snapshot = btn.dataset.sliceBoard;
+      if (!snapshot || !dialog) return;
+      renderBoard(snapshot);
+      dialog.showModal();
+    });
+  });
+
+  closeBtn?.addEventListener('click', () => dialog?.close());
+  dialog?.addEventListener('click', (e) => {
+    if (e.target === dialog) dialog.close();
+  });
+</script>
