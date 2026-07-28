@@ -288,8 +288,17 @@
 </script>
 
 <div class="flex flex-col gap-4">
-{#if !started}
-  <section class="mb-2">
+  <!-- Setup e board restano SEMPRE montati (mai un {#if}/{:else} che monta/
+       smonta <SliceBoard>): in produzione Astro include lo style scoped di
+       un componente figlio solo se viene istanziato durante il render
+       server-side iniziale, che avviene con `started` sempre false. Se la
+       board fosse dietro un {:else} non verrebbe mai renderizzata lì e il
+       suo CSS (tessera PUNTO rotonda, animazioni, overlay poteri) sparirebbe
+       dal bundle di produzione — bug reale osservato in produzione, invisibile
+       in dev perché Vite serve lo style di ogni componente comunque. Si
+       nasconde/mostra solo via CSS (class:hidden), non via Svelte {#if}.
+  -->
+  <section class="mb-2" class:hidden={started}>
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">Tennis</p>
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Slice</h1>
     <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
@@ -429,7 +438,8 @@
       </button>
     </div>
   </section>
-{:else}
+
+  <div class:hidden={!started}>
   {#snippet nextPreview()}
     <div
       class="next-tile flex items-center justify-center border-2 border-black h-9 w-9 lg:h-16 lg:w-16 shrink-0 font-black text-center leading-none"
@@ -624,7 +634,7 @@
       {@render powerButtons()}
     </div>
   {/if}
-{/if}
+  </div>
 </div>
 <style>
   @keyframes slice-bump {
