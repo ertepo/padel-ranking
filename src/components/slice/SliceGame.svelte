@@ -631,17 +631,29 @@
     {/if}
   </div>
 
-  <!-- Mobile: barra fissa in basso, solo Esci. h-14 fisso: è lo stesso
-       valore usato come bottom-14 sul contenitore sopra, così i due numeri
-       combaciano sempre per costruzione (non due valori indovinati a mano
-       che rischiano di disallinearsi). -->
-  <div class="lg:hidden fixed inset-x-0 bottom-0 z-[1000] flex h-14 items-center border-t-2 border-black bg-white px-4">
+  <!-- Mobile: barra fissa in basso, Esci a sinistra e Reset a destra. h-14
+       fisso: è lo stesso valore usato come bottom-14 sul contenitore sopra,
+       così i due numeri combaciano sempre per costruzione (non due valori
+       indovinati a mano che rischiano di disallinearsi). -->
+  <div class="lg:hidden fixed inset-x-0 bottom-0 z-[1000] flex h-14 items-center justify-between border-t-2 border-black bg-white px-4">
     <button
       type="button"
       class="club-btn px-4 py-2 text-xs font-black uppercase tracking-widest"
       on:click={exitGame}
     >
       ← Esci
+    </button>
+
+    <button
+      type="button"
+      class="club-btn-yellow inline-flex items-center gap-2 px-4 py-2 text-xs font-black uppercase tracking-widest"
+      on:click={newMatch}
+    >
+      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-arrow-counterclockwise shrink-0" viewBox="0 0 16 16" aria-hidden="true">
+        <path fill-rule="evenodd" d="M8 3a5 5 0 1 1-4.546 2.914.5.5 0 0 0-.908-.417A6 6 0 1 0 8 2z"/>
+        <path d="M8 4.466V.534a.25.25 0 0 0-.41-.192L5.23 2.308a.25.25 0 0 0 0 .384l2.36 1.966A.25.25 0 0 0 8 4.466"/>
+      </svg>
+      Reset
     </button>
   </div>
   </div>
