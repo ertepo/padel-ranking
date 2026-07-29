@@ -42,6 +42,13 @@
   // (stesso pattern usato in ScambioGame per il Legends Game).
   let started = false;
 
+  // Altezza reale della navbar, misurata UNA volta al mount (non un
+  // ResizeObserver continuo): serve per far iniziare l'overlay di gioco
+  // esattamente sotto la navbar (che resta visibile) invece di coprirla.
+  // Stesso identico accorgimento già usato in ScambioGame per il pannello
+  // fisso della fase 'setup'.
+  let headerOffset = 0;
+
   function startGame() {
     newMatch();
     started = true;
@@ -53,13 +60,14 @@
     if (typeof window !== 'undefined') window.scrollTo(0, 0);
   }
 
-  // Nasconde il footer durante il gioco: sulla board una tessera del gioco
-  // può capitare vicino al bordo inferiore, e lo swipe rischia di scrollare
-  // fino al footer invece di muovere le tessere (stesso accorgimento usato
-  // in ScambioGame per la fase 'playing').
+  // Nasconde il footer e blocca lo scroll della pagina durante il gioco: su
+  // mobile la board diventa un overlay fullscreen fisso (stesso schema usato
+  // in ScambioGame per la fase 'playing'), quindi non deve esserci nessuno
+  // scroll di sfondo dietro di lei.
   $: if (typeof document !== 'undefined') {
     const footer = document.querySelector('footer');
     if (footer) footer.style.display = started ? 'none' : '';
+    document.body.style.overflow = started ? 'hidden' : '';
   }
 
   // Poteri: 'undo' scatta subito, gli altri tre aprono una selezione sulla
@@ -259,6 +267,8 @@
   }
 
   onMount(() => {
+    const header = document.querySelector('header');
+    if (header) headerOffset = header.getBoundingClientRect().height;
     if (typeof window === 'undefined') return;
     window.addEventListener('keydown', onKeydown);
   });
@@ -268,6 +278,7 @@
     if (typeof document !== 'undefined') {
       const footer = document.querySelector('footer');
       if (footer) footer.style.display = '';
+      document.body.style.overflow = '';
     }
     if (typeof window === 'undefined') return;
     window.removeEventListener('keydown', onKeydown);
@@ -287,7 +298,7 @@
   }
 </script>
 
-<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:gap-10">
   <!-- Setup e board restano SEMPRE montati (mai un {#if}/{:else} che monta/
        smonta <SliceBoard>): in produzione Astro include lo style scoped di
        un componente figlio solo se viene istanziato durante il render
@@ -297,8 +308,12 @@
        dal bundle di produzione — bug reale osservato in produzione, invisibile
        in dev perché Vite serve lo style di ogni componente comunque. Si
        nasconde/mostra solo via CSS (class:hidden), non via Svelte {#if}.
+
+       Su desktop `started` conta solo per mobile: setup e gioco sono due
+       colonne SEMPRE visibili insieme (lg:block forza la visibilità a
+       prescindere da `started`), niente schermata da attraversare.
   -->
-  <section class="mb-2" class:hidden={started}>
+  <section class="mb-2 lg:mb-0 lg:block lg:w-96 lg:shrink-0" class:hidden={started}>
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">Tennis</p>
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Slice</h1>
     <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
@@ -428,7 +443,7 @@
       <p class="mt-2 text-xs font-black uppercase tracking-widest text-[var(--rosso-padel)]">{nicknameError}</p>
     {/if}
 
-    <div class="flex justify-center mt-6">
+    <div class="flex justify-center mt-6 lg:hidden">
       <button
         type="button"
         class="club-btn-yellow px-8 py-4 text-lg font-black uppercase tracking-widest"
@@ -439,7 +454,7 @@
     </div>
   </section>
 
-  <div class:hidden={!started}>
+  <div class="lg:block lg:flex-1 lg:min-w-0" class:hidden={!started}>
   {#snippet nextPreview()}
     <div
       class="next-tile flex items-center justify-center border-2 border-black h-9 w-9 lg:h-16 lg:w-16 shrink-0 font-black text-center leading-none"
@@ -510,130 +525,125 @@
     </button>
   {/snippet}
 
-  <!-- Mobile: barra fissa sotto la navbar (Esci / Punti / Prossima) -->
-  <div class="lg:hidden fixed inset-x-0 top-14 z-40 flex h-14 items-center justify-between border-b-2 border-black bg-white px-4">
-    <button
-      type="button"
-      class="club-btn px-2 py-1.5 text-[11px] font-black uppercase tracking-widest"
-      on:click={exitGame}
-    >
-      ← Esci
-    </button>
+  <!-- Overlay su mobile mentre si gioca (stesso schema di ScambioGame per la
+       fase 'playing', adattato per lasciare la navbar visibile): riempie lo
+       spazio tra la navbar (headerOffset, misurato una volta al mount) e la
+       barra "Esci" fissa in basso (bottom-14, altezza nota perché la
+       controlliamo noi), centrando il contenuto in quello spazio reale.
+       overflow-y-auto è la rete di sicurezza (se il contenuto fosse più alto
+       dello spazio disponibile scorre lì dentro, isolato, con lo sfondo
+       bloccato da body.overflow=hidden). lg:contents lo disattiva su
+       desktop: lì il contenuto torna inline nel layout a due colonne. -->
+  <div
+    class="fixed inset-x-0 bottom-14 z-[999] flex flex-col justify-center gap-4 overflow-y-auto bg-white p-4 lg:contents"
+    style={`top:${headerOffset}px`}
+  >
+    {#if pendingPower}
+      <p class="flex items-center justify-center gap-2 text-center text-xs font-black uppercase tracking-widest h-4 text-slate-700">
+        <span>{POWER_HINTS[pendingPower]}</span>
+        <button type="button" class="underline underline-offset-2" on:click={cancelPower}>Annulla</button>
+      </p>
+    {:else if showDefaultHint}
+      <p class="text-center text-xs font-black uppercase tracking-widest h-4 text-slate-500">
+        <span class="lg:hidden">Muovi le tessere con uno swipe.</span>
+        <span class="hidden lg:inline">Muovi le tessere con le frecce.</span>
+      </p>
+    {:else}
+      <p class="text-center text-xs font-black uppercase tracking-widest h-4 text-slate-500">
+        {statusText}
+      </p>
+    {/if}
 
-    <div class="flex items-baseline gap-1">
-      <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">PT:</span>
-      <span class={`text-2xl font-black leading-none ${bump ? 'slice-bump' : ''}`}>
-        {score(state.tiles)}
-      </span>
-    </div>
+    <div class="flex flex-col items-center gap-4 lg:flex-row lg:items-start lg:justify-center lg:gap-6">
+      <!-- Board: Punti/Prossima ora stanno dentro questo stesso contenitore,
+           in alto (Punti a sinistra, Prossima a destra), sopra la griglia. -->
+      <div class="relative max-w-md w-full mx-auto lg:mx-0 lg:shrink-0">
+        <div class="mb-2 flex items-center justify-between border-2 border-black bg-white px-3 py-2">
+          <div class="flex items-baseline gap-1">
+            <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">Punti</span>
+            <span class={`text-xl font-black leading-none ${bump ? 'slice-bump' : ''}`}>
+              {score(state.tiles)}
+            </span>
+          </div>
 
-    <div class="flex items-center gap-2">
-      <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">NEXT:</span>
-      {@render nextPreview()}
-    </div>
-  </div>
-
-  <div class="lg:hidden h-12" aria-hidden="true"></div>
-
-  {#if pendingPower}
-    <p class="flex items-center justify-center gap-2 text-center text-xs font-black uppercase tracking-widest h-4 text-slate-700">
-      <span>{POWER_HINTS[pendingPower]}</span>
-      <button type="button" class="underline underline-offset-2" on:click={cancelPower}>Annulla</button>
-    </p>
-  {:else if showDefaultHint}
-    <p class="text-center text-xs font-black uppercase tracking-widest h-4 text-slate-500">
-      <span class="lg:hidden">Muovi le tessere con uno swipe.</span>
-      <span class="hidden lg:inline">Muovi le tessere con le frecce.</span>
-    </p>
-  {:else}
-    <p class="text-center text-xs font-black uppercase tracking-widest h-4 text-slate-500">
-      {statusText}
-    </p>
-  {/if}
-
-  <div class="flex flex-col items-center gap-4 lg:flex-row lg:items-start lg:justify-center lg:gap-6">
-    <!-- Desktop: colonna sinistra (Esci / Punti / Prossima) -->
-    <div class="hidden lg:flex lg:w-40 lg:flex-col lg:gap-3">
-      <button
-        type="button"
-        class="club-btn w-full px-3 py-3 text-xs font-black uppercase tracking-widest"
-        on:click={exitGame}
-      >
-        ← Esci
-      </button>
-
-      <div class="border-2 border-black bg-white px-3 py-3 text-center">
-        <div class="text-[10px] uppercase tracking-widest font-black text-slate-600">Punti</div>
-        <div class={`text-2xl font-black leading-none ${bump ? 'slice-bump' : ''}`}>
-          {score(state.tiles)}
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">Prossima</span>
+            {@render nextPreview()}
+          </div>
         </div>
-      </div>
 
-      <div class="flex flex-col items-center gap-2 border-2 border-black bg-white px-3 py-3">
-        <span class="text-[10px] uppercase tracking-widest font-black text-slate-600">Prossima</span>
-        {@render nextPreview()}
-      </div>
-    </div>
+        {#key resetCount}
+          <SliceBoard
+            bind:this={boardRef}
+            initialTiles={state.tiles}
+            selectMode={pendingPower ? POWER_SELECT_MODE[pendingPower] : null}
+            on:swipe={(e) => handleMove(e.detail)}
+            on:select={onBoardSelect}
+          />
+        {/key}
 
-    <!-- Board -->
-    <div class="relative max-w-md w-full mx-auto lg:mx-0 lg:shrink-0">
-      {#key resetCount}
-        <SliceBoard
-          bind:this={boardRef}
-          initialTiles={state.tiles}
-          selectMode={pendingPower ? POWER_SELECT_MODE[pendingPower] : null}
-          on:swipe={(e) => handleMove(e.detail)}
-          on:select={onBoardSelect}
-        />
-      {/key}
-
-      {#if state.status !== 'playing'}
-        <div class="absolute inset-4 flex flex-col items-center justify-center gap-3 bg-black/90 border-2 border-black p-6 text-center">
-          <p
-            class="font-black text-3xl uppercase tracking-widest"
-            style={`color:${state.status === 'won' ? 'var(--verde-tennis)' : 'var(--rosso-padel)'}`}
-          >
-            {state.status === 'won' ? 'Hai vinto!' : 'Game over'}
-          </p>
-          <p class="font-black text-xl text-white">Livello raggiunto: {LABELS[state.highestLevel]}</p>
-          <p class="font-black text-lg" style="color: var(--giallo-club)">Punti: {score(state.tiles)}</p>
-          <p class="text-xs font-semibold text-slate-300 max-w-xs">
-            {state.status === 'won'
-              ? `Hai completato il ${LABELS[MAX_LEVEL]}.`
-              : 'Nessuna mossa possibile.'}
-          </p>
-          {#if scoreSaved}
-            <p class="text-xs font-black uppercase tracking-widest" style="color: var(--verde-tennis)">
-              Punteggio salvato!
+        {#if state.status !== 'playing'}
+          <div class="absolute inset-4 flex flex-col items-center justify-center gap-3 bg-black/90 border-2 border-black p-6 text-center">
+            <p
+              class="font-black text-3xl uppercase tracking-widest"
+              style={`color:${state.status === 'won' ? 'var(--verde-tennis)' : 'var(--rosso-padel)'}`}
+            >
+              {state.status === 'won' ? 'Hai vinto!' : 'Game over'}
             </p>
-          {:else if nicknameError}
-            <p class="text-xs font-black uppercase tracking-widest text-[var(--rosso-padel)]">{nicknameError}</p>
-          {/if}
-          <button
-            type="button"
-            class="club-btn-yellow mt-2 px-6 py-3 font-black uppercase tracking-widest"
-            on:click={newMatch}
-          >
-            Nuova partita
-          </button>
+            <p class="font-black text-xl text-white">Livello raggiunto: {LABELS[state.highestLevel]}</p>
+            <p class="font-black text-lg" style="color: var(--giallo-club)">Punti: {score(state.tiles)}</p>
+            <p class="text-xs font-semibold text-slate-300 max-w-xs">
+              {state.status === 'won'
+                ? `Hai completato il ${LABELS[MAX_LEVEL]}.`
+                : 'Nessuna mossa possibile.'}
+            </p>
+            {#if scoreSaved}
+              <p class="text-xs font-black uppercase tracking-widest" style="color: var(--verde-tennis)">
+                Punteggio salvato!
+              </p>
+            {:else if nicknameError}
+              <p class="text-xs font-black uppercase tracking-widest text-[var(--rosso-padel)]">{nicknameError}</p>
+            {/if}
+            <button
+              type="button"
+              class="club-btn-yellow mt-2 px-6 py-3 font-black uppercase tracking-widest"
+              on:click={newMatch}
+            >
+              Nuova partita
+            </button>
+          </div>
+        {/if}
+      </div>
+
+      <!-- Desktop: colonna destra (poteri) -->
+      {#if POWERS_ENABLED}
+        <div class="hidden lg:flex lg:w-32 lg:flex-col lg:gap-3">
+          {@render powerButtons()}
         </div>
       {/if}
     </div>
 
-    <!-- Desktop: colonna destra (poteri) -->
+    <!-- Mobile: poteri in riga sotto la board -->
     {#if POWERS_ENABLED}
-      <div class="hidden lg:flex lg:w-32 lg:flex-col lg:gap-3">
+      <div class="lg:hidden grid grid-cols-4 gap-2 max-w-md w-full mx-auto">
         {@render powerButtons()}
       </div>
     {/if}
   </div>
 
-  <!-- Mobile: poteri in riga sotto la board -->
-  {#if POWERS_ENABLED}
-    <div class="lg:hidden grid grid-cols-4 gap-2 max-w-md w-full mx-auto">
-      {@render powerButtons()}
-    </div>
-  {/if}
+  <!-- Mobile: barra fissa in basso, solo Esci. h-14 fisso: è lo stesso
+       valore usato come bottom-14 sul contenitore sopra, così i due numeri
+       combaciano sempre per costruzione (non due valori indovinati a mano
+       che rischiano di disallinearsi). -->
+  <div class="lg:hidden fixed inset-x-0 bottom-0 z-[1000] flex h-14 items-center border-t-2 border-black bg-white px-4">
+    <button
+      type="button"
+      class="club-btn px-4 py-2 text-xs font-black uppercase tracking-widest"
+      on:click={exitGame}
+    >
+      ← Esci
+    </button>
+  </div>
   </div>
 </div>
 <style>
