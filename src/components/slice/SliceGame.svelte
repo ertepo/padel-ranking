@@ -535,7 +535,7 @@
        bloccato da body.overflow=hidden). lg:contents lo disattiva su
        desktop: lì il contenuto torna inline nel layout a due colonne. -->
   <div
-    class="fixed inset-x-0 bottom-14 z-[999] flex flex-col justify-center gap-4 overflow-y-auto bg-white p-4 lg:contents"
+    class="fixed inset-x-0 bottom-14 z-40 flex flex-col justify-center gap-4 overflow-y-auto bg-white p-4 lg:contents"
     style={`top:${headerOffset}px`}
   >
     {#if pendingPower}
@@ -635,7 +635,7 @@
        fisso: è lo stesso valore usato come bottom-14 sul contenitore sopra,
        così i due numeri combaciano sempre per costruzione (non due valori
        indovinati a mano che rischiano di disallinearsi). -->
-  <div class="lg:hidden fixed inset-x-0 bottom-0 z-[1000] flex h-14 items-center justify-between border-t-2 border-black bg-white px-4">
+  <div class="lg:hidden fixed inset-x-0 bottom-0 z-40 flex h-14 items-center justify-between border-t-2 border-black bg-white px-4">
     <button
       type="button"
       class="club-btn px-4 py-2 text-xs font-black uppercase tracking-widest"
