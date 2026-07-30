@@ -136,9 +136,13 @@
               Serronchioland Garros
             </a>
 
-            <span class="club-btn inline-flex cursor-not-allowed items-center px-4 py-2 opacity-60">
+            <a
+            href="/tornei/cordivinbledon"
+            class="club-btn inline-flex items-center whitespace-nowrap px-4 py-2"
+            on:click={() => (isTournamentsOpen = false)}
+            >
               Cordivimbledon
-            </span>
+        </a>
 
             <span class="club-btn inline-flex cursor-not-allowed items-center px-4 py-2 opacity-60">
               PalazzUS Open
