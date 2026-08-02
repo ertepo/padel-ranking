@@ -25,10 +25,18 @@
   import IconUndo from './icons/IconUndo.svelte';
 
   // Feature flag temporaneo: i poteri sono implementati e funzionanti, ma non
-  // ancora pronti per essere usati dai giocatori. Tenerli nascosti (non solo
-  // disabilitati) evita di mostrare una feature a metà durante il rilascio;
-  // per riattivarli basta girare questo flag, tutta la logica resta intatta.
-  const POWERS_ENABLED = false;
+  // ancora pronti per essere usati da tutti i giocatori. Si attivano solo con
+  // un "trucco" nell'URL (?powers=on): niente da cliccare, un link diverso
+  // basta a nasconderli/mostrarli senza toccare il codice. I bottoni restano
+  // comunque SEMPRE montati (nascosti via CSS, non con {#if}) per lo stesso
+  // motivo per cui la board va sempre montata: Astro include lo style scoped
+  // di un componente figlio solo se viene istanziato nel render server-side
+  // iniziale, che qui non conosce l'URL del browser (sempre "false" lato
+  // server) — un {#if} qui ripeterebbe lo stesso bug già preso con la board.
+  let POWERS_ENABLED = false;
+  onMount(() => {
+    POWERS_ENABLED = new URLSearchParams(window.location.search).get('powers') === 'on';
+  });
 
   let state: GameState = newGame();
   let resetCount = 0;
@@ -295,6 +303,14 @@
     debugSpawnCount = 0; // DEBUG TEMPORANEO
     previousState = null;
     pendingPower = null;
+  }
+
+  // Il bottone "Nuova partita" dell'overlay di game-over/vittoria compare
+  // solo in quel momento ({#if state.status !== 'playing'}): l'azione gira
+  // una volta sola, esattamente quando il nodo viene creato, quindi da
+  // desktop basta premere Invio/Spazio per rigiocare subito, senza mouse.
+  function autofocus(node: HTMLElement) {
+    node.focus();
   }
 </script>
 
@@ -606,6 +622,7 @@
             {/if}
             <button
               type="button"
+              use:autofocus
               class="club-btn-yellow mt-2 px-6 py-3 font-black uppercase tracking-widest"
               on:click={newMatch}
             >
@@ -615,7 +632,11 @@
         {/if}
       </div>
 
-      <!-- Desktop: colonna destra (poteri) -->
+      <!-- Desktop: colonna destra (poteri). {#if} qui è sicuro (a differenza
+           di <SliceBoard>): i bottoni usano solo classi Tailwind globali,
+           rilevate dalla scansione statica dei file a build time, non dalla
+           renderizzazione — nessuno style scoped in gioco da perdere lato
+           SSR. -->
       {#if POWERS_ENABLED}
         <div class="hidden lg:flex lg:w-32 lg:flex-col lg:gap-3">
           {@render powerButtons()}
