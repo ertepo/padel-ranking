@@ -37,162 +37,144 @@ const DIFFICULTY_LABELS: Record<string, string> = {
 ---
 
 <Layout
-  title="Classifica Legends Game"
-  headerTheme="tennis"
-  description="La classifica arcade di Legends Game: i punteggi più alti, con nickname e risultato di ogni partita."
-  image="/images/og/og-image-legendsgame.png"
+  title="Classifica Arcade"
+  headerTheme="club"
+  description="Le classifiche arcade di Tie-Break: i punteggi più alti di Legends Game e Slice, con nickname e risultato di ogni partita."
+  fullBleed
 >
-  <section class="mb-8">
-    <p class="text-sm uppercase tracking-widest font-black text-slate-600">Legends Game</p>
-    <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Classifica</h1>
-    <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
-      I punteggi più alti di Legends Game: si guadagna in base ai game vinti, alla lunghezza della sequenza e alla velocità di risposta.
-    </p></br>
-    <a href="/arcade/legends" class=" py-3 font-black uppercase tracking-widest text-center">
-          ←Torna al Gioco
-        </a>
+  <section class="arcade">
+    <div class="screen">
+      <div class="bolt tl"></div>
+      <div class="bolt tr"></div>
+      <div class="bolt bl"></div>
+      <div class="bolt br"></div>
+      <div class="scanlines"></div>
+      <div class="vignette"></div>
+      <div class="flicker"></div>
+
+      <div class="content">
+        <p class="eyebrow">Tie-Break Poggio San Vicino — Sala Giochi</p>
+        <h1 class="title">Classifica<span class="cursor"></span></h1>
+        <p class="prompt">Insert coin — select your game</p>
+
+        {
+          error && (
+            <pre class="err">{JSON.stringify(error, null, 2)}</pre>
+          )
+        }
+        {
+          sliceError && (
+            <pre class="err">{JSON.stringify(sliceError, null, 2)}</pre>
+          )
+        }
+
+        <div class="boards">
+          <section class="board">
+            <div class="board-head">
+              <div>
+                <span class="name">Legends Game</span>
+              </div>
+              <span class="meta">Top 15 · {totalMatches ?? 0} partite</span>
+            </div>
+
+            {
+              topScores.length === 0 ? (
+                <p class="empty">Nessun punteggio ancora registrato: gioca la prima partita!</p>
+              ) : (
+                <ol class="board-list">
+                  {topScores.map((score, index) => {
+                    const difficultyLabel = DIFFICULTY_LABELS[score.difficulty] || score.difficulty || '—';
+                    const isFirst = index === 0;
+                    return (
+                      <li class:list={['row', { first: isFirst }]}>
+                        <div class="row-top">
+                          <span class="rank">
+                            <span class="caret">►</span>
+                            {String(index + 1).padStart(2, '0')}
+                          </span>
+                          <span class="who">{score.nickname}</span>
+                          <a class="mini-btn" href={`/arcade/legends?replay=${score.id}`}>
+                            Fai meglio
+                          </a>
+                        </div>
+                        <div class="row-sub">
+                          <span class="sub">{score.match_score} · {difficultyLabel}</span>
+                          <span class="leader" />
+                          <span class="score">{score.points}</span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )
+            }
+          </section>
+
+          <section class="board">
+            <div class="board-head">
+              <div>
+                <span class="name">Slice</span>
+              </div>
+              <span class="meta">Top 15 · {totalSliceMatches ?? 0} partite</span>
+            </div>
+
+            {
+              topSliceScores.length === 0 ? (
+                <p class="empty">Nessun punteggio ancora registrato: gioca la prima partita!</p>
+              ) : (
+                <ol class="board-list">
+                  {topSliceScores.map((score, index) => {
+                    const date = new Date(score.created_at).toLocaleDateString('it-IT');
+                    const isFirst = index === 0;
+                    return (
+                      <li class:list={['row', { first: isFirst }]}>
+                        <div class="row-top">
+                          <span class="rank">
+                            <span class="caret">►</span>
+                            {String(index + 1).padStart(2, '0')}
+                          </span>
+                          <span class="who">{score.nickname}</span>
+                          {score.board_snapshot && (
+                            <button
+                              type="button"
+                              class="mini-btn ghost slice-board-btn"
+                              data-slice-board={score.board_snapshot}
+                            >
+                              Info
+                            </button>
+                          )}
+                        </div>
+                        <div class="row-sub">
+                          <span class="sub">{date}</span>
+                          <span class="leader" />
+                          <span class="score">{score.points}</span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )
+            }
+          </section>
+        </div>
+
+        <p class="eyebrow" style="margin-top: 2.5rem;">Gioca ora</p>
+        <div class="foot">
+          <a class="cab-btn primary" href="/arcade/legends">► Legends Game</a>
+          <a class="cab-btn primary" href="/arcade/slice">► Slice</a>
+        </div>
+      </div>
+    </div>
   </section>
 
-  {
-    error && (
-      <pre class="club-card p-4 text-red-600 mb-6">{JSON.stringify(error, null, 2)}</pre>
-    )
-  }
-
-  <div class="club-card overflow-hidden">
-    <div class="bg-[var(--giallo-club)] border-b-2 border-black p-4 flex items-center justify-between gap-4">
-      <h2 class="text-xl font-black uppercase">Top 15</h2>
-      <p class="font-black text-sm uppercase">Tot partite {totalMatches ?? 0}</p>
+  <dialog id="slice-board-modal" class="board-modal">
+    <div class="board-modal-head">
+      <h3>Board finale</h3>
+      <button type="button" id="slice-board-modal-close" aria-label="Chiudi">×</button>
     </div>
-
-    <div class="hidden md:grid grid-cols-[4rem_1fr_8rem_6rem_10rem_6rem] gap-3 px-4 py-2 bg-slate-100 border-b-2 border-black font-black text-xs uppercase text-slate-600">
-      <div>Pos</div>
-      <div>Nickname</div>
-      <div class="text-right">Risultato</div>
-      <div class="text-right">Livello</div>
-      <div class="text-right">Punti</div>
-      <div class="text-right">Sfida</div>
+    <div class="club-card p-4">
+      <div id="slice-board-modal-grid" class="relative w-full aspect-square border-2 border-black bg-slate-100"></div>
     </div>
-
-    {
-      topScores.length === 0 && (
-        <p class="p-6 text-center font-bold text-slate-500">Nessun punteggio ancora registrato: gioca la prima partita!</p>
-      )
-    }
-
-    <div class="divide-y-2 divide-black">
-      {
-        topScores.map((score, index) => {
-          const difficultyLabel = DIFFICULTY_LABELS[score.difficulty] || score.difficulty || '—';
-          return (
-          <div class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_8rem_6rem_10rem_6rem] gap-3 items-center p-4 bg-white">
-            <div class="text-3xl font-black text-black">#{index + 1}</div>
-
-            <div>
-              <div class="font-black text-xl text-black truncate">{score.nickname}</div>
-              <div class="text-sm font-bold text-slate-600 md:hidden">
-                {score.match_score} · {difficultyLabel} · {score.points} pt
-              </div>
-            </div>
-
-            <div class="hidden md:block text-right font-bold">{score.match_score}</div>
-
-            <div class="hidden md:block text-right font-bold">{difficultyLabel}</div>
-
-            <div class="hidden md:block text-right font-black text-2xl text-black">{score.points}</div>
-
-            <div class="text-center">
-              <a
-                href={`/arcade/legends?replay=${score.id}`}
-                class="club-btn inline-block px-3 py-1.5 text-xs font-black uppercase tracking-widest"
-              >
-                Fai<br>meglio
-              </a>
-            </div>
-          </div>
-          );
-        })
-      }
-    </div>
-  </div>
-
-  <section class="mt-10 mb-8">
-    <p class="text-sm uppercase tracking-widest font-black text-slate-600">Slice</p>
-    <h2 class="text-3xl md:text-5xl font-black leading-none text-black">Classifica Slice</h2>
-    <p class="mt-3 max-w-3xl text-base font-semibold leading-relaxed text-slate-700">
-      I punteggi più alti di Slice, il 2048 del tennis: si guadagna in base alle tessere rimaste in campo a fine partita.
-    </p>
-  </section>
-
-  {
-    sliceError && (
-      <pre class="club-card p-4 text-red-600 mb-6">{JSON.stringify(sliceError, null, 2)}</pre>
-    )
-  }
-
-  <div class="club-card overflow-hidden">
-    <div class="bg-[var(--giallo-club)] border-b-2 border-black p-4 flex items-center justify-between gap-4">
-      <h2 class="text-xl font-black uppercase">Top 15</h2>
-      <p class="font-black text-sm uppercase">Tot partite {totalSliceMatches ?? 0}</p>
-    </div>
-
-    <div class="hidden md:grid grid-cols-[4rem_1fr_8rem_10rem_6rem] gap-3 px-4 py-2 bg-slate-100 border-b-2 border-black font-black text-xs uppercase text-slate-600">
-      <div>Pos</div>
-      <div>Nickname</div>
-      <div class="text-right">Punti</div>
-      <div class="text-right">Data</div>
-      <div class="text-center">Board</div>
-    </div>
-
-    {
-      topSliceScores.length === 0 && (
-        <p class="p-6 text-center font-bold text-slate-500">Nessun punteggio ancora registrato: gioca la prima partita!</p>
-      )
-    }
-
-    <div class="divide-y-2 divide-black">
-      {
-        topSliceScores.map((score, index) => {
-          const date = new Date(score.created_at).toLocaleDateString('it-IT');
-          return (
-          <div class="grid grid-cols-[3rem_1fr_auto] md:grid-cols-[4rem_1fr_8rem_10rem_6rem] gap-3 items-center p-4 bg-white">
-            <div class="text-3xl font-black text-black">#{index + 1}</div>
-
-            <div>
-              <div class="font-black text-xl text-black truncate">{score.nickname}</div>
-              <div class="text-sm font-bold text-slate-600 md:hidden">
-                {score.points} pt · {date}
-              </div>
-            </div>
-
-            <div class="hidden md:block text-right font-black text-2xl text-black">{score.points}</div>
-
-            <div class="hidden md:block text-right font-bold">{date}</div>
-
-            <div class="text-center">
-              {score.board_snapshot && (
-                <button
-                  type="button"
-                  class="slice-board-btn club-btn inline-block px-3 py-1.5 text-xs font-black uppercase tracking-widest"
-                  data-slice-board={score.board_snapshot}
-                >
-                  Info
-                </button>
-              )}
-            </div>
-          </div>
-          );
-        })
-      }
-    </div>
-  </div>
-
-  <dialog id="slice-board-modal" class="w-full max-w-xs border-2 border-black bg-white p-0 backdrop:bg-black/60">
-    <div class="flex items-center justify-between border-b-2 border-black bg-[var(--giallo-club)] px-4 py-2">
-      <h3 class="font-black uppercase tracking-widest text-sm">Board finale</h3>
-      <button type="button" id="slice-board-modal-close" class="font-black text-xl leading-none" aria-label="Chiudi">×</button>
-    </div>
-    <div id="slice-board-modal-grid" class="grid grid-cols-4 gap-1 p-4"></div>
   </dialog>
 </Layout>
 
@@ -204,30 +186,73 @@ const DIFFICULTY_LABELS: Record<string, string> = {
   const grid = document.getElementById('slice-board-modal-grid');
   const closeBtn = document.getElementById('slice-board-modal-close');
 
+  const SIZE = 4;
+
+  // Stessa formula di misura di SliceBoard.svelte: gap proporzionale alla
+  // larghezza, celle quadrate che riempiono il resto della board.
+  function fontSize(level: number, cell: number): number {
+    const len = LABELS[level].length;
+    if (len > 5) return Math.round(cell * 0.24);
+    if (len > 2) return Math.round(cell * 0.3);
+    return Math.round(cell * 0.42);
+  }
+
   function renderBoard(snapshot: string) {
     if (!grid) return;
     grid.innerHTML = '';
-    for (const level of parseBoardSnapshot(snapshot)) {
-      const cell = document.createElement('div');
-      cell.className =
-        'aspect-square flex items-center justify-center border-2 border-black text-[10px] font-black text-center leading-none';
-      if (level === null) {
-        cell.style.background = '#e2e8f0';
+
+    const w = grid.clientWidth;
+    const gap = Math.round(w * 0.026);
+    const cell = (w - gap * (SIZE + 1)) / SIZE;
+    const pos = (i: number) => gap + i * (cell + gap);
+
+    const levels = parseBoardSnapshot(snapshot);
+
+    levels.forEach((_, i) => {
+      const bg = document.createElement('div');
+      bg.className = 'absolute bg-slate-200';
+      bg.style.cssText = `width:${cell}px;height:${cell}px;left:${pos(i % SIZE)}px;top:${pos(Math.floor(i / SIZE))}px`;
+      grid.appendChild(bg);
+    });
+
+    levels.forEach((level, i) => {
+      if (level === null) return;
+      const tile = document.createElement('div');
+      tile.className = 'absolute flex items-center justify-center border-2 border-black font-black text-center';
+      tile.style.cssText = `width:${cell}px;height:${cell}px;left:${pos(i % SIZE)}px;top:${pos(Math.floor(i / SIZE))}px;font-size:${fontSize(level, cell)}px;background:${tileBackground(level)};color:${tileTextColor(level)}`;
+
+      if (level === 0) {
+        const ball = document.createElement('span');
+        const size = Math.round(cell * 0.35);
+        ball.style.cssText = `display:block;width:${size}px;height:${size}px;border-radius:9999px;border:1px solid black;background:var(--giallo-club)`;
+        tile.appendChild(ball);
+      } else if (level >= 4 && level <= 9) {
+        const num = document.createElement('span');
+        num.className = 'leading-none';
+        num.style.fontSize = `${Math.round(cell * 0.46)}px`;
+        num.textContent = String(level - 3);
+        const game = document.createElement('span');
+        game.className = 'absolute bottom-1 left-0 right-0 text-center leading-none tracking-widest';
+        game.style.fontSize = `${Math.round(cell * 0.13)}px`;
+        game.textContent = 'GAME';
+        tile.append(num, game);
       } else {
-        cell.style.background = tileBackground(level);
-        cell.style.color = tileTextColor(level);
-        cell.textContent = LABELS[level];
+        const label = document.createElement('span');
+        label.className = 'leading-none';
+        label.textContent = LABELS[level];
+        tile.appendChild(label);
       }
-      grid.appendChild(cell);
-    }
+
+      grid.appendChild(tile);
+    });
   }
 
   document.querySelectorAll<HTMLButtonElement>('.slice-board-btn').forEach((btn) => {
     btn.addEventListener('click', () => {
       const snapshot = btn.dataset.sliceBoard;
       if (!snapshot || !dialog) return;
-      renderBoard(snapshot);
       dialog.showModal();
+      renderBoard(snapshot);
     });
   });
 
@@ -236,3 +261,389 @@ const DIFFICULTY_LABELS: Record<string, string> = {
     if (e.target === dialog) dialog.close();
   });
 </script>
+
+<style>
+  .arcade {
+    --yellow: var(--giallo-club);
+    --yellow-dim: #a67f00;
+    --bg: #0a0a0c;
+    --fg: #f3f3ec;
+    --fg-dim: #9a9a92;
+    --line: rgba(243, 243, 236, 0.16);
+    --line-strong: rgba(255, 204, 0, 0.55);
+    --mono: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', Consolas, 'Liberation Mono', monospace;
+    font-family: var(--mono);
+    display: block;
+  }
+
+  .screen {
+    position: relative;
+    background: var(--bg);
+    border: 2px solid var(--yellow-dim);
+    outline: 1px solid rgba(0, 0, 0, 0.8);
+    outline-offset: -6px;
+    overflow: hidden;
+  }
+
+  .bolt {
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--yellow-dim);
+    opacity: 0.6;
+  }
+  .bolt.tl { top: 10px; left: 10px; }
+  .bolt.tr { top: 10px; right: 10px; }
+  .bolt.bl { bottom: 10px; left: 10px; }
+  .bolt.br { bottom: 10px; right: 10px; }
+
+  .scanlines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+      to bottom,
+      rgba(255, 255, 255, 0.05) 0px,
+      rgba(255, 255, 255, 0.05) 1px,
+      transparent 1px,
+      transparent 3px
+    );
+    mix-blend-mode: overlay;
+  }
+
+  .vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(ellipse at 50% 40%, transparent 55%, rgba(0, 0, 0, 0.65) 100%);
+  }
+
+  .flicker {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: rgba(255, 204, 0, 0.02);
+    animation: arcade-flicker 6s infinite steps(1);
+  }
+  @keyframes arcade-flicker {
+    0%, 92%, 100% { opacity: 0; }
+    93% { opacity: 1; }
+    94% { opacity: 0; }
+    96% { opacity: 0.6; }
+    97% { opacity: 0; }
+  }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    padding: 2.75rem 1.5rem 2.25rem;
+    max-width: 1080px;
+    margin: 0 auto;
+    color: var(--fg);
+  }
+
+  .eyebrow {
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 0.35em;
+    text-transform: uppercase;
+    color: var(--yellow-dim);
+    margin: 0 0 1rem;
+  }
+
+  .title {
+    font-family: var(--mono);
+    text-align: center;
+    font-size: clamp(2.1rem, 7vw, 3.6rem);
+    line-height: 1;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-weight: 700;
+    color: var(--fg);
+    text-shadow:
+      0 0 1px var(--fg),
+      0 3px 0 var(--yellow-dim),
+      0 0 22px rgba(255, 204, 0, 0.35);
+  }
+
+  .cursor {
+    display: inline-block;
+    background: var(--yellow);
+    width: 0.5em;
+    height: 0.85em;
+    margin-left: 0.12em;
+    vertical-align: -0.12em;
+    animation: arcade-blink 1s steps(1) infinite;
+  }
+  @keyframes arcade-blink {
+    0%, 49% { opacity: 1; }
+    50%, 100% { opacity: 0; }
+  }
+
+  .prompt {
+    text-align: center;
+    margin: 0.9rem 0 0;
+    font-size: 12px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--yellow);
+    animation: arcade-blink-slow 1.6s steps(1) infinite;
+  }
+  @keyframes arcade-blink-slow {
+    0%, 60% { opacity: 1; }
+    80% { opacity: 0.15; }
+    100% { opacity: 1; }
+  }
+
+  .err {
+    margin: 1.5rem 0 0;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--line-strong);
+    color: #ff8a8a;
+    font-size: 11px;
+    overflow-x: auto;
+  }
+
+  .boards {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+    margin-top: 2.5rem;
+  }
+  @media (max-width: 640px) {
+    .boards { grid-template-columns: 1fr; }
+  }
+
+  .board {
+    border: 1px solid var(--line);
+  }
+
+  .board-head {
+    border-bottom: 1px solid var(--line-strong);
+    padding: 0.85rem 1rem;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+  }
+
+  .board-head .name {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--yellow);
+  }
+
+  .board-head .desc {
+    margin: 0.2rem 0 0;
+    font-size: 10.5px;
+    color: var(--fg-dim);
+  }
+
+  .board-head .meta {
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--fg-dim);
+    white-space: nowrap;
+    flex: 0 0 auto;
+  }
+
+  .empty {
+    padding: 1.5rem 1rem;
+    text-align: center;
+    font-size: 12px;
+    color: var(--fg-dim);
+  }
+
+  .board-list {
+    list-style: none;
+    margin: 0;
+    padding: 0.4rem 0;
+  }
+
+  .row {
+    padding: 0.5rem 1rem;
+    font-size: 13px;
+  }
+
+  .row-top {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+
+  .row-sub {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    padding-left: 1.85em;
+    margin-top: 0.15rem;
+  }
+
+  .row .rank {
+    color: var(--yellow-dim);
+    font-variant-numeric: tabular-nums;
+    flex: 0 0 auto;
+  }
+
+  .row .who {
+    flex: 1 1 auto;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .row .leader {
+    flex: 1 1 auto;
+    border-bottom: 2px dotted var(--line);
+    transform: translateY(-0.32em);
+    min-width: 0.75rem;
+  }
+
+  .row .sub {
+    color: var(--fg-dim);
+    font-size: 11px;
+    flex: 0 0 auto;
+  }
+
+  .row .score {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    flex: 0 0 auto;
+    min-width: 3.4em;
+    text-align: right;
+  }
+
+  .row.first {
+    background: rgba(255, 204, 0, 0.06);
+  }
+  .row.first .rank,
+  .row.first .who,
+  .row.first .score {
+    color: var(--yellow);
+  }
+  .row.first .leader {
+    border-bottom-color: var(--line-strong);
+  }
+
+  .row .caret {
+    display: inline-block;
+    margin-right: 0.1em;
+    animation: arcade-blink 1s steps(1) infinite;
+  }
+  .row:not(.first) .caret { visibility: hidden; }
+
+  .mini-btn {
+    font-family: var(--mono);
+    flex: 0 0 auto;
+    background: transparent;
+    border: 1px solid var(--yellow);
+    color: var(--yellow);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    text-decoration: none;
+    padding: 0.28rem 0.55rem;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .mini-btn:hover,
+  .mini-btn:focus-visible {
+    background: var(--yellow);
+    color: #0a0a0c;
+    outline: none;
+  }
+  .mini-btn.ghost {
+    border-color: var(--line);
+    color: var(--fg-dim);
+  }
+  .mini-btn.ghost:hover,
+  .mini-btn.ghost:focus-visible {
+    background: var(--fg-dim);
+    color: #0a0a0c;
+  }
+
+  .foot {
+    margin-top: 0.75rem;
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .cab-btn {
+    font-family: var(--mono);
+    background: transparent;
+    color: var(--yellow);
+    border: 2px solid var(--yellow);
+    padding: 0.65rem 1.1rem;
+    font-size: 12px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    text-decoration: none;
+    font-weight: 700;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .cab-btn:hover,
+  .cab-btn:focus-visible {
+    background: var(--yellow);
+    color: #0a0a0c;
+    outline: none;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .cursor, .prompt, .flicker, .row .caret {
+      animation: none !important;
+      opacity: 1 !important;
+    }
+  }
+</style>
+
+<style is:global>
+  #slice-board-modal.board-modal {
+    width: 100%;
+    max-width: 22rem;
+    margin: auto;
+    border: 2px solid var(--giallo-club);
+    background: #0a0a0c;
+    padding: 0;
+    font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', Consolas, 'Liberation Mono', monospace;
+  }
+  #slice-board-modal.board-modal::backdrop {
+    background: rgba(0, 0, 0, 0.7);
+  }
+  .board-modal-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--giallo-club);
+    padding: 0.6rem 1rem;
+  }
+  .board-modal-head h3 {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--giallo-club);
+  }
+  .board-modal-head button {
+    background: none;
+    border: none;
+    color: #f3f3ec;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+  }
+  #slice-board-modal .club-card {
+    margin: 1rem;
+    width: auto;
+  }
+</style>
