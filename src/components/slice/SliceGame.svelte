@@ -333,9 +333,9 @@
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">Tennis</p>
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Slice</h1>
     <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
-      Il 2048 del tennis, edizione match: fai scorrere le tessere lungo la scala PUNTO-15-30-40 e poi
-      su per i game e i set, fino al <b>MATCH</b>. Solo PUNTO e 15 si fondono tra loro; da 30 in su
-      due tessere identiche si sommano nella tessera successiva.
+      Fai scorrere le tessere con uno swipe (o con le frecce). Si parte unendo tra loro le tessere PUNTO e 15, che unendosi creano la tessera 30.
+       Da lì in poi le tessere uguali si sommano creando la tessera successiva della scala: PUNTO, 25, 30, 40, 1°GAME, 2°GAME etc...
+       Arrivare alla tessera MATCH! sembra impossibile, forse lo è... :)
     </p>
 
     <button

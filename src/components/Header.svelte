@@ -96,7 +96,7 @@
       <div class="relative" bind:this={desktopTournamentsContainer}>
         <button
           type="button"
-          class="club-btn-yellow flex items-center gap-2 px-4 py-2"
+          class="club-btn flex items-center gap-2 px-4 py-2"
           aria-expanded={isTournamentsOpen}
           aria-controls="desktop-tournaments-menu"
           on:click={toggleTournamentsMenu}
@@ -275,7 +275,7 @@
               on:click={() => (isArcadeOpen = false)}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M14 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM4 0a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 10a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                <path d="M0 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2H2a2 2 0 0 1-2-2zm5 10v2a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2v5a2 2 0 0 1-2 2zm6-8V2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2V6a2 2 0 0 1 2-2z"/>
               </svg>
               Slice
             </a>
@@ -364,7 +364,7 @@
 
       <button
         type="button"
-        class="club-btn-yellow flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap p-4 text-center"
+        class="club-btn flex flex-nowrap items-center justify-center gap-2 whitespace-nowrap p-4 text-center"
         aria-expanded={isTournamentsOpen}
         aria-controls="mobile-tournaments-menu"
         on:click={toggleTournamentsMenu}
@@ -555,7 +555,7 @@
               }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="shrink-0" viewBox="0 0 16 16" aria-hidden="true">
-                <path d="M14 1a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM4 0a2 2 0 0 0-2 2v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zM2 10a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v4a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1z"/>
+                <path d="M0 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v2h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2H2a2 2 0 0 1-2-2zm5 10v2a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-2v5a2 2 0 0 1-2 2zm6-8V2a1 1 0 0 0-1-1H2a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h2V6a2 2 0 0 1 2-2z"/>
               </svg>
               Slice
             </a>
