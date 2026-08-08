@@ -1,6 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher, onDestroy, onMount } from 'svelte';
-  import { LABELS, type Dir, type MoveResult, type Tile } from '../../lib/slice/engine';
+  import { LABELS, mergeRule, type Dir, type MoveResult, type Tile } from '../../lib/slice/engine';
   import { tileBackground, tileTextColor } from '../../lib/slice/tileStyle';
 
   export let initialTiles: Tile[];
@@ -58,6 +58,28 @@
 
   function ballBackground(): string {
     return 'var(--giallo-club)';
+  }
+
+  /**
+   * true se la tessera ha un vicino ortogonale con cui la mossa di fusione
+   * del gioco (mergeRule) è valida — non "stesso livello": PUNTO si accoppia
+   * solo con 15 (e viceversa), da 30 in su solo con un livello identico.
+   */
+  function canHop(tile: RenderTile): boolean {
+    const deltas: [number, number][] = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+    return deltas.some(([dr, dc]) =>
+      renderTiles.some(
+        (t) =>
+          t.row === tile.row + dr &&
+          t.col === tile.col + dc &&
+          mergeRule(tile.level, t.level) !== null,
+      ),
+    );
+  }
+
+  /** Ampiezza (px) del "sobbalzo" verso l'alto: minima, mai oltre il gap tra le celle. */
+  function hopDistance(): number {
+    return gap * 0.5;
   }
 
   function wait(ms: number): Promise<void> {
@@ -155,11 +177,12 @@
     {/each}
 
     {#each renderTiles as tile (tile.id)}
+      {@const hop = canHop(tile)}
       <div
         class={`absolute flex items-center justify-center border-2 border-black font-black text-center transition-transform duration-[80ms] ease-out ${
           tile.state === 'spawn' ? 'tile-spawn' : ''
-        } ${tile.state === 'pop' ? 'tile-pop' : ''} ${tile.state === 'vanish' ? 'tile-vanish' : ''}`}
-        style={`width:${cell}px;height:${cell}px;font-size:${fontSize(tile.level)}px;background:${tileBackground(tile.level)};color:${tileTextColor(tile.level)};--pos:translate(${pos(tile.col)}px,${pos(tile.row)}px);transform:var(--pos)`}
+        } ${tile.state === 'pop' ? 'tile-pop' : ''} ${tile.state === 'vanish' ? 'tile-vanish' : ''} ${hop ? 'tile-hop' : ''}`}
+        style={`width:${cell}px;height:${cell}px;font-size:${fontSize(tile.level)}px;background:${tileBackground(tile.level)};color:${tileTextColor(tile.level)};--pos:translate(${pos(tile.col)}px,${pos(tile.row)}px);transform:var(--pos)${hop ? `;--hop:0px, -${hopDistance()}px` : ''}`}
       >
         {#if tile.level === 0}
           <span
@@ -222,6 +245,15 @@
   @keyframes slice-vanish {
     to { transform: var(--pos) scale(0.3); opacity: 0; }
   }
+  @keyframes slice-hop {
+    0%, 16%, 100% { transform: var(--pos); }
+    8% { transform: var(--pos) translate(var(--hop)); }
+  }
+  /* Definita prima di .tile-spawn/.tile-pop/.tile-vanish: se una tessera è
+     anche in una di quelle transizioni, la loro animation (definita dopo,
+     stessa specificità) vince sulla cascata e sostituisce momentaneamente
+     il sobbalzo, che riprende non appena lo stato torna 'idle'. */
+  .tile-hop { animation: slice-hop 3s ease-in-out infinite; }
   .tile-spawn { animation: slice-spawn 160ms ease-out; }
   .tile-pop { animation: slice-pop 180ms ease-out; }
   .tile-vanish { animation: slice-vanish 160ms ease-in forwards; }
