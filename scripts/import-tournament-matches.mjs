@@ -77,31 +77,10 @@ const PLAYER_ALIASES = {
 // -----------------------------------------------------------------------
 const MATCHES = [
   // ===== SERRONCHIOLAND GARROS =====
-  { t: 'Serronchioland', phase: 'Girone A', teamA: ['Brega', 'Tassi'], teamB: ['Virgili', 'Nocelli D.'], score: '1-4 2-4', winner: 'B' },
-  { t: 'Serronchioland', phase: 'Girone A', teamA: ['Scaloni', 'David'], teamB: ['Brega', 'Tassi'], score: '2-4 1-4', winner: 'B' },
-  { t: 'Serronchioland', phase: 'Girone A', teamA: ['Virgili', 'Nocelli D.'], teamB: ['Scaloni', 'David'], score: '4-1 2-4 10-12', winner: 'B' },
-  { t: 'Serronchioland', phase: 'Girone A', teamA: ['Oncini', 'Nocelli E.'], teamB: ['Scaloni', 'David'], score: '0-4 4-5(10)', winner: 'B' },
-  { t: 'Serronchioland', phase: 'Girone A', teamA: ['Virgili', 'Nocelli D.'], teamB: ['Oncini', 'Nocelli E.'], score: '4-0 4-2', winner: 'A' },
-  { t: 'Serronchioland', phase: 'Girone A', teamA: ['Oncini', 'Nocelli E.'], teamB: ['Brega', 'Tassi'], score: '0-4 1-4', winner: 'B' },
-
-  { t: 'Serronchioland', phase: 'Girone B', teamA: ['Antonelli', 'Piersigilli'], teamB: ['Nitrati', 'Frontalini'], score: '4-1 4-0', winner: 'A' },
-  { t: 'Serronchioland', phase: 'Girone B', teamA: ['Moreschini', 'Cirillo'], teamB: ['Antonelli', 'Piersigilli'], score: '4-2 5-3', winner: 'A' },
-  { t: 'Serronchioland', phase: 'Girone B', teamA: ['Nitrati', 'Frontalini'], teamB: ['Moreschini', 'Cirillo'], score: '0-4 2-4', winner: 'B' },
-  { t: 'Serronchioland', phase: 'Girone B', teamA: ['Gagliardini', 'Romaldi'], teamB: ['Moreschini', 'Cirillo'], score: '2-4 1-4', winner: 'B' },
-  {
-    // Confermato dall'utente: vince Gagliardini/Romaldi (nel sorgente il
-    // vincitore registrato era incoerente, indicava Moreschini/Cirillo che
-    // non gioca questo match).
-    t: 'Serronchioland', phase: 'Girone B', teamA: ['Nitrati', 'Frontalini'], teamB: ['Gagliardini', 'Romaldi'], score: '2-4 1-4', winner: 'B',
-  },
-  { t: 'Serronchioland', phase: 'Girone B', teamA: ['Gagliardini', 'Romaldi'], teamB: ['Antonelli', 'Piersigilli'], score: '2-4 4-5(7-10)', winner: 'B' },
-
-  { t: 'Serronchioland', phase: 'Semifinale GOLD', teamA: ['Moreschini', 'Cirillo'], teamB: ['Brega', 'Tassi'], score: '6-4 2-6 10-7', winner: 'A' },
-  { t: 'Serronchioland', phase: 'Semifinale GOLD', teamA: ['Virgili', 'Nocelli D.'], teamB: ['Antonelli', 'Piersigilli'], score: '7-6 6-4', winner: 'A' },
-  { t: 'Serronchioland', phase: 'Finale GOLD', teamA: ['Moreschini', 'Cirillo'], teamB: ['Virgili', 'Nocelli D.'], score: '6-1 6-0', winner: 'B' },
-  // Semifinali SILVER (Nitrati/Frontalini vs Oncini/Nocelli E.; Scaloni/David
-  // vs Gagliardini/Romaldi) e finale SILVER: nessun vincitore/punteggio in
-  // pagina -> non ancora giocate, escluse automaticamente (winner: null).
+  // RIMOSSO: le 15 partite erano gia' presenti nel DB (inserite a mano il
+  // 14-17 luglio, prima di questo script). Il primo import le ha duplicate;
+  // il duplicato e' stato annullato con scripts/restore-padel-backup.mjs.
+  // Non vanno reinserite.
 
   // ===== CORDIVINBLEDON =====
   // Girone A/B e le 2 semifinali GOLD non hanno un punteggio in pagina
