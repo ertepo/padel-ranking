@@ -38,7 +38,6 @@
   let availability: Availability | null = null;
   let error = '';
   let loading = true;
-  let dateInput: HTMLInputElement;
 
   const displayDate = () => new Intl.DateTimeFormat('it-IT', {
     weekday: 'long',
@@ -129,11 +128,8 @@
       </svg>
     </button>
 
-    <button
-      class="club-btn min-w-0 px-2 py-2 text-center font-black capitalize sm:px-3"
-      type="button"
-      on:click={() => dateInput.showPicker()}
-      aria-label="Scegli una data"
+    <label
+      class="club-btn min-w-0 cursor-pointer px-2 py-2 text-center font-black capitalize sm:px-3"
     >
       <span class="block text-[0.65rem] uppercase tracking-widest text-slate-500 sm:text-xs">Disponibilità</span>
       <span class="mt-1 flex items-center justify-center gap-1 text-sm sm:gap-2 sm:text-xl">
@@ -148,11 +144,11 @@
       <input
         class="sr-only"
         type="date"
+        aria-label="Scegli una data"
         bind:value={selectedDate}
-        bind:this={dateInput}
         on:change={loadAvailability}
       />
-    </button>
+    </label>
 
     <button class="club-btn-yellow grid h-10 w-10 shrink-0 place-items-center !text-black sm:h-12 sm:w-12" type="button" on:click={() => shiftDay(1)} aria-label="Giorno successivo">
       <svg class="h-5 w-5 -rotate-90 sm:h-6 sm:w-6" viewBox="0 0 24 24" aria-hidden="true">
