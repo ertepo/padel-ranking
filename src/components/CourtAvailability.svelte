@@ -76,6 +76,16 @@
   const unavailableLabel = (slot: Slot) =>
     slot.status === 'closed' || slot.status === 'closed_slot' ? 'Chiuso' : 'Occupato';
 
+  const availableSlotClasses = (sport: Court['sport']) => {
+    if (sport === 'padel') {
+      return 'bg-[color-mix(in_oklab,var(--blu-padel)_22%,white)] hover:bg-[color-mix(in_oklab,var(--blu-padel)_35%,white)]';
+    }
+    if (sport === 'tennis') {
+      return 'bg-[color-mix(in_oklab,var(--viola-tennis)_22%,white)] hover:bg-[color-mix(in_oklab,var(--viola-tennis)_35%,white)]';
+    }
+    return 'bg-green-200 hover:bg-green-300';
+  };
+
   async function loadAvailability() {
     loading = true;
     error = '';
@@ -112,27 +122,27 @@
 </script>
 
 <section aria-busy={loading}>
-  <div class="sticky top-[4.6rem] z-40 mb-7 grid min-h-[5.5rem] w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 border-2 border-black bg-white px-4 py-3 shadow-[-1rem_1rem_0_rgb(0_0_0_/_45%)] md:top-[4.75rem]">
-    <button class="club-btn-yellow grid h-12 w-12 place-items-center !text-black" type="button" on:click={() => shiftDay(-1)} aria-label="Giorno precedente">
-      <svg class="h-6 w-6 rotate-90" viewBox="0 0 24 24" aria-hidden="true">
+  <div class="sticky top-[var(--header-h,4.6rem)] z-40 mb-7 grid min-h-[5.5rem] w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-2 border-black bg-white px-3 py-3 shadow-[-1rem_1rem_0_rgb(0_0_0_/_45%)] sm:gap-4 sm:px-4">
+    <button class="club-btn-yellow grid h-10 w-10 shrink-0 place-items-center !text-black sm:h-12 sm:w-12" type="button" on:click={() => shiftDay(-1)} aria-label="Giorno precedente">
+      <svg class="h-5 w-5 rotate-90 sm:h-6 sm:w-6" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
       </svg>
     </button>
 
     <button
-      class="club-btn min-w-0 px-3 py-2 text-center font-black capitalize"
+      class="club-btn min-w-0 px-2 py-2 text-center font-black capitalize sm:px-3"
       type="button"
       on:click={() => dateInput.showPicker()}
       aria-label="Scegli una data"
     >
-      <span class="block text-xs uppercase tracking-widest text-slate-500">Disponibilità</span>
-      <span class="mt-1 flex items-center justify-center gap-2 text-lg sm:text-xl">
+      <span class="block text-[0.65rem] uppercase tracking-widest text-slate-500 sm:text-xs">Disponibilità</span>
+      <span class="mt-1 flex items-center justify-center gap-1 text-sm sm:gap-2 sm:text-xl">
         <span class="truncate">{displayDate()}</span>
-        <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <svg class="h-4 w-4 shrink-0 sm:h-5 sm:w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
           <path d="M7 3V6M17 3V6M4 9H20M5 5H19C19.5523 5 20 5.44772 20 6V19C20 19.5523 19.5523 20 19 20H5C4.44772 20 4 19.5523 4 19V6C4 5.44772 4.44772 5 5 5Z" stroke="currentColor" stroke-width="2" stroke-linecap="square" />
         </svg>
       </span>
-      <span class="mt-1 block text-[0.65rem] uppercase tracking-widest text-slate-500">
+      <span class="mt-1 block text-[0.6rem] uppercase tracking-widest text-slate-500 sm:text-[0.65rem]">
         {loading && availability ? 'Aggiornamento...' : 'Cambia data'}
       </span>
       <input
@@ -144,8 +154,8 @@
       />
     </button>
 
-    <button class="club-btn-yellow grid h-12 w-12 place-items-center !text-black" type="button" on:click={() => shiftDay(1)} aria-label="Giorno successivo">
-      <svg class="h-6 w-6 -rotate-90" viewBox="0 0 24 24" aria-hidden="true">
+    <button class="club-btn-yellow grid h-10 w-10 shrink-0 place-items-center !text-black sm:h-12 sm:w-12" type="button" on:click={() => shiftDay(1)} aria-label="Giorno successivo">
+      <svg class="h-5 w-5 -rotate-90 sm:h-6 sm:w-6" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
       </svg>
     </button>
@@ -208,7 +218,7 @@
               {#each slotsForCourt(court.id) as slot}
                 {#if slot.available}
                   <a
-                    class="flex min-h-[4.5rem] flex-col justify-center border-2 border-black bg-green-200 p-3 text-center shadow-[-3px_3px_black] transition hover:translate-x-[-2px] hover:translate-y-[2px] hover:bg-green-300 hover:shadow-[-1px_1px_black] md:min-h-0"
+                    class={`flex min-h-[4.5rem] flex-col justify-center border-2 border-black p-3 text-center shadow-[-3px_3px_black] transition hover:translate-x-[-2px] hover:translate-y-[2px] hover:shadow-[-1px_1px_black] md:min-h-0 ${availableSlotClasses(court.sport)}`}
                     style={timelineStyle(slot)}
                     href={availability.bookingUrl}
                     target="_blank"

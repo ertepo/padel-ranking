@@ -1,4 +1,5 @@
 <script>
+  import { onMount } from 'svelte';
   import { slide } from 'svelte/transition';
 
   export let theme = 'neutral';
@@ -7,6 +8,7 @@
   export let logoSrc = '/images/logo-b.svg';
   export let isHomePage = false;
 
+  let headerEl;
   let isOpen = false;
   let isRankingOpen = false;
   let isTournamentsOpen = false;
@@ -63,11 +65,25 @@
       isRankingOpen = false;
     }
   }
+
+  onMount(() => {
+    const updateHeaderHeight = () => {
+      document.documentElement.style.setProperty('--header-h', `${headerEl.offsetHeight}px`);
+    };
+
+    updateHeaderHeight();
+
+    const resizeObserver = new ResizeObserver(updateHeaderHeight);
+    resizeObserver.observe(headerEl);
+
+    return () => resizeObserver.disconnect();
+  });
 </script>
 
 <svelte:window on:click={closeDesktopRankingOnOutsideClick} />
 
 <header
+  bind:this={headerEl}
   class="sticky top-0 z-50 border-b-2 border-black"
   style={`background-color: ${accent}; background: ${accent}; color: ${contrast};`}
 >
