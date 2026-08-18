@@ -49,6 +49,29 @@ body {
   background: hsl(38, 17%, 91%);
 }
 
+.dot-bg-left::after {
+  content: "";
+  z-index: -1;
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, #cecece 2px, transparent 1px);
+  background-size: 20px 20px;
+  -webkit-mask-image: linear-gradient(to right, black, transparent 70%);
+          mask-image: linear-gradient(to right, black, transparent 70%);
+  pointer-events: none;
+}
+.dot-bg-right::after 
+{
+  content: "";
+  z-index: -1;
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, #cecece 2px, transparent 1px);
+  background-size: 20px 20px;
+  -webkit-mask-image: linear-gradient(to left, black, transparent 70%);
+          mask-image: linear-gradient(to left, black, transparent 70%);
+  pointer-events: none;
+}
 .ombra {
   box-shadow: -0.2em 0.2em black;
 }
