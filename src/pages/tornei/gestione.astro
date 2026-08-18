@@ -1,0 +1,26 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import TorneoManager from '../../components/torneo/TorneoManager.svelte';
+---
+
+<Layout
+  title="Organizza un torneo"
+  headerTheme="padel"
+  description="Organizza un mini torneo di padel: scegli i giocatori, genera il calendario delle partite con coppie sempre diverse e tieni la classifica in tempo reale."
+>
+  <section class="mb-8">
+    <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
+      Coppie a rotazione
+    </p>
+    <h1 class="text-4xl md:text-6xl font-black leading-none text-black">
+      Organizza un torneo
+    </h1>
+    <p class="mt-5 max-w-2xl text-lg font-semibold leading-relaxed text-slate-700">
+      Inserisci i giocatori: il calendario viene generato in automatico in modo che ogni
+      giocatore faccia coppia con tutti gli altri, giocando sempre sullo stesso campo.
+      Segna i punteggi partita per partita e la classifica si aggiorna da sola.
+    </p>
+  </section>
+
+  <TorneoManager client:load />
+</Layout>
