@@ -163,14 +163,6 @@
             <span class="club-btn inline-flex cursor-not-allowed items-center px-4 py-2 opacity-60">
               PalazzUS Open
             </span>
-
-            <a
-              href="/tornei/gestione"
-              class="club-btn-pastelyellow inline-flex items-center whitespace-nowrap px-4 py-2"
-              on:click={() => (isTournamentsOpen = false)}
-            >
-              Organizza torneo
-            </a>
           </div>
         {/if}
       </div>
@@ -239,6 +231,14 @@
         </svg>
         Matches
       </a>
+
+            <a
+              href="/tornei/gestione"
+              class="club-btn-pastelyellow inline-flex items-center whitespace-nowrap px-4 py-2"
+              on:click={() => (isRankingOpen = false)}
+            >
+              Organizza torneo
+            </a>
           </div>
         {/if}
       </div>
@@ -445,17 +445,6 @@
             <span class="club-btn inline-flex cursor-not-allowed items-center justify-center p-4 text-center opacity-60">
               PalazzUS Open
             </span>
-
-            <a
-              href="/tornei/gestione"
-              class="club-btn-pastelyellow inline-flex items-center justify-center whitespace-nowrap p-4 text-center"
-              on:click={() => {
-                isTournamentsOpen = false;
-                isOpen = false;
-              }}
-            >
-              Organizza torneo
-            </a>
           </div>
         </div>
       {/if}
@@ -531,6 +520,17 @@
                 <path d="M0 1a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H1a1 1 0 0 1-1-1zm9 0a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1zm0 9a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-5a1 1 0 0 1-1-1z"/>
               </svg>
               Match
+            </a>
+
+            <a
+              href="/tornei/gestione"
+              class="club-btn-pastelyellow inline-flex items-center justify-center whitespace-nowrap p-4 text-center"
+              on:click={() => {
+                isRankingOpen = false;
+                isOpen = false;
+              }}
+            >
+              Organizza torneo
             </a>
           </div>
         </div>
