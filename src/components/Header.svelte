@@ -163,6 +163,14 @@
             <span class="club-btn inline-flex cursor-not-allowed items-center px-4 py-2 opacity-60">
               PalazzUS Open
             </span>
+
+            <a
+              href="/tornei/gestione"
+              class="club-btn-pastelyellow inline-flex items-center whitespace-nowrap px-4 py-2"
+              on:click={() => (isTournamentsOpen = false)}
+            >
+              Organizza torneo
+            </a>
           </div>
         {/if}
       </div>
@@ -437,6 +445,17 @@
             <span class="club-btn inline-flex cursor-not-allowed items-center justify-center p-4 text-center opacity-60">
               PalazzUS Open
             </span>
+
+            <a
+              href="/tornei/gestione"
+              class="club-btn-pastelyellow inline-flex items-center justify-center whitespace-nowrap p-4 text-center"
+              on:click={() => {
+                isTournamentsOpen = false;
+                isOpen = false;
+              }}
+            >
+              Organizza torneo
+            </a>
           </div>
         </div>
       {/if}
