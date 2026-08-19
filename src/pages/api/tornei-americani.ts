@@ -31,12 +31,12 @@ export const POST: APIRoute = async ({ request }) => {
   const { data, error } = await supabase
     .from('tornei_americani')
     .insert({ nome, stato: body.stato })
-    .select('id')
+    .select('id, created_at')
     .single();
 
   if (error) {
     return Response.json({ error: error.message }, { status: 400 });
   }
 
-  return Response.json({ ok: true, id: data.id });
+  return Response.json({ ok: true, id: data.id, created_at: data.created_at });
 };

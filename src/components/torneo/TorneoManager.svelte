@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { generateSchedule, type ScheduleMatch } from '../../lib/torneo/schedule';
+  import { slugify } from '../../lib/torneo/slug';
   import { supabase } from '../../lib/supabase';
 
   const STORAGE_KEY = 'torneo-padel-state';
@@ -27,6 +28,7 @@
   let names: string[] = Array.from({ length: playerCount }, () => '');
   let matches: MatchRow[] = [];
   let torneoName = '';
+  let lastSyncedAt: string | null = null;
   let error = '';
   let hydrated = false;
   let saving = false;
@@ -46,7 +48,7 @@
     }
   }
 
-  $: serializedState = JSON.stringify({ phase, playerCount, names, matches, torneoName });
+  $: serializedState = JSON.stringify({ phase, playerCount, names, matches, torneoName, lastSyncedAt });
 
   onMount(() => {
     try {
@@ -59,6 +61,7 @@
           names = saved.names;
           matches = saved.matches;
           torneoName = typeof saved.torneoName === 'string' ? saved.torneoName : '';
+          lastSyncedAt = typeof saved.lastSyncedAt === 'string' ? saved.lastSyncedAt : null;
         }
       }
     } catch {
@@ -66,7 +69,39 @@
     }
     hydrated = true;
     loadSavedTournaments();
+    if (phase === 'play' && torneoName) {
+      checkForNewerSave();
+    }
   });
+
+  // All'apertura/ricarica della pagina, se un altro dispositivo ha salvato
+  // una versione più recente di questo stesso torneo, la applica in automatico:
+  // così F5 aggiorna davvero, invece di mostrare solo il localStorage locale
+  // (che è per-dispositivo e non si sincronizza da solo). Aggiorna solo se il
+  // salvataggio trovato è più recente dell'ultimo che questo dispositivo
+  // conosce, quindi non cancella mai modifiche locali non ancora salvate.
+  async function checkForNewerSave() {
+    const { data } = await supabase
+      .from('tornei_americani')
+      .select('nome, stato, created_at')
+      .eq('nome', torneoName)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (!data) return;
+    if (lastSyncedAt && new Date(data.created_at) <= new Date(lastSyncedAt)) return;
+
+    const stato = data.stato;
+    if (!stato || !Array.isArray(stato.names) || !Array.isArray(stato.matches)) return;
+
+    playerCount = stato.playerCount ?? stato.names.length;
+    names = stato.names;
+    matches = stato.matches;
+    phase = stato.phase === 'play' ? 'play' : 'setup';
+    lastSyncedAt = data.created_at;
+    saveMessage = 'Aggiornato automaticamente con l\'ultimo salvataggio.';
+  }
 
   async function loadSavedTournaments() {
     const { data, error: fetchError } = await supabase
@@ -104,6 +139,7 @@
     names = stato.names;
     matches = stato.matches as MatchRow[];
     phase = stato.phase === 'play' ? 'play' : 'setup';
+    lastSyncedAt = row.created_at;
     error = '';
   }
 
@@ -204,6 +240,7 @@
         return;
       }
       saveMessage = 'Torneo salvato.';
+      lastSyncedAt = data.created_at;
       await loadSavedTournaments();
     } catch {
       saveError = 'Errore di rete durante il salvataggio.';
@@ -244,6 +281,7 @@
       names = stato.names;
       matches = stato.matches;
       phase = stato.phase === 'play' ? 'play' : 'setup';
+      lastSyncedAt = data.created_at;
     } catch {
       refreshError = 'Errore di rete durante l\'aggiornamento.';
     } finally {
@@ -360,6 +398,16 @@
           <button type="button" class="club-btn-yellow px-4 py-2" on:click={saveTournament} disabled={saving}>
             {saving ? 'Salvataggio...' : 'Salva torneo'}
           </button>
+          {#if torneoName}
+            <a
+              href={`/tornei/americani/${slugify(torneoName)}`}
+              target="_blank"
+              rel="noopener"
+              class="club-btn-pastelgreen px-4 py-2"
+            >
+              Condividi
+            </a>
+          {/if}
           <button type="button" class="club-btn px-4 py-2" on:click={newTournament}>
             Nuovo torneo
           </button>

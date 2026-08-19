@@ -1,0 +1,203 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { supabase } from '../../../lib/supabase';
+import { slugify } from '../../../lib/torneo/slug';
+
+interface MatchRow {
+  teamA: [number, number];
+  teamB: [number, number];
+  sitOut: number[];
+  scoreA: number | null;
+  scoreB: number | null;
+}
+
+interface Stato {
+  playerCount?: number;
+  names?: string[];
+  matches?: MatchRow[];
+}
+
+interface Row {
+  nome: string;
+  created_at: string;
+  data_torneo: string;
+  stato: Stato;
+}
+
+const { slug } = Astro.params;
+
+// Lo slug non è salvato: si ricalcola dal nome di ogni torneo (tenendo solo
+// l'ultimo salvataggio per ciascun nome, come nel menù "Riprendi" della
+// pagina di gestione) e si confronta con quello richiesto nell'URL.
+const { data: rows, error } = await supabase
+  .from('tornei_americani')
+  .select('nome, created_at, data_torneo, stato')
+  .order('created_at', { ascending: false })
+  .limit(300);
+
+const seenNames = new Set<string>();
+let tournamentRow: Row | undefined;
+
+for (const row of (rows as Row[]) ?? []) {
+  if (!row.nome || seenNames.has(row.nome)) continue;
+  seenNames.add(row.nome);
+  if (slugify(row.nome) === slug) {
+    tournamentRow = row;
+    break;
+  }
+}
+
+const stato = tournamentRow?.stato;
+
+if (error || !tournamentRow || !stato || !Array.isArray(stato.names) || !Array.isArray(stato.matches)) {
+  return Astro.redirect('/404');
+}
+
+const names = stato.names;
+const matches = stato.matches;
+
+function teamLabel(team: [number, number]) {
+  return `${names[team[0]]} / ${names[team[1]]}`;
+}
+
+interface Standing {
+  name: string;
+  points: number;
+  played: number;
+  wins: number;
+  average: number;
+}
+
+const standings: Standing[] = names.map((name) => ({ name, points: 0, played: 0, wins: 0, average: 0 }));
+for (const m of matches) {
+  if (m.scoreA === null || m.scoreB === null) continue;
+  for (const idx of m.teamA) {
+    standings[idx].points += m.scoreA;
+    standings[idx].played += 1;
+    if (m.scoreA > m.scoreB) standings[idx].wins += 1;
+  }
+  for (const idx of m.teamB) {
+    standings[idx].points += m.scoreB;
+    standings[idx].played += 1;
+    if (m.scoreB > m.scoreA) standings[idx].wins += 1;
+  }
+}
+for (const row of standings) {
+  row.average = row.played > 0 ? row.points / row.played : 0;
+}
+standings.sort((a, b) => b.average - a.average || b.wins - a.wins);
+
+const matchesCompleted = matches.filter((m) => m.scoreA !== null && m.scoreB !== null).length;
+const dataTorneoStr = tournamentRow.data_torneo
+  ? new Date(tournamentRow.data_torneo).toLocaleDateString('it-IT')
+  : new Date(tournamentRow.created_at).toLocaleDateString('it-IT');
+---
+
+<Layout
+  title={tournamentRow.nome}
+  headerTheme="padel"
+  description={`Classifica e risultati del torneo "${tournamentRow.nome}" giocato il ${dataTorneoStr}.`}
+>
+  <section class="mb-8">
+    <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
+      Torneo Americano &middot; {dataTorneoStr}
+    </p>
+    <h1 class="text-4xl md:text-6xl font-black leading-none text-black">
+      {tournamentRow.nome}
+    </h1>
+    <p class="mt-5 max-w-2xl text-lg font-semibold leading-relaxed text-slate-700">
+      {matches.length} partite &middot; {matchesCompleted}/{matches.length} giocate
+    </p>
+  </section>
+
+  <div class="flex flex-col gap-8">
+    <section class="club-card p-5 md:p-6">
+      <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
+        Classifica
+      </p>
+
+      <!-- table-fixed con larghezze fisse per le colonne numeriche: "Giocatore"
+           si prende lo spazio restante e va in ellissi se il nome non ci sta,
+           così la tabella non sborda mai a destra su schermi stretti. -->
+      <table class="w-full table-fixed border-collapse">
+        <thead>
+          <tr class="border-b-2 border-black text-left text-xs uppercase font-black text-slate-600">
+            <th class="w-6 py-2 pr-1">#</th>
+            <th class="py-2 pr-2">Giocatore</th>
+            <th class="w-12 py-2 pr-1 text-center">P/V</th>
+            <th class="w-12 py-2 pr-1 text-center">Punti</th>
+            <th class="w-12 py-2 text-center">Media</th>
+          </tr>
+        </thead>
+        <tbody>
+          {standings.map((row, i) => (
+            <tr class={`border-b border-slate-200 ${i === 0 && row.played > 0 ? 'bg-[var(--giallo-club)]' : ''}`}>
+              <td class="py-2 pr-1 font-black text-slate-500">{i + 1}</td>
+              <td class="truncate py-2 pr-2 font-black">{row.name}</td>
+              <td class="py-2 pr-1 text-center font-bold">{row.played}/{row.wins}</td>
+              <td class="py-2 pr-1 text-center font-bold">{row.points}</td>
+              <td class="py-2 text-center font-black">{row.average.toFixed(1)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
+
+    <section class="club-card p-5 md:p-6">
+      <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
+        Partite
+      </p>
+
+      <!-- Mobile: le due squadre della partita impilate nella stessa riga/blocco,
+           senza "vs" affiancato (i nomi lunghi non spingono via il punteggio) e
+           senza riquadri da tabella. Niente riposi qui, solo su desktop. -->
+      <div class="flex flex-col md:hidden">
+        {matches.map((match, i) => (
+          <div class="flex gap-3 border-b border-slate-200 py-2 last:border-b-0">
+            <span class="shrink-0 pt-0.5 font-black text-slate-400">{i + 1}</span>
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center justify-between gap-3">
+                <span class="truncate font-bold">{teamLabel(match.teamA)}</span>
+                <span class="shrink-0 font-black">{match.scoreA ?? '-'}</span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="truncate font-bold">{teamLabel(match.teamB)}</span>
+                <span class="shrink-0 font-black">{match.scoreB ?? '-'}</span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <!-- Desktop: tabella completa, con la colonna dei giocatori a riposo -->
+      <div class="hidden overflow-x-auto md:block">
+        <table class="w-full min-w-[36rem] border-collapse">
+          <thead>
+            <tr class="border-b-2 border-black text-left text-xs uppercase font-black text-slate-600">
+              <th class="py-2 pr-3">#</th>
+              <th class="py-2 pr-3">Coppia 1</th>
+              <th class="py-2 pr-3 text-center">Punti</th>
+              <th class="py-2 pr-3 text-center">Punti</th>
+              <th class="py-2 pr-3">Coppia 2</th>
+              <th class="py-2 pr-3">Riposano</th>
+            </tr>
+          </thead>
+          <tbody>
+            {matches.map((match, i) => (
+              <tr class="border-b border-slate-200">
+                <td class="py-2 pr-3 font-black text-slate-500">{i + 1}</td>
+                <td class="py-2 pr-3 font-black">{teamLabel(match.teamA)}</td>
+                <td class="py-2 pr-3 text-center font-black">{match.scoreA ?? '-'}</td>
+                <td class="py-2 pr-3 text-center font-black">{match.scoreB ?? '-'}</td>
+                <td class="py-2 pr-3 font-black">{teamLabel(match.teamB)}</td>
+                <td class="py-2 pr-3 text-xs font-bold text-slate-500">
+                  {match.sitOut.map((idx) => names[idx]).join(', ') || '-'}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+</Layout>
