@@ -26,6 +26,18 @@ const { count: totalSliceMatches } = await supabase
 
 const topSliceScores = sliceScores || [];
 
+const { data: triviaScores, error: triviaError } = await supabase
+  .from('trivia_game_score')
+  .select('id, nickname, points, correct_count, total_questions, created_at')
+  .order('points', { ascending: false })
+  .limit(15);
+
+const { count: totalTriviaMatches } = await supabase
+  .from('trivia_game_score')
+  .select('id', { count: 'exact', head: true });
+
+const topTriviaScores = triviaScores || [];
+
 const DIFFICULTY_LABELS: Record<string, string> = {
   '1': 'Liv. 1',
   '2': 'Liv. 2',
@@ -67,9 +79,14 @@ const DIFFICULTY_LABELS: Record<string, string> = {
             <pre class="err">{JSON.stringify(sliceError, null, 2)}</pre>
           )
         }
+        {
+          triviaError && (
+            <pre class="err">{JSON.stringify(triviaError, null, 2)}</pre>
+          )
+        }
 
         <div class="boards">
-          <section class="board">
+          <section class="board" id="board-legends">
             <div class="board-head">
               <div>
                 <span class="name">Legends Game</span>
@@ -86,7 +103,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
                     const difficultyLabel = DIFFICULTY_LABELS[score.difficulty] || score.difficulty || '—';
                     const isFirst = index === 0;
                     return (
-                      <li class:list={['row', { first: isFirst }]}>
+                      <li class:list={['row', { first: isFirst, extra: index >= 6 }]}>
                         <div class="row-top">
                           <span class="rank">
                             <span class="caret">►</span>
@@ -108,9 +125,17 @@ const DIFFICULTY_LABELS: Record<string, string> = {
                 </ol>
               )
             }
+
+            {
+              topScores.length > 6 && (
+                <button type="button" class="show-more" data-board="board-legends">
+                  Mostra altro
+                </button>
+              )
+            }
           </section>
 
-          <section class="board">
+          <section class="board" id="board-slice">
             <div class="board-head">
               <div>
                 <span class="name">Slice</span>
@@ -127,7 +152,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
                     const date = new Date(score.created_at).toLocaleDateString('it-IT');
                     const isFirst = index === 0;
                     return (
-                      <li class:list={['row', { first: isFirst }]}>
+                      <li class:list={['row', { first: isFirst, extra: index >= 6 }]}>
                         <div class="row-top">
                           <span class="rank">
                             <span class="caret">►</span>
@@ -155,6 +180,59 @@ const DIFFICULTY_LABELS: Record<string, string> = {
                 </ol>
               )
             }
+
+            {
+              topSliceScores.length > 6 && (
+                <button type="button" class="show-more" data-board="board-slice">
+                  Mostra altro
+                </button>
+              )
+            }
+          </section>
+
+          <section class="board" id="board-trivia">
+            <div class="board-head">
+              <div>
+                <span class="name">Trivia</span>
+              </div>
+              <span class="meta">Top 15 · {totalTriviaMatches ?? 0} partite</span>
+            </div>
+
+            {
+              topTriviaScores.length === 0 ? (
+                <p class="empty">Nessun punteggio ancora registrato: gioca la prima partita!</p>
+              ) : (
+                <ol class="board-list">
+                  {topTriviaScores.map((score, index) => {
+                    const isFirst = index === 0;
+                    return (
+                      <li class:list={['row', { first: isFirst, extra: index >= 6 }]}>
+                        <div class="row-top">
+                          <span class="rank">
+                            <span class="caret">►</span>
+                            {String(index + 1).padStart(2, '0')}
+                          </span>
+                          <span class="who">{score.nickname}</span>
+                        </div>
+                        <div class="row-sub">
+                          <span class="sub">{score.correct_count}/{score.total_questions} corrette</span>
+                          <span class="leader" />
+                          <span class="score">{score.points}</span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )
+            }
+
+            {
+              topTriviaScores.length > 6 && (
+                <button type="button" class="show-more" data-board="board-trivia">
+                  Mostra altro
+                </button>
+              )
+            }
           </section>
         </div>
 
@@ -162,6 +240,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
         <div class="foot">
           <a class="cab-btn primary" href="/arcade/legends">► Legends Game</a>
           <a class="cab-btn primary" href="/arcade/slice">► Slice</a>
+          <a class="cab-btn primary" href="/arcade/trivia">► Trivia</a>
         </div>
       </div>
     </div>
@@ -259,6 +338,27 @@ const DIFFICULTY_LABELS: Record<string, string> = {
   closeBtn?.addEventListener('click', () => dialog?.close());
   dialog?.addEventListener('click', (e) => {
     if (e.target === dialog) dialog.close();
+  });
+
+  // "Mostra altro" rivela le posizioni 7-15 di quella classifica; ricliccando
+  // le richiude e riporta la vista in cima a QUELLA classifica (non in cima
+  // alla pagina), compensando l'header sticky del sito come già fa
+  // ScambioGame/SliceGame con document.querySelector('header').
+  document.querySelectorAll<HTMLButtonElement>('.show-more').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const board = btn.dataset.board ? document.getElementById(btn.dataset.board) : null;
+      if (!board) return;
+
+      const expanded = board.classList.toggle('expanded');
+      btn.textContent = expanded ? 'Mostra meno' : 'Mostra altro';
+
+      if (!expanded) {
+        const header = document.querySelector('header');
+        const headerOffset = header ? header.getBoundingClientRect().height : 0;
+        const top = board.getBoundingClientRect().top + window.scrollY - headerOffset - 12;
+        window.scrollTo({ top, behavior: 'smooth' });
+      }
+    });
   });
 </script>
 
@@ -538,6 +638,34 @@ const DIFFICULTY_LABELS: Record<string, string> = {
     animation: arcade-blink 1s steps(1) infinite;
   }
   .row:not(.first) .caret { visibility: hidden; }
+
+  .board:not(.expanded) .row.extra {
+    display: none;
+  }
+
+  .show-more {
+    display: block;
+    width: 100%;
+    padding: 0.6rem;
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--line);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    text-align: center;
+    color: var(--yellow-dim);
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+  }
+  .show-more:hover,
+  .show-more:focus-visible {
+    background: rgba(255, 204, 0, 0.08);
+    color: var(--yellow);
+    outline: none;
+  }
 
   .mini-btn {
     font-family: var(--mono);

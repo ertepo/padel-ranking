@@ -157,6 +157,11 @@
   let nomecognome = '';
   let nicknameError = '';
   let checkingNickname = false;
+  let verifyingNickname = false;
+  // vero quando nickname+nomecognome correnti sono già stati verificati/
+  // reclamati per questa partita: evita di richiamare l'API ad ogni mossa,
+  // solo alla prima di ogni partita (o dopo che i campi sono stati cambiati).
+  let nicknameVerified = false;
   let scoreSaved = false;
 
   onMount(() => {
@@ -167,22 +172,61 @@
   function onNicknameInput(value: string) {
     nickname = value;
     nicknameError = '';
+    nicknameVerified = false;
     localStorage.setItem(NICKNAME_KEY, value);
   }
 
   function onNomecognomeInput(value: string) {
     nomecognome = value;
     nicknameError = '';
+    nicknameVerified = false;
     localStorage.setItem(NOMECOGNOME_KEY, value);
+  }
+
+  // il nickname va verificato/abbinato PRIMA che la mossa venga giocata, non
+  // solo a fine partita: altrimenti un nickname già in uso da qualcun altro
+  // si scopre solo a partita finita, quando è troppo tardi per correggerlo e
+  // il punteggio va perso. La board qui non ha uno schermo di "setup" a sé
+  // (su desktop è già interattiva dal caricamento pagina), quindi il
+  // controllo scatta alla prima mossa di ogni partita invece che su un
+  // pulsante "Inizia" dedicato (schema usato invece in Trivia/Legends).
+  // Nickname e nome/cognome sono facoltativi: lasciandoli entrambi vuoti si
+  // gioca comunque, semplicemente la partita non entra in classifica.
+  async function verifyNickname(): Promise<boolean> {
+    if (nicknameVerified) return true;
+    const hasNickname = nickname.trim() !== '';
+    const hasNomecognome = nomecognome.trim() !== '';
+    if (!hasNickname && !hasNomecognome) return true;
+    if (!hasNickname || !hasNomecognome) {
+      nicknameError = 'Inserisci sia nickname che nome e cognome, oppure lasciali entrambi vuoti per giocare senza salvare il punteggio.';
+      return false;
+    }
+    verifyingNickname = true;
+    try {
+      const res = await fetch('/api/game-nickname', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nickname: nickname.trim(), nomecognome: nomecognome.trim() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        nicknameError = data.error || 'Nickname non disponibile.';
+        return false;
+      }
+      nicknameVerified = true;
+      return true;
+    } catch {
+      nicknameError = 'Impossibile verificare il nickname: controlla la connessione.';
+      return false;
+    } finally {
+      verifyingNickname = false;
+    }
   }
 
   // salvato a fine partita: se il nickname è già di qualcun altro il punteggio
   // non entra in classifica, ma la partita resta comunque giocabile
   async function submitScore() {
-    if (!nickname.trim() || !nomecognome.trim()) {
-      nicknameError = 'Inserisci nickname e nome cognome per salvare il punteggio.';
-      return;
-    }
+    if (!nickname.trim() || !nomecognome.trim()) return; // partita anonima: niente da salvare
     checkingNickname = true;
     try {
       const res = await fetch('/api/slice-score', {
@@ -228,6 +272,14 @@
     if (!result.moved) return;
 
     locked = true;
+    if (!nicknameVerified) {
+      const verified = await verifyNickname();
+      if (!verified) {
+        locked = false;
+        return;
+      }
+    }
+
     await boardRef.applyMove(result);
     previousState = state;
     state = result.state;
@@ -450,11 +502,14 @@
 
     <p class="mt-2 max-w-xl text-xs font-bold text-slate-500">
       La prima volta abbina il nickname a nome e cognome, così resta solo tuo: a fine partita il
-      punteggio viene salvato insieme al nickname.
+      punteggio viene salvato insieme al nickname. Puoi anche lasciarli vuoti e giocare senza
+      salvare il punteggio.
     </p>
 
     {#if checkingNickname}
       <p class="mt-2 text-xs font-black uppercase tracking-widest text-slate-500">Salvo il punteggio…</p>
+    {:else if verifyingNickname}
+      <p class="mt-2 text-xs font-black uppercase tracking-widest text-slate-500">Verifico nickname…</p>
     {:else if nicknameError}
       <p class="mt-2 text-xs font-black uppercase tracking-widest text-[var(--rosso-padel)]">{nicknameError}</p>
     {/if}

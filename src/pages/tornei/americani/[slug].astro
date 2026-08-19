@@ -122,82 +122,129 @@ const dataTorneoStr = tournamentRow.data_torneo
       <table class="w-full table-fixed border-collapse">
         <thead>
           <tr class="border-b-2 border-black text-left text-xs uppercase font-black text-slate-600">
-            <th class="w-6 py-2 pr-1">#</th>
+            <th class="w-6 py-2 pr-1" style="padding-left: 4px">#</th>
             <th class="py-2 pr-2">Giocatore</th>
             <th class="w-12 py-2 pr-1 text-center">P/V</th>
             <th class="w-12 py-2 pr-1 text-center">Punti</th>
-            <th class="w-12 py-2 text-center">Media</th>
+            <th class="w-12 py-2 pr-1 text-center">Media</th>
           </tr>
         </thead>
         <tbody>
           {standings.map((row, i) => (
             <tr class={`border-b border-slate-200 ${i === 0 && row.played > 0 ? 'bg-[var(--giallo-club)]' : ''}`}>
-              <td class="py-2 pr-1 font-black text-slate-500">{i + 1}</td>
+              <td class="py-2 pr-1 font-black text-slate-500" style="padding-left: 4px">{i + 1}</td>
               <td class="truncate py-2 pr-2 font-black">{row.name}</td>
               <td class="py-2 pr-1 text-center font-bold">{row.played}/{row.wins}</td>
               <td class="py-2 pr-1 text-center font-bold">{row.points}</td>
-              <td class="py-2 text-center font-black">{row.average.toFixed(1)}</td>
+              <td class="py-2 pr-1 text-center font-black">{row.average.toFixed(1)}</td>
             </tr>
           ))}
         </tbody>
       </table>
     </section>
 
-    <section class="club-card p-5 md:p-6">
-      <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
-        Partite
-      </p>
+    <section class="partite-panel relative left-1/2 w-screen -translate-x-1/2 border-y-2 border-black bg-black py-8 text-white">
+      <div class="frame" aria-hidden="true"></div>
+      <div class="mx-auto max-w-5xl px-8">
+        <p class="heading text-xl text-center uppercase tracking-widest font-black mb-3">
+          Partite
+        </p>
 
-      <!-- Mobile: le due squadre della partita impilate nella stessa riga/blocco,
-           senza "vs" affiancato (i nomi lunghi non spingono via il punteggio) e
-           senza riquadri da tabella. Niente riposi qui, solo su desktop. -->
-      <div class="flex flex-col md:hidden">
-        {matches.map((match, i) => (
-          <div class="flex gap-3 border-b border-slate-200 py-2 last:border-b-0">
-            <span class="shrink-0 pt-0.5 font-black text-slate-400">{i + 1}</span>
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center justify-between gap-3">
-                <span class="truncate font-bold">{teamLabel(match.teamA)}</span>
-                <span class="shrink-0 font-black">{match.scoreA ?? '-'}</span>
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <span class="truncate font-bold">{teamLabel(match.teamB)}</span>
-                <span class="shrink-0 font-black">{match.scoreB ?? '-'}</span>
+        <!-- Mobile: le due squadre della partita impilate nella stessa riga/blocco,
+             senza "vs" affiancato (i nomi lunghi non spingono via il punteggio) e
+             senza riquadri da tabella. Niente riposi qui, solo su desktop. -->
+        <div class="flex flex-col md:hidden">
+          {matches.map((match, i) => (
+            <div class="row flex gap-3 py-2">
+              <span class="index shrink-0 pt-0.5 font-black">{i + 1}</span>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-3 px-8">
+                  <span class="team truncate font-bold">{teamLabel(match.teamA)}</span>
+                  <span class="score shrink-0 font-black">{match.scoreA ?? '-'}</span>
+                </div>
+                <div class="flex items-center justify-between gap-3 px-8">
+                  <span class="team truncate font-bold">{teamLabel(match.teamB)}</span>
+                  <span class="score shrink-0 font-black">{match.scoreB ?? '-'}</span>
+                </div>
               </div>
             </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
 
-      <!-- Desktop: tabella completa, con la colonna dei giocatori a riposo -->
-      <div class="hidden overflow-x-auto md:block">
-        <table class="w-full min-w-[36rem] border-collapse">
-          <thead>
-            <tr class="border-b-2 border-black text-left text-xs uppercase font-black text-slate-600">
-              <th class="py-2 pr-3">#</th>
-              <th class="py-2 pr-3">Coppia 1</th>
-              <th class="py-2 pr-3 text-center">Punti</th>
-              <th class="py-2 pr-3 text-center">Punti</th>
-              <th class="py-2 pr-3">Coppia 2</th>
-              <th class="py-2 pr-3">Riposano</th>
-            </tr>
-          </thead>
-          <tbody>
-            {matches.map((match, i) => (
-              <tr class="border-b border-slate-200">
-                <td class="py-2 pr-3 font-black text-slate-500">{i + 1}</td>
-                <td class="py-2 pr-3 font-black">{teamLabel(match.teamA)}</td>
-                <td class="py-2 pr-3 text-center font-black">{match.scoreA ?? '-'}</td>
-                <td class="py-2 pr-3 text-center font-black">{match.scoreB ?? '-'}</td>
-                <td class="py-2 pr-3 font-black">{teamLabel(match.teamB)}</td>
-                <td class="py-2 pr-3 text-xs font-bold text-slate-500">
-                  {match.sitOut.map((idx) => names[idx]).join(', ') || '-'}
-                </td>
+        <!-- Desktop: tabella completa, con la colonna dei giocatori a riposo -->
+        <div class="hidden overflow-x-auto md:block">
+          <table class="w-full min-w-[36rem] border-collapse">
+            <thead>
+              <tr class="head-row text-left text-xs uppercase font-black">
+                <th class="py-2 pr-3">#</th>
+                <th class="py-2 pr-3">Coppia 1</th>
+                <th class="py-2 pr-3 text-center">Punti</th>
+                <th class="py-2 pr-3 text-center">Punti</th>
+                <th class="py-2 pr-3">Coppia 2</th>
+                <th class="py-2 pr-3">Riposano</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {matches.map((match, i) => (
+                <tr class="row">
+                  <td class="index py-2 pr-3 font-black">{i + 1}</td>
+                  <td class="team py-2 pr-3 font-black">{teamLabel(match.teamA)}</td>
+                  <td class="score py-2 pr-3 text-center font-black">{match.scoreA ?? '-'}</td>
+                  <td class="score py-2 pr-3 text-center font-black">{match.scoreB ?? '-'}</td>
+                  <td class="team py-2 pr-3 font-black">{teamLabel(match.teamB)}</td>
+                  <td class="sitout py-2 pr-3 text-xs font-bold">
+                    {match.sitOut.map((idx) => names[idx]).join(', ') || '-'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
     </section>
   </div>
 </Layout>
+
+<style>
+  /* Sezione "Partite": stesso trattamento nero a piena larghezza delle
+     gallerie immagini (vedi index.astro e TournamentPage.astro) invece della
+     club-card bianca con ombra: bg-black + border-y-2 border-black (bordo
+     dello stesso colore dello sfondo, quindi invisibile). Colori in CSS
+     scoped invece che classi Tailwind arbitrarie: questa pagina viene
+     servita da un dev server esterno la cui cache Tailwind non rigenera le
+     utility "nuove" (arbitrary value, opacity modifier) introdotte in
+     sessione, quindi qui usiamo CSS puro per garantire il risultato a colpo
+     sicuro sia in dev sia in build.
+  */
+  .partite-panel .frame {
+    position: absolute;
+    inset: 0.5rem;
+    border: 2px solid var(--giallo-club);
+    pointer-events: none;
+  }
+  .partite-panel .heading {
+    color: var(--giallo-club);
+  }
+  .partite-panel .team {
+    color: #fff;
+  }
+  .partite-panel .score {
+    color: var(--giallo-club);
+  }
+  .partite-panel .index {
+    color: rgba(255, 255, 255, 0.4);
+  }
+  .partite-panel .sitout {
+    color: rgba(255, 255, 255, 0.5);
+  }
+  .partite-panel .row {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  .partite-panel .row:last-child {
+    border-bottom: none;
+  }
+  .partite-panel .head-row {
+    border-bottom: 2px solid var(--giallo-club);
+    color: rgba(255, 255, 255, 0.6);
+  }
+</style>

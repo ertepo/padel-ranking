@@ -92,11 +92,16 @@
     localStorage.setItem(NOMECOGNOME_KEY, value);
   }
 
-  // il nickname va abbinato la prima volta a nome e cognome: evita che due
-  // giocatori diversi rivendichino lo stesso nickname in classifica
+  // nickname e nome/cognome sono facoltativi: si può giocare anche senza
+  // (semplicemente la partita non entra in classifica). Se però si compila
+  // uno dei due campi, vanno abbinati entrambi la prima volta: evita che due
+  // giocatori diversi rivendichino lo stesso nickname in classifica.
   async function verifyNickname(): Promise<boolean> {
-    if (!nickname.trim() || !nomecognome.trim()) {
-      nicknameError = 'Inserisci nickname e nome cognome per giocare.';
+    const hasNickname = nickname.trim() !== '';
+    const hasNomecognome = nomecognome.trim() !== '';
+    if (!hasNickname && !hasNomecognome) return true;
+    if (!hasNickname || !hasNomecognome) {
+      nicknameError = 'Inserisci sia nickname che nome e cognome, oppure lasciali entrambi vuoti per giocare senza salvare il punteggio.';
       return false;
     }
     checkingNickname = true;
@@ -124,12 +129,13 @@
 
   async function submitScore() {
     lastScoreId = null;
+    if (!nickname.trim() || !nomecognome.trim()) return; // partita anonima: niente da salvare
     try {
       const res = await fetch('/api/game-scores', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          nickname: nickname.trim() || 'Anonimo',
+          nickname: nickname.trim(),
           nomecognome: nomecognome.trim(),
           match_score: `${playerScore}-${cpuScore}`,
           points: totalPoints,
@@ -443,6 +449,7 @@
       <p class="mt-2 max-w-xl text-xs font-bold text-slate-500">
         La prima volta abbina il nickname a nome e cognome, così resta solo tuo: solo il nickname compare nella
         <a href="/arcade/classifica" class="underline hover:text-black">classifica</a> insieme al punteggio.
+        Puoi anche lasciarli vuoti e giocare senza salvare il punteggio.
       </p>
 
       {#if checkingNickname}

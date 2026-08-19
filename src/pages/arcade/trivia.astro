@@ -1,0 +1,12 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import TriviaGame from '../../components/trivia/TriviaGame.svelte';
+---
+
+<Layout
+  title="Trivia"
+  headerTheme="tennis"
+  description="Trivia: 15 domande a tempo su regole, storia e curiosità del tennis. Rispondi veloce e incatena le risposte giuste per il punteggio massimo."
+>
+  <TriviaGame client:load />
+</Layout>
