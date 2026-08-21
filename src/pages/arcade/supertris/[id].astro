@@ -1,0 +1,25 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { supabase } from '../../../lib/supabase';
+import SuperTrisGame from '../../../components/supertris/SuperTrisGame.svelte';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+
+const { data: game } = await supabase
+  .from('supertris_games')
+  .select('id, pin, state, status, player_x_name, player_o_name, created_at, updated_at')
+  .eq('id', id)
+  .maybeSingle();
+---
+
+<Layout
+  title="Super Tris"
+  headerTheme="tennis"
+  description="Sfida un amico a Super Tris in tempo reale: tocca a te, tocca a lui."
+>
+  <h1 class="sr-only">Super Tris</h1>
+
+  <SuperTrisGame client:load id={id} initialGame={game} />
+</Layout>
