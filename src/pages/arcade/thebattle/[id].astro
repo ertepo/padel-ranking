@@ -1,0 +1,25 @@
+---
+import Layout from '../../../layouts/Layout.astro';
+import { supabase } from '../../../lib/supabase';
+import TheBattleGame from '../../../components/thebattle/TheBattleGame.svelte';
+
+export const prerender = false;
+
+const { id } = Astro.params;
+
+const { data: game } = await supabase
+  .from('the_battle_games')
+  .select('id, pin, state, status, player_a_name, player_b_name, created_at, updated_at')
+  .eq('id', id)
+  .maybeSingle();
+---
+
+<Layout
+  title="The Battle"
+  headerTheme="tennis"
+  description="Sfida un amico a The Battle in tempo reale: tocca a te, tocca a lui."
+>
+  <h1 class="sr-only">The Battle</h1>
+
+  <TheBattleGame client:load id={id} initialGame={game} />
+</Layout>
