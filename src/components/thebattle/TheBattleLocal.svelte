@@ -36,6 +36,11 @@
         ? getReachableDestinations(state, selectedLength)
         : [];
 
+  // La zona da evidenziare (metà bassa in fase di piazzamento, metà avversaria
+  // durante una mossa) è sempre quella su cui si sta per cliccare: la scheda
+  // fluttuante va nella metà opposta per non coprire le caselle attive.
+  $: cardAtBottom = reachable.length > 0 && reachable[0].row >= 5;
+
   function lengthPlayable(length: MoveLength): boolean {
     return state.moveCounts[state.currentPlayer][length] > 0 && getReachableDestinations(state, length).length > 0;
   }
@@ -139,6 +144,15 @@
 
     <div class="relative flex flex-1 items-center justify-center min-w-0 min-h-0">
       <TheBattleBoard {state} interactive={state.status !== 'finished'} {reachable} onCellClick={handleCellClick} />
+
+      {#if statusText}
+        <div
+          class="tb-status-card ombra"
+          style={`${cardAtBottom ? 'bottom: 4%;' : 'top: 4%;'} transform: rotate(${state.currentPlayer === 'B' ? 180 : 0}deg);`}
+        >
+          {statusText}
+        </div>
+      {/if}
     </div>
 
     <!-- Giocatore A: colonna a destra, orientamento normale. -->
