@@ -107,8 +107,8 @@
       ? 'Scegli la casella da cui iniziare'
       : state.status === 'active'
         ? selectedLength
-          ? 'Tocca una casella evidenziata per muovere.'
-          : 'Scegli la lunghezza del colpo.'
+          ? 'Tocca una casella evidenziata per tirare.'
+          : 'Scegli la profondità del colpo.'
         : '';
 
   $: winnerLabel = state.status === 'finished' ? `Ha vinto il Giocatore ${state.winner}!` : '';

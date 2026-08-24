@@ -5,6 +5,8 @@
   export let interactive: boolean = false;
   export let reachable: Position[] = [];
   export let onCellClick: (row: number, col: number) => void = () => {};
+  /** Ruota il campo di 180°: usato online perché ogni giocatore veda sempre la propria metà in basso. */
+  export let flip: boolean = false;
 
   $: occupiedSet = new Set(state.occupied);
   $: reachableSet = new Set(reachable.map((p) => cellId(p.row, p.col)));
@@ -14,7 +16,7 @@
   const cols = Array.from({ length: COLS }, (_, i) => i);
 </script>
 
-<div class="tb-board">
+<div class="tb-board" style={flip ? 'transform: rotate(180deg);' : ''}>
   {#each rowsTopDown as row (row)}
     {#each cols as col (col)}
       {@const id = cellId(row, col)}

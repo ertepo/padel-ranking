@@ -90,11 +90,18 @@
       .subscribe();
   }
 
+  function setChromeHidden(hidden: boolean) {
+    const header = document.querySelector('header');
+    const footer = document.querySelector('footer');
+    if (header) header.style.display = hidden ? 'none' : '';
+    if (footer) footer.style.display = hidden ? 'none' : '';
+    document.body.style.overflow = hidden ? 'hidden' : '';
+  }
+
   onMount(() => {
     loadSession();
     document.body.style.transition = 'background 200ms ease';
-    const footer = document.querySelector('footer');
-    if (footer) footer.style.display = 'none';
+    setChromeHidden(true);
 
     const SUPABASE_URL = import.meta.env.PUBLIC_SUPABASE_URL;
     const SUPABASE_ANON = import.meta.env.PUBLIC_SUPABASE_ANON_KEY;
@@ -116,8 +123,7 @@
     if (rtTimeout) clearTimeout(rtTimeout);
     if (typeof document === 'undefined') return;
     document.body.style.background = '';
-    const footer = document.querySelector('footer');
-    if (footer) footer.style.display = '';
+    setChromeHidden(false);
   });
 
   $: if (typeof document !== 'undefined') {
@@ -228,16 +234,24 @@
 
   $: isMyTurn =
     !!game && !!mySymbol && game.status === 'active' && game.state.status !== 'finished' && game.state.currentPlayer === mySymbol;
-  $: leftSymbol = mySymbol === 'B' ? 'B' : 'A';
-  $: rightSymbol = leftSymbol === 'A' ? 'B' : 'A';
+  $: otherSymbol = mySymbol === 'A' ? 'B' : mySymbol === 'B' ? 'A' : null;
+  $: flip = mySymbol === 'B';
 
-  $: leftActive = !!game && isMyTurnFor(leftSymbol);
-  $: rightActive = !!game && isMyTurnFor(rightSymbol);
-  function isMyTurnFor(symbol: 'A' | 'B'): boolean {
-    return !!game && game.status === 'active' && game.state.status !== 'finished' && game.state.currentPlayer === symbol;
-  }
-  $: leftName = !game ? '' : leftSymbol === 'A' ? game.player_a_name : (game.player_b_name ?? 'In attesa…');
-  $: rightName = !game ? '' : rightSymbol === 'A' ? game.player_a_name : (game.player_b_name ?? 'In attesa…');
+  // Il campo è capovolto per B: la metà da evidenziare (dove sto per cliccare)
+  // può quindi apparire visivamente in alto o in basso a seconda del flip. La
+  // scheda va sempre dalla parte opposta per non coprire le caselle attive.
+  $: cardAtBottom = reachable.length > 0 && (flip ? reachable[0].row < 5 : reachable[0].row >= 5);
+
+  $: statusText =
+    !game || !mySymbol || game.state.status === 'finished'
+      ? ''
+      : isMyTurn
+        ? game.state.status === 'placement'
+          ? 'Seleziona una casella per iniziare'
+          : selectedLength
+            ? 'Tocca una casella evidenziata per tirare.'
+            : 'Seleziona la profondità del colpo.'
+        : 'Attendi il colpo avversario.';
 
   $: winnerLabel = (() => {
     if (!game || game.state.status !== 'finished' || !game.state.winner) return '';
@@ -246,9 +260,9 @@
   })();
 </script>
 
-<div class="flex flex-col items-center gap-4">
+<div class="fixed inset-0 z-40 flex flex-col p-3 gap-2" style="height: 100dvh;">
   {#if !game}
-    <div class="club-card p-6 text-center">
+    <div class="club-card p-6 text-center m-auto">
       <p class="font-black text-lg">Partita non trovata.</p>
       <a
         href="/arcade/thebattle"
@@ -265,38 +279,12 @@
       ← Esci e torna al menu
     </a>
 
-    <div class="flex gap-4 w-full max-w-xl mt-2 mb-4">
-      <div
-        class="flex-1 border-2 border-black px-3 py-3 text-center transition-shadow duration-150"
-        class:ombra={leftActive}
-        class:text-white={leftActive}
-        style={leftActive ? `background:${leftSymbol === 'A' ? 'var(--blu-padel)' : 'var(--rosso-padel)'};` : 'background:white;'}
-      >
-        <p class="text-[10px] uppercase tracking-widest font-black opacity-70">
-          {#if leftSymbol === mySymbol}Tu{:else if mySymbol}Avversario{:else}Giocatore{/if} · {leftSymbol}
-        </p>
-        <p class="font-black text-lg truncate">{leftName}</p>
-      </div>
-
-      <div
-        class="flex-1 border-2 border-black px-3 py-3 text-center transition-shadow duration-150"
-        class:ombra={rightActive}
-        class:text-white={rightActive}
-        style={rightActive ? `background:${rightSymbol === 'A' ? 'var(--blu-padel)' : 'var(--rosso-padel)'};` : 'background:white;'}
-      >
-        <p class="text-[10px] uppercase tracking-widest font-black opacity-70">
-          {#if rightSymbol === mySymbol}Tu{:else if mySymbol}Avversario{:else}Giocatore{/if} · {rightSymbol}
-        </p>
-        <p class="font-black text-lg truncate">{rightName}</p>
-      </div>
-    </div>
-
     {#if game.state.status === 'finished'}
-      <p class="text-2xl font-black text-center -mt-2 mb-2">{winnerLabel}</p>
+      <p class="text-2xl font-black text-center">{winnerLabel}</p>
     {/if}
 
     {#if game.status === 'waiting' && mySymbol === 'A'}
-      <div class="club-card p-4 w-full max-w-xl text-center">
+      <div class="club-card p-4 w-full max-w-xl text-center m-auto">
         <p class="font-black mb-2">In attesa di un avversario…</p>
         <p class="text-sm font-bold text-slate-600 mb-3">Condividi il link oppure comunica il PIN</p>
         <p class="text-4xl font-black tracking-[0.3em] mb-3">{game.pin}</p>
@@ -309,7 +297,7 @@
         </button>
       </div>
     {:else if game.status === 'waiting' && !mySymbol}
-      <div class="club-card p-4 w-full max-w-sm">
+      <div class="club-card p-4 w-full max-w-sm m-auto">
         <p class="font-black mb-3 text-center">Unisciti alla partita</p>
         <input
           type="text"
@@ -331,44 +319,74 @@
         {/if}
       </div>
     {:else}
-      {#if isMyTurn && game.state.status === 'active'}
-        <div class="flex gap-3 flex-wrap justify-center">
-          {#each MOVE_LENGTHS as length (length)}
-            {#if game.state.moveCounts[game.state.currentPlayer][length] > 0}
-              <TheBattleLengthTile
-                {length}
-                count={game.state.moveCounts[game.state.currentPlayer][length]}
-                disabled={!lengthPlayable(length)}
-                selected={selectedLength === length}
-                onClick={() => selectLength(length)}
-              />
-            {/if}
-          {/each}
+      <div class="flex min-h-0 flex-1 flex-row items-center justify-center gap-3">
+        <!-- Avversario: colonna a sinistra, sola lettura. -->
+        <div class="flex flex-col gap-2">
+          {#if game.state.status !== 'finished' && otherSymbol}
+            {#each MOVE_LENGTHS as length (length)}
+              {#if game.state.moveCounts[otherSymbol][length] > 0}
+                <TheBattleLengthTile
+                  {length}
+                  count={game.state.moveCounts[otherSymbol][length]}
+                  inactive={game.state.currentPlayer !== otherSymbol}
+                  disabled={true}
+                />
+              {/if}
+            {/each}
+          {/if}
         </div>
-      {/if}
 
-      {#if isMyTurn && game.state.status === 'placement'}
-        <p class="text-xs font-black uppercase tracking-widest text-center text-slate-700">
-          Tocca una casella nella tua metà per iniziare.
-        </p>
-      {/if}
+        <div class="relative flex flex-1 items-center justify-center min-w-0 min-h-0">
+          <TheBattleBoard
+            state={game.state}
+            interactive={isMyTurn}
+            {reachable}
+            onCellClick={handleCellClick}
+            {flip}
+          />
 
-      <TheBattleBoard state={game.state} interactive={isMyTurn} {reachable} onCellClick={handleCellClick} />
+          {#if statusText}
+            <div class="tb-status-card ombra" style={cardAtBottom ? 'bottom: 4%;' : 'top: 4%;'}>
+              {statusText}
+            </div>
+          {/if}
+        </div>
 
-      {#if moveError}<p class="text-xs font-bold text-[var(--rosso-padel)]">{moveError}</p>{/if}
+        <!-- Le mie tessere: colonna a destra. -->
+        <div class="flex flex-col gap-2">
+          {#if game.state.status !== 'finished' && mySymbol}
+            {#each MOVE_LENGTHS as length (length)}
+              {#if game.state.moveCounts[mySymbol][length] > 0}
+                <TheBattleLengthTile
+                  {length}
+                  count={game.state.moveCounts[mySymbol][length]}
+                  inactive={!isMyTurn}
+                  disabled={!isMyTurn || !lengthPlayable(length)}
+                  selected={selectedLength === length}
+                  onClick={() => selectLength(length)}
+                />
+              {/if}
+            {/each}
+          {/if}
+        </div>
+      </div>
+
+      {#if moveError}<p class="text-xs font-bold text-center text-[var(--rosso-padel)]">{moveError}</p>{/if}
       {#if !mySymbol}
-        <p class="text-xs font-bold text-slate-500 uppercase tracking-widest">Modalità spettatore</p>
+        <p class="text-xs font-bold text-slate-500 uppercase tracking-widest text-center">Modalità spettatore</p>
       {/if}
 
       {#if game.state.status === 'finished' && mySymbol === 'A'}
-        <button
-          type="button"
-          class="club-btn-yellow px-4 py-2 font-black uppercase tracking-widest disabled:opacity-50"
-          disabled={rematching}
-          on:click={rematch}
-        >
-          {rematching ? 'Preparo la rivincita…' : 'Rivincita'}
-        </button>
+        <div class="flex justify-center pb-2">
+          <button
+            type="button"
+            class="club-btn-yellow px-4 py-2 font-black uppercase tracking-widest disabled:opacity-50"
+            disabled={rematching}
+            on:click={rematch}
+          >
+            {rematching ? 'Preparo la rivincita…' : 'Rivincita'}
+          </button>
+        </div>
       {/if}
     {/if}
   {/if}
