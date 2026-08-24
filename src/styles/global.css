@@ -333,3 +333,27 @@ body {
 .highlight-blue {
   --highlight-color: HSL(220, 100%, 50%);
 }
+
+/* Tessera fluttuante "hai vinto/perso" di The Battle (locale e vs bot).
+   Vive qui e non in uno <style> scoped dei componenti perché nella build di
+   produzione Astro/Vite lo scoped CSS di TheBattleLocal.svelte e
+   TheBattleBot.svelte spariva dal bundle (funzionava solo in dev). */
+.tb-winner-tile {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 3;
+  margin: 0;
+  padding: 0.6em 1em;
+  background: white;
+  border: 2px solid black;
+  box-shadow: -0.5em 0.5em black;
+  font-weight: 900;
+  font-size: 1.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}

@@ -214,24 +214,3 @@
     </div>
   {/if}
 </div>
-
-<style>
-  .tb-winner-tile {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    z-index: 3;
-    margin: 0;
-    padding: 0.6em 1em;
-    background: white;
-    border: 2px solid black;
-    box-shadow: -0.5em 0.5em black;
-    font-weight: 900;
-    font-size: 1.25rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    text-align: center;
-    white-space: nowrap;
-    pointer-events: none;
-  }
-</style>
