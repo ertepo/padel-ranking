@@ -80,12 +80,12 @@
     gap: 3px;
     /* L'altezza segue lo spazio verticale realmente disponibile nel contenitore
        flex (non un numero fisso in dvh): così la board si ridimensiona da sola
-       in base a variante/aspect-ratio senza mai coprire ciò che sta sotto, e
-       resta comunque grande quanto lo spazio lo consente. 640px è solo un tetto
-       per schermi molto alti (min(100%, ...) impedisce comunque qualunque
-       sconfinamento, quindi alzarlo non rischia di far ricoprire ciò che sta
-       sotto). La larghezza segue di conseguenza via aspect-ratio. */
-    height: min(100%, 640px);
+       in base a variante/aspect-ratio senza mai coprire ciò che sta sotto.
+       Il tetto è più basso su schermi stretti (telefono): scacchiere come la
+       3×8 sono già di forma stretta e allungata, alzare troppo il tetto le fa
+       sembrare "strisce" sottilissime. Su schermi larghi (desktop/tablet) il
+       tetto è più alto per sfruttare lo spazio verticale in più. */
+    height: min(100%, 480px);
     width: auto;
     max-width: 100%;
     aspect-ratio: var(--tb-cols) / var(--tb-rows);
@@ -126,6 +126,12 @@
 
   .tb-net-post-right {
     right: 0;
+  }
+
+  @media (min-width: 768px) {
+    .tb-board {
+      height: min(100%, 640px);
+    }
   }
 
   .tb-cell {
