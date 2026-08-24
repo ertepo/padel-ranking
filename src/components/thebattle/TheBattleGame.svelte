@@ -168,16 +168,23 @@
           ? getReachableDestinations(game.state, selectedLength)
           : [];
 
-  function lengthPlayable(length: MoveLength): boolean {
-    if (!game) return false;
-    return (
-      game.state.moveCounts[game.state.currentPlayer][length] > 0 &&
-      getReachableDestinations(game.state, length).length > 0
-    );
-  }
+  // Calcolato qui (non in una funzione chiamata dal template) perché Svelte
+  // tracci "game" come dipendenza reattiva: una funzione qualsiasi invocata
+  // dentro un'espressione del template nasconde a Svelte le variabili che
+  // legge al suo interno, quindi l'espressione non si ricalcola più dopo il
+  // primo aggiornamento (bug visibile solo in build di produzione).
+  $: playableLengths = game
+    ? new Set(
+        MOVE_LENGTHS.filter(
+          (length) =>
+            game.state.moveCounts[game.state.currentPlayer][length] > 0 &&
+            getReachableDestinations(game.state, length).length > 0,
+        ),
+      )
+    : new Set<MoveLength>();
 
   function selectLength(length: MoveLength) {
-    if (!isMyTurn || !lengthPlayable(length)) return;
+    if (!isMyTurn || !playableLengths.has(length)) return;
     selectedLength = selectedLength === length ? null : length;
   }
 
@@ -361,7 +368,7 @@
                   {length}
                   count={game.state.moveCounts[mySymbol][length]}
                   inactive={!isMyTurn}
-                  disabled={!isMyTurn || !lengthPlayable(length)}
+                  disabled={!isMyTurn || !playableLengths.has(length)}
                   selected={selectedLength === length}
                   onClick={() => selectLength(length)}
                 />

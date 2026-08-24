@@ -41,12 +41,20 @@
   // fluttuante va nella metà opposta per non coprire le caselle attive.
   $: cardAtBottom = reachable.length > 0 && reachable[0].row >= 5;
 
-  function lengthPlayable(length: MoveLength): boolean {
-    return state.moveCounts[state.currentPlayer][length] > 0 && getReachableDestinations(state, length).length > 0;
-  }
+  // Calcolato qui (non in una funzione chiamata dal template) perché Svelte
+  // tracci "state" come dipendenza reattiva: una funzione qualsiasi invocata
+  // dentro un'espressione del template nasconde a Svelte le variabili che
+  // legge al suo interno, quindi l'espressione non si ricalcola più dopo il
+  // primo aggiornamento (bug visibile solo in build di produzione).
+  $: playableLengths = new Set(
+    MOVE_LENGTHS.filter(
+      (length) =>
+        state.moveCounts[state.currentPlayer][length] > 0 && getReachableDestinations(state, length).length > 0,
+    ),
+  );
 
   function selectLength(length: MoveLength) {
-    if (state.status !== 'active' || !lengthPlayable(length)) return;
+    if (state.status !== 'active' || !playableLengths.has(length)) return;
     selectedLength = selectedLength === length ? null : length;
     error = '';
   }
@@ -133,7 +141,7 @@
               {length}
               count={state.moveCounts.B[length]}
               inactive={state.currentPlayer !== 'B'}
-              disabled={state.currentPlayer === 'B' && !lengthPlayable(length)}
+              disabled={state.currentPlayer === 'B' && !playableLengths.has(length)}
               selected={state.currentPlayer === 'B' && selectedLength === length}
               onClick={() => selectLength(length)}
             />
@@ -164,7 +172,7 @@
               {length}
               count={state.moveCounts.A[length]}
               inactive={state.currentPlayer !== 'A'}
-              disabled={state.currentPlayer === 'A' && !lengthPlayable(length)}
+              disabled={state.currentPlayer === 'A' && !playableLengths.has(length)}
               selected={state.currentPlayer === 'A' && selectedLength === length}
               onClick={() => selectLength(length)}
             />
