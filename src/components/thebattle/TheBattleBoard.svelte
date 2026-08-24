@@ -81,9 +81,11 @@
     /* L'altezza segue lo spazio verticale realmente disponibile nel contenitore
        flex (non un numero fisso in dvh): così la board si ridimensiona da sola
        in base a variante/aspect-ratio senza mai coprire ciò che sta sotto, e
-       resta comunque grande quanto lo spazio lo consente. 480px è solo un tetto
-       per schermi molto alti. La larghezza segue di conseguenza via aspect-ratio. */
-    height: min(100%, 480px);
+       resta comunque grande quanto lo spazio lo consente. 640px è solo un tetto
+       per schermi molto alti (min(100%, ...) impedisce comunque qualunque
+       sconfinamento, quindi alzarlo non rischia di far ricoprire ciò che sta
+       sotto). La larghezza segue di conseguenza via aspect-ratio. */
+    height: min(100%, 640px);
     width: auto;
     max-width: 100%;
     aspect-ratio: var(--tb-cols) / var(--tb-rows);

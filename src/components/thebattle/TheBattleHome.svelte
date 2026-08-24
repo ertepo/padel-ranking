@@ -122,7 +122,7 @@
               La scacchiera
             </h3>
             <p class="mt-1 text-sm font-semibold leading-relaxed">
-              il cmapo è diviso in una scacchiera, divisa in due metà da 3x4 o 4×5 delimitate dalla rete al centro.
+              il campo è diviso in una scacchiera, divisa in due metà da 3x4 o 4×5 delimitate dalla rete al centro.
               La palla schizza tra le due metà.
             </p>
           </div>
@@ -176,7 +176,7 @@
       <div class="flex flex-col gap-3 sm:flex-row">
         <button
           type="button"
-          class="club-btn-yellow flex-1 px-4 py-3 font-black uppercase tracking-widest"
+          class="club-btn flex-1 px-4 py-3 font-black uppercase tracking-widest"
           on:click={() => startLocal('compact')}
         >
           Compatta
@@ -184,7 +184,7 @@
         </button>
         <button
           type="button"
-          class="club-btn-blue flex-1 px-4 py-3 font-black uppercase tracking-widest"
+          class="club-btn flex-1 px-4 py-3 font-black uppercase tracking-widest"
           on:click={() => startLocal('classic')}
         >
           Estesa
@@ -205,7 +205,7 @@
         {#each BOT_DIFFICULTIES as difficulty (difficulty)}
           <button
             type="button"
-            class="club-btn-pastelviolet flex-1 px-4 py-3 font-black uppercase tracking-widest"
+            class="club-btn-pastelyellow flex-1 px-4 py-3 font-black uppercase tracking-widest"
             on:click={() => startBot(difficulty)}
           >
             {DIFFICULTY_LABEL[difficulty]}

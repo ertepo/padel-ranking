@@ -90,7 +90,7 @@
       class="club-btn-yellow px-6 py-5 font-black uppercase tracking-widest text-xl"
       on:click={() => (mode = 'local')}
     >
-      🎮 Gioca sullo stesso device
+      🎮 Sfida in locale
     </button>
 
     <div class="club-card p-4">
@@ -98,14 +98,14 @@
         🤖 Gioca contro il bot
       </p>
       <p class="text-sm font-semibold text-slate-700 mb-4">
-        Sfida il computer da solo. Tu giochi X e muovi per primo.
+        Sfida il computer da solo
       </p>
 
       <div class="flex flex-col gap-2 sm:flex-row">
         {#each BOT_DIFFICULTIES as difficulty (difficulty)}
           <button
             type="button"
-            class="club-btn-pastelviolet flex-1 px-4 py-3 font-black uppercase tracking-widest"
+            class="club-btn-pastelblue flex-1 px-4 py-3 font-black uppercase tracking-widest"
             on:click={() => startBot(difficulty)}
           >
             {DIFFICULTY_LABEL[difficulty]}

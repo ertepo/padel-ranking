@@ -184,13 +184,15 @@
               count={state.moveCounts.B[length]}
               inactive={state.currentPlayer !== 'B'}
               disabled={true}
+              tileSize={56}
+              peekStep={10}
             />
           {/if}
         {/each}
       {/if}
     </div>
 
-    <div class="relative flex flex-1 items-center justify-center min-w-0 min-h-0">
+    <div class="relative flex items-center justify-center min-h-0">
       <TheBattleBoard
         {state}
         interactive={isHumanTurn && state.status !== 'finished'}
@@ -216,6 +218,8 @@
               disabled={!isHumanTurn || !playableLengths.has(length)}
               selected={isHumanTurn && selectedLength === length}
               onClick={() => selectLength(length)}
+              tileSize={56}
+              peekStep={10}
             />
           {/if}
         {/each}
