@@ -1,10 +1,13 @@
 <script lang="ts">
   import { slide } from 'svelte/transition';
   import TheBattleLocal from './TheBattleLocal.svelte';
+  import TheBattleBot from './TheBattleBot.svelte';
   import type { Variant } from '../../lib/thebattle/variant';
+  import { DIFFICULTY_LABEL, type BotDifficulty } from '../../lib/thebattle/bot';
 
-  let mode: 'menu' | 'local' = 'menu';
+  let mode: 'menu' | 'local' | 'bot' = 'menu';
   let localVariant: Variant = 'classic';
+  let botDifficulty: BotDifficulty = 'medium';
   let rulesOpen = false;
 
   function startLocal(variant: Variant) {
@@ -12,8 +15,15 @@
     mode = 'local';
   }
 
+  function startBot(difficulty: BotDifficulty) {
+    botDifficulty = difficulty;
+    mode = 'bot';
+  }
+
+  const BOT_DIFFICULTIES: BotDifficulty[] = ['easy', 'medium', 'hard'];
+
   let createName = '';
-  let createVariant: Variant = 'classic';
+  let createVariant: Variant = 'compact';
   let creating = false;
   let createError = '';
 
@@ -72,6 +82,8 @@
 
 {#if mode === 'local'}
   <TheBattleLocal variant={localVariant} onExit={() => (mode = 'menu')} />
+{:else if mode === 'bot'}
+  <TheBattleBot difficulty={botDifficulty} onExit={() => (mode = 'menu')} />
 {:else}
   <section class="mb-8">
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">Arcade</p>
@@ -184,6 +196,27 @@
     </div>
 
     <div class="club-card p-4">
+      <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-1">
+        🤖 Gioca contro il bot
+      </p>
+      <p class="text-sm font-semibold text-slate-700 mb-4">
+        Sfida il computer da solo. Per ora solo in modalità compatta (3×8).
+      </p>
+
+      <div class="flex flex-col gap-2 sm:flex-row">
+        {#each BOT_DIFFICULTIES as difficulty (difficulty)}
+          <button
+            type="button"
+            class="club-btn-pastelviolet flex-1 px-4 py-3 font-black uppercase tracking-widest"
+            on:click={() => startBot(difficulty)}
+          >
+            {DIFFICULTY_LABEL[difficulty]}
+          </button>
+        {/each}
+      </div>
+    </div>
+
+    <div class="club-card p-4">
       <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-3">
         Sfida un amico online
       </p>
@@ -200,7 +233,11 @@
           class="w-full border border-dashed border-black bg-white px-3 py-2 font-black focus:outline-none"
           bind:value={createName}
         />
+        <label for="tb-create-name" class="text-xs font-bold text-slate-600">
+          Scegli la dimensione del campo: compatta 3x8, estesa 4x10
+        </label>
         <div class="flex gap-2" role="radiogroup" aria-label="Modalità di gioco">
+        
           <button
             type="button"
             role="radio"
