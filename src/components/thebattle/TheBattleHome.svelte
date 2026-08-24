@@ -89,8 +89,8 @@
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">Arcade</p>
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">The Battle</h1>
     <p class="mt-5 max-w-2xl text-lg font-semibold leading-relaxed text-slate-700">
-      Un gettone, una scacchiera 4×10 divisa in due metà, 20 mosse a testa: manda il gettone
-      nella metà avversaria finché l'altro non resta senza mosse valide.
+      Scegli la casella da cui partire e la profondità del colpo. La palla schizza tra un campo e l'altro 
+      finché uno dei due non resta senza mosse valide.
     </p>
 
     <button
@@ -122,9 +122,8 @@
               La scacchiera
             </h3>
             <p class="mt-1 text-sm font-semibold leading-relaxed">
-              4 colonne × 10 righe, divise in due metà da 4×5: quella bassa è il territorio del
-              Giocatore A, quella alta del Giocatore B. Un solo gettone condiviso si muove tra le
-              due metà.
+              il cmapo è diviso in una scacchiera, divisa in due metà da 3x4 o 4×5 delimitate dalla rete al centro.
+              La palla schizza tra le due metà.
             </p>
           </div>
 
@@ -133,9 +132,8 @@
               Le mosse
             </h3>
             <p class="mt-1 text-sm font-semibold leading-relaxed">
-              Ogni giocatore ha 20 mosse: 5 da 10 caselle, 5 da 8, 5 da 5 e 5 da 3. Una mossa usata
-              non è più disponibile. Il percorso può avere al massimo un cambio di direzione a
-              90°: tutto dritto, oppure dritto e poi una svolta.
+              Ogni giocatore ha un tot di mosse in base alla dimensione del campo. Un colpo usato
+              non è più disponibile. La profondità del colpo indica il numero di caselle che la palla attraversa.
             </p>
           </div>
 
@@ -156,8 +154,8 @@
               Come si vince
             </h3>
             <p class="mt-1 text-sm font-semibold leading-relaxed">
-              Il Giocatore A sceglie la casella di partenza nella propria metà e muove per primo.
-              Poi si alterna. Perde chi, al proprio turno, non ha più nessuna mossa valida
+              Chi serve sceglie la casella di partenza nella propria metà e muove per primo.
+              Poi ci si alterna. Perde chi, al proprio turno, non ha più nessuna mossa valida
               disponibile.
             </p>
           </div>
