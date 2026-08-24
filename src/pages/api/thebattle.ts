@@ -1,12 +1,16 @@
 import type { APIRoute } from 'astro';
 import { getSupabaseAdmin } from '../../lib/supabaseAdmin';
-import { applyMove, newGame, placeStart, type MoveLength, type PlayerId } from '../../lib/thebattle/engine';
+import type { PlayerId } from '../../lib/thebattle/engine';
+import { engineFor, variantOf, type AnyMoveLength, type Variant } from '../../lib/thebattle/variant';
 
 export const prerender = false;
 
 const NAME_MAX_LENGTH = 20;
 const PIN_RETRY_LIMIT = 10;
-const VALID_LENGTHS: MoveLength[] = [10, 8, 5, 3];
+
+function sanitizeVariant(value: unknown): Variant {
+  return value === 'compact' ? 'compact' : 'classic';
+}
 
 function sanitizeName(value: unknown): string {
   const trimmed = typeof value === 'string' ? value.trim().slice(0, NAME_MAX_LENGTH) : '';
@@ -39,6 +43,7 @@ export const POST: APIRoute = async ({ request }) => {
     length?: unknown;
     row?: unknown;
     col?: unknown;
+    variant?: unknown;
   };
 
   try {
@@ -51,6 +56,7 @@ export const POST: APIRoute = async ({ request }) => {
 
   if (body.action === 'create') {
     const playerName = sanitizeName(body.playerName);
+    const variant = sanitizeVariant(body.variant);
 
     let lastError: string | null = null;
     for (let attempt = 0; attempt < PIN_RETRY_LIMIT; attempt += 1) {
@@ -59,7 +65,7 @@ export const POST: APIRoute = async ({ request }) => {
         .from('the_battle_games')
         .insert({
           pin,
-          state: newGame(),
+          state: { ...engineFor(variant).newGame(), variant },
           status: 'waiting',
           player_a_name: playerName,
         })
@@ -170,15 +176,18 @@ export const POST: APIRoute = async ({ request }) => {
       return Response.json({ error: 'Non è il tuo turno.' }, { status: 400 });
     }
 
+    const variant = variantOf(game.state);
+    const engine = engineFor(variant);
+
     const result =
       body.action === 'place'
-        ? placeStart(game.state, row, col)
+        ? engine.placeStart(game.state, row, col)
         : (() => {
-            const length = Number(body.length) as MoveLength;
-            if (!VALID_LENGTHS.includes(length)) {
+            const length = Number(body.length) as AnyMoveLength;
+            if (!engine.MOVE_LENGTHS.includes(length)) {
               return { ok: false as const, error: 'Lunghezza non valida.' };
             }
-            return applyMove(game.state, length, row, col);
+            return engine.applyMove(game.state, length, row, col);
           })();
 
     if (!result.ok) {
@@ -186,10 +195,11 @@ export const POST: APIRoute = async ({ request }) => {
     }
 
     const newStatus = result.state.status === 'finished' ? 'finished' : 'active';
+    const newState = { ...result.state, variant };
 
     const { data: updated, error: updateError } = await supabase
       .from('the_battle_games')
-      .update({ state: result.state, status: newStatus, updated_at: new Date().toISOString() })
+      .update({ state: newState, status: newStatus, updated_at: new Date().toISOString() })
       .eq('id', id)
       .select('state, status')
       .single();
@@ -209,10 +219,29 @@ export const POST: APIRoute = async ({ request }) => {
       return Response.json({ error: 'Partita o token mancante.' }, { status: 400 });
     }
 
+    const { data: existing, error: fetchError } = await supabase
+      .from('the_battle_games')
+      .select('state')
+      .eq('id', id)
+      .eq('player_a_token', token)
+      .maybeSingle();
+
+    if (fetchError) {
+      return Response.json({ error: fetchError.message }, { status: 400 });
+    }
+    if (!existing) {
+      return Response.json(
+        { error: 'Solo chi ha creato la partita può avviare una rivincita.' },
+        { status: 403 },
+      );
+    }
+
+    const variant = variantOf(existing.state);
+
     const { data: updated, error } = await supabase
       .from('the_battle_games')
       .update({
-        state: newGame(),
+        state: { ...engineFor(variant).newGame(), variant },
         status: 'active',
         updated_at: new Date().toISOString(),
       })

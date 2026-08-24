@@ -1,11 +1,19 @@
 <script lang="ts">
   import { slide } from 'svelte/transition';
   import TheBattleLocal from './TheBattleLocal.svelte';
+  import type { Variant } from '../../lib/thebattle/variant';
 
   let mode: 'menu' | 'local' = 'menu';
+  let localVariant: Variant = 'classic';
   let rulesOpen = false;
 
+  function startLocal(variant: Variant) {
+    localVariant = variant;
+    mode = 'local';
+  }
+
   let createName = '';
+  let createVariant: Variant = 'classic';
   let creating = false;
   let createError = '';
 
@@ -25,7 +33,7 @@
       const res = await fetch('/api/thebattle', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'create', playerName: createName }),
+        body: JSON.stringify({ action: 'create', playerName: createName, variant: createVariant }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? 'Errore nella creazione della partita.');
@@ -63,7 +71,7 @@
 </script>
 
 {#if mode === 'local'}
-  <TheBattleLocal onExit={() => (mode = 'menu')} />
+  <TheBattleLocal variant={localVariant} onExit={() => (mode = 'menu')} />
 {:else}
   <section class="mb-8">
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">Arcade</p>
@@ -147,13 +155,33 @@
   </section>
 
   <div class="flex flex-col gap-8 max-w-xl mx-auto">
-    <button
-      type="button"
-      class="club-btn-yellow px-6 py-5 font-black uppercase tracking-widest text-xl"
-      on:click={() => (mode = 'local')}
-    >
-      🎮 Gioca sullo stesso device
-    </button>
+    <div class="club-card p-4">
+      <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-1">
+        🎮 Giocate insieme qui
+      </p>
+      <p class="text-sm font-semibold text-slate-700 mb-4">
+        Gioca con un tuo amico su questo dispositivo, uno di fronte all'altro.
+      </p>
+
+      <div class="flex flex-col gap-3 sm:flex-row">
+        <button
+          type="button"
+          class="club-btn-yellow flex-1 px-4 py-3 font-black uppercase tracking-widest"
+          on:click={() => startLocal('compact')}
+        >
+          Compatta
+          <span class="block text-xs font-bold normal-case tracking-normal mt-0.5">Campo 3×8</span>
+        </button>
+        <button
+          type="button"
+          class="club-btn-blue flex-1 px-4 py-3 font-black uppercase tracking-widest"
+          on:click={() => startLocal('classic')}
+        >
+          Estesa
+          <span class="block text-xs font-bold normal-case tracking-normal mt-0.5">Campo 4×10</span>
+        </button>
+      </div>
+    </div>
 
     <div class="club-card p-4">
       <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-3">
@@ -172,6 +200,26 @@
           class="w-full border border-dashed border-black bg-white px-3 py-2 font-black focus:outline-none"
           bind:value={createName}
         />
+        <div class="flex gap-2" role="radiogroup" aria-label="Modalità di gioco">
+          <button
+            type="button"
+            role="radio"
+            aria-checked={createVariant === 'compact'}
+            class={`flex-1 px-3 py-2 font-black uppercase tracking-widest text-xs border-2 border-black ${createVariant === 'compact' ? 'bg-[var(--giallo-club)]' : 'bg-white'}`}
+            on:click={() => (createVariant = 'compact')}
+          >
+            Compatta
+          </button>
+          <button
+            type="button"
+            role="radio"
+            aria-checked={createVariant === 'classic'}
+            class={`flex-1 px-3 py-2 font-black uppercase tracking-widest text-xs border-2 border-black ${createVariant === 'classic' ? 'bg-[var(--giallo-club)]' : 'bg-white'}`}
+            on:click={() => (createVariant = 'classic')}
+          >
+            Estesa
+          </button>
+        </div>
         <button
           type="button"
           class="club-btn-blue px-4 py-2 font-black uppercase tracking-widest self-start disabled:opacity-50"

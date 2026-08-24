@@ -2,19 +2,20 @@
   import { onDestroy, onMount } from 'svelte';
   import { createClient, type RealtimeChannel } from '@supabase/supabase-js';
   import {
-    MOVE_LENGTHS,
-    getReachableDestinations,
-    type GameState,
-    type MoveLength,
-    type Position,
-  } from '../../lib/thebattle/engine';
+    VARIANT_BOARD,
+    engineFor,
+    variantOf,
+    type AnyGameState,
+    type AnyMoveLength,
+    type AnyPosition,
+  } from '../../lib/thebattle/variant';
   import TheBattleBoard from './TheBattleBoard.svelte';
   import TheBattleLengthTile from './TheBattleLengthTile.svelte';
 
   type PublicGame = {
     id: string;
     pin: string;
-    state: GameState;
+    state: AnyGameState;
     status: 'waiting' | 'active' | 'finished';
     player_a_name: string;
     player_b_name: string | null;
@@ -33,7 +34,7 @@
   let joining = false;
   let joinError = '';
 
-  let selectedLength: MoveLength | null = null;
+  let selectedLength: AnyMoveLength | null = null;
   let moving = false;
   let moveError = '';
   let rematching = false;
@@ -151,10 +152,16 @@
     }
   }
 
-  function ownHalfCells(): Position[] {
-    const cells: Position[] = [];
-    for (let row = 0; row <= 4; row++) {
-      for (let col = 0; col < 4; col++) cells.push({ row, col });
+  /** Variante e motore delle regole della partita corrente (fallback "classic" per partite pre-varianti). */
+  $: variant = variantOf(game?.state);
+  $: engine = engineFor(variant);
+  $: board = VARIANT_BOARD[variant];
+
+  function ownHalfCells(player: 'A' | 'B', cols: number): AnyPosition[] {
+    const [lo, hi] = engine.ownHalfRows(player);
+    const cells: AnyPosition[] = [];
+    for (let row = lo; row <= hi; row++) {
+      for (let col = 0; col < cols; col++) cells.push({ row, col });
     }
     return cells;
   }
@@ -163,9 +170,9 @@
     !game || !isMyTurn
       ? []
       : game.state.status === 'placement'
-        ? ownHalfCells()
+        ? ownHalfCells(game.state.currentPlayer, board.cols)
         : game.state.status === 'active' && selectedLength
-          ? getReachableDestinations(game.state, selectedLength)
+          ? engine.getReachableDestinations(game.state, selectedLength)
           : [];
 
   // Calcolato qui (non in una funzione chiamata dal template) perché Svelte
@@ -175,15 +182,15 @@
   // primo aggiornamento (bug visibile solo in build di produzione).
   $: playableLengths = game
     ? new Set(
-        MOVE_LENGTHS.filter(
+        engine.MOVE_LENGTHS.filter(
           (length) =>
             game.state.moveCounts[game.state.currentPlayer][length] > 0 &&
-            getReachableDestinations(game.state, length).length > 0,
+            engine.getReachableDestinations(game.state, length).length > 0,
         ),
       )
-    : new Set<MoveLength>();
+    : new Set<AnyMoveLength>();
 
-  function selectLength(length: MoveLength) {
+  function selectLength(length: AnyMoveLength) {
     if (!isMyTurn || !playableLengths.has(length)) return;
     selectedLength = selectedLength === length ? null : length;
   }
@@ -244,11 +251,6 @@
   $: otherSymbol = mySymbol === 'A' ? 'B' : mySymbol === 'B' ? 'A' : null;
   $: flip = mySymbol === 'B';
 
-  // Il campo è capovolto per B: la metà da evidenziare (dove sto per cliccare)
-  // può quindi apparire visivamente in alto o in basso a seconda del flip. La
-  // scheda va sempre dalla parte opposta per non coprire le caselle attive.
-  $: cardAtBottom = reachable.length > 0 && (flip ? reachable[0].row < 5 : reachable[0].row >= 5);
-
   $: statusText =
     !game || !mySymbol || game.state.status === 'finished'
       ? ''
@@ -257,11 +259,14 @@
           ? 'Seleziona una casella per iniziare'
           : selectedLength
             ? 'Tocca una casella evidenziata per tirare.'
-            : 'Seleziona la profondità del colpo.'
+            : 'Seleziona la profondità'
         : 'Attendi il colpo avversario.';
 
   $: winnerLabel = (() => {
     if (!game || game.state.status !== 'finished' || !game.state.winner) return '';
+    if (mySymbol) {
+      return game.state.winner === mySymbol ? 'Hai vinto!' : 'Hai perso.';
+    }
     const name = game.state.winner === 'A' ? game.player_a_name : game.player_b_name;
     return `Ha vinto ${name ?? `Giocatore ${game.state.winner}`}!`;
   })();
@@ -285,6 +290,12 @@
     >
       ← Esci e torna al menu
     </a>
+
+    <div class="min-h-14 flex items-center justify-center px-4">
+      {#if statusText}
+        <p class="text-xl font-black text-center">{statusText}</p>
+      {/if}
+    </div>
 
     {#if game.state.status === 'finished'}
       <p class="text-2xl font-black text-center">{winnerLabel}</p>
@@ -326,11 +337,11 @@
         {/if}
       </div>
     {:else}
-      <div class="flex min-h-0 flex-1 flex-row items-center justify-center gap-3">
+      <div class="flex min-h-0 flex-1 flex-row justify-center gap-3">
         <!-- Avversario: colonna a sinistra, sola lettura. -->
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col justify-center gap-2">
           {#if game.state.status !== 'finished' && otherSymbol}
-            {#each MOVE_LENGTHS as length (length)}
+            {#each engine.MOVE_LENGTHS as length (length)}
               {#if game.state.moveCounts[otherSymbol][length] > 0}
                 <TheBattleLengthTile
                   {length}
@@ -350,19 +361,15 @@
             {reachable}
             onCellClick={handleCellClick}
             {flip}
+            rows={board.rows}
+            cols={board.cols}
           />
-
-          {#if statusText}
-            <div class="tb-status-card ombra" style={cardAtBottom ? 'bottom: 4%;' : 'top: 4%;'}>
-              {statusText}
-            </div>
-          {/if}
         </div>
 
         <!-- Le mie tessere: colonna a destra. -->
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col justify-center gap-2">
           {#if game.state.status !== 'finished' && mySymbol}
-            {#each MOVE_LENGTHS as length (length)}
+            {#each engine.MOVE_LENGTHS as length (length)}
               {#if game.state.moveCounts[mySymbol][length] > 0}
                 <TheBattleLengthTile
                   {length}

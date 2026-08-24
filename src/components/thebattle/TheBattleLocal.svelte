@@ -1,45 +1,43 @@
 <script lang="ts">
   import { onDestroy, onMount } from 'svelte';
   import {
-    MOVE_LENGTHS,
-    applyMove,
-    getReachableDestinations,
-    newGame,
-    placeStart,
-    type GameState,
-    type MoveLength,
-    type Position,
-  } from '../../lib/thebattle/engine';
+    VARIANT_BOARD,
+    engineFor,
+    type AnyGameState,
+    type AnyMoveLength,
+    type AnyPosition,
+    type Variant,
+  } from '../../lib/thebattle/variant';
   import TheBattleBoard from './TheBattleBoard.svelte';
   import TheBattleLengthTile from './TheBattleLengthTile.svelte';
 
   export let onExit: () => void;
+  export let variant: Variant = 'classic';
+
+  const engine = engineFor(variant);
+  const { rows: boardRows, cols: boardCols } = VARIANT_BOARD[variant];
 
   const TURN_BACKGROUND: Record<'A' | 'B', string> = { A: '#bfdbfe', B: '#fecaca' };
 
-  let state: GameState = newGame();
-  let selectedLength: MoveLength | null = null;
+  let state: AnyGameState = engine.newGame();
+  let selectedLength: AnyMoveLength | null = null;
   let error = '';
 
-  function ownHalfCells(): Position[] {
-    const cells: Position[] = [];
-    for (let row = 0; row <= 4; row++) {
-      for (let col = 0; col < 4; col++) cells.push({ row, col });
+  function ownHalfCells(player: 'A' | 'B'): AnyPosition[] {
+    const [lo, hi] = engine.ownHalfRows(player);
+    const cells: AnyPosition[] = [];
+    for (let row = lo; row <= hi; row++) {
+      for (let col = 0; col < boardCols; col++) cells.push({ row, col });
     }
     return cells;
   }
 
   $: reachable =
     state.status === 'placement'
-      ? ownHalfCells()
+      ? ownHalfCells(state.currentPlayer)
       : state.status === 'active' && selectedLength
-        ? getReachableDestinations(state, selectedLength)
+        ? engine.getReachableDestinations(state, selectedLength)
         : [];
-
-  // La zona da evidenziare (metà bassa in fase di piazzamento, metà avversaria
-  // durante una mossa) è sempre quella su cui si sta per cliccare: la scheda
-  // fluttuante va nella metà opposta per non coprire le caselle attive.
-  $: cardAtBottom = reachable.length > 0 && reachable[0].row >= 5;
 
   // Calcolato qui (non in una funzione chiamata dal template) perché Svelte
   // tracci "state" come dipendenza reattiva: una funzione qualsiasi invocata
@@ -47,13 +45,14 @@
   // legge al suo interno, quindi l'espressione non si ricalcola più dopo il
   // primo aggiornamento (bug visibile solo in build di produzione).
   $: playableLengths = new Set(
-    MOVE_LENGTHS.filter(
+    engine.MOVE_LENGTHS.filter(
       (length) =>
-        state.moveCounts[state.currentPlayer][length] > 0 && getReachableDestinations(state, length).length > 0,
+        state.moveCounts[state.currentPlayer][length] > 0 &&
+        engine.getReachableDestinations(state, length).length > 0,
     ),
   );
 
-  function selectLength(length: MoveLength) {
+  function selectLength(length: AnyMoveLength) {
     if (state.status !== 'active' || !playableLengths.has(length)) return;
     selectedLength = selectedLength === length ? null : length;
     error = '';
@@ -61,7 +60,7 @@
 
   function handleCellClick(row: number, col: number) {
     if (state.status === 'placement') {
-      const res = placeStart(state, row, col);
+      const res = engine.placeStart(state, row, col);
       if (res.ok) {
         state = res.state;
       } else {
@@ -70,7 +69,7 @@
       return;
     }
     if (state.status === 'active' && selectedLength) {
-      const res = applyMove(state, selectedLength, row, col);
+      const res = engine.applyMove(state, selectedLength, row, col);
       if (res.ok) {
         state = res.state;
         selectedLength = null;
@@ -82,7 +81,7 @@
   }
 
   function newMatch() {
-    state = newGame();
+    state = engine.newGame();
     selectedLength = null;
     error = '';
   }
@@ -119,7 +118,7 @@
           : 'Scegli la profondità del colpo.'
         : '';
 
-  $: winnerLabel = state.status === 'finished' ? `Ha vinto il Giocatore ${state.winner}!` : '';
+  $: winnerLabel = state.status === 'finished' ? 'Hai vinto!' : '';
 </script>
 
 <div class="fixed inset-0 z-40 flex flex-col p-3 gap-2" style="height: 100dvh;">
@@ -131,11 +130,22 @@
     ← Esci e torna al menu
   </button>
 
-  <div class="flex min-h-0 flex-1 flex-row items-center justify-center gap-3">
+  <div class="min-h-14 flex items-center justify-center px-4">
+    {#if statusText}
+      <p
+        class="text-xl font-black text-center"
+        style={`transform: rotate(${state.currentPlayer === 'B' ? 180 : 0}deg);`}
+      >
+        {statusText}
+      </p>
+    {/if}
+  </div>
+
+  <div class="flex min-h-0 flex-1 flex-row justify-center gap-3">
     <!-- Giocatore B: colonna a sinistra, sempre capovolta, così chi siede dall'altra parte del telefono legge dritto. -->
-    <div class="flex flex-col gap-2" style="transform: rotate(180deg);">
+    <div class="flex flex-col justify-center gap-2" style="transform: rotate(180deg);">
       {#if state.status !== 'finished'}
-        {#each MOVE_LENGTHS as length (length)}
+        {#each engine.MOVE_LENGTHS as length (length)}
           {#if state.moveCounts.B[length] > 0}
             <TheBattleLengthTile
               {length}
@@ -151,22 +161,28 @@
     </div>
 
     <div class="relative flex flex-1 items-center justify-center min-w-0 min-h-0">
-      <TheBattleBoard {state} interactive={state.status !== 'finished'} {reachable} onCellClick={handleCellClick} />
-
-      {#if statusText}
-        <div
-          class="tb-status-card ombra"
-          style={`${cardAtBottom ? 'bottom: 4%;' : 'top: 4%;'} transform: rotate(${state.currentPlayer === 'B' ? 180 : 0}deg);`}
+      <TheBattleBoard
+        {state}
+        interactive={state.status !== 'finished'}
+        {reachable}
+        onCellClick={handleCellClick}
+        rows={boardRows}
+        cols={boardCols}
+      />
+      {#if state.status === 'finished'}
+        <p
+          class="tb-winner-tile"
+          style={`transform: translate(-50%, -50%) rotate(${state.winner === 'B' ? 180 : 0}deg);`}
         >
-          {statusText}
-        </div>
+          {winnerLabel}
+        </p>
       {/if}
     </div>
 
     <!-- Giocatore A: colonna a destra, orientamento normale. -->
-    <div class="flex flex-col gap-2">
+    <div class="flex flex-col justify-center gap-2">
       {#if state.status !== 'finished'}
-        {#each MOVE_LENGTHS as length (length)}
+        {#each engine.MOVE_LENGTHS as length (length)}
           {#if state.moveCounts.A[length] > 0}
             <TheBattleLengthTile
               {length}
@@ -188,7 +204,6 @@
 
   {#if state.status === 'finished'}
     <div class="flex flex-col items-center gap-3 pb-2">
-      <p class="text-2xl font-black">{winnerLabel}</p>
       <button
         type="button"
         class="club-btn-yellow px-4 py-2 font-black uppercase tracking-widest"
@@ -199,3 +214,24 @@
     </div>
   {/if}
 </div>
+
+<style>
+  .tb-winner-tile {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 3;
+    margin: 0;
+    padding: 0.6em 1em;
+    background: white;
+    border: 2px solid black;
+    box-shadow: -0.5em 0.5em black;
+    font-weight: 900;
+    font-size: 1.25rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-align: center;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+</style>

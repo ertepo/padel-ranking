@@ -1,18 +1,19 @@
-// Motore puro di "The Battle" (Tie-Break Chase): nessun I/O, così può essere
-// importato sia lato client (modalità locale e client online, per validazioni
-// ottimistiche) sia lato server (unica autorità che convalida mosse online).
-// Regolamento: scacchiera 4x10 (colonne a-d, righe 0-9), un solo gettone
+// Motore puro di "The Battle" (Tie-Break Chase) — variante compatta: nessun
+// I/O, così può essere importato sia lato client (modalità locale e client
+// online, per validazioni ottimistiche) sia lato server (unica autorità che
+// convalida mosse online).
+// Regolamento: scacchiera 3x8 (colonne a-c, righe 0-7), un solo gettone
 // condiviso, ogni mossa percorre N caselle con al massimo un cambio di
 // direzione a 90°, deve atterrare nella metà avversaria rispetto a chi si
 // muove, su una casella libera. Perde chi resta senza mosse valide.
 
 export type PlayerId = 'A' | 'B';
-export type MoveLength = 10 | 8 | 5 | 3;
+export type MoveLength = 8 | 5 | 3 | 2;
 
-export const MOVE_LENGTHS: MoveLength[] = [10, 8, 5, 3];
-export const INITIAL_MOVE_COUNT = 5;
-export const ROWS = 10;
-export const COLS = 4;
+export const MOVE_LENGTHS: MoveLength[] = [8, 5, 3, 2];
+export const INITIAL_MOVE_COUNT = 3;
+export const ROWS = 8;
+export const COLS = 3;
 
 export interface Position {
   row: number;
@@ -31,7 +32,7 @@ export interface GameState {
   winner: PlayerId | null;
 }
 
-const COLUMN_LETTERS = 'abcd';
+const COLUMN_LETTERS = 'abc';
 
 export function cellId(row: number, col: number): string {
   return `${COLUMN_LETTERS[col]}${row}`;
@@ -43,12 +44,12 @@ function inBounds(row: number, col: number): boolean {
 
 /** Righe della metà "di casa" del giocatore. */
 export function ownHalfRows(player: PlayerId): [number, number] {
-  return player === 'A' ? [0, 4] : [5, 9];
+  return player === 'A' ? [0, 3] : [4, 7];
 }
 
 /** Righe della metà avversaria rispetto al giocatore (dove deve atterrare una sua mossa). */
 export function opponentHalfRows(player: PlayerId): [number, number] {
-  return player === 'A' ? [5, 9] : [0, 4];
+  return player === 'A' ? [4, 7] : [0, 3];
 }
 
 export function isInHalf(row: number, [lo, hi]: [number, number]): boolean {
@@ -56,7 +57,7 @@ export function isInHalf(row: number, [lo, hi]: [number, number]): boolean {
 }
 
 function freshMoveCounts(): MoveCounts {
-  return { 10: INITIAL_MOVE_COUNT, 8: INITIAL_MOVE_COUNT, 5: INITIAL_MOVE_COUNT, 3: INITIAL_MOVE_COUNT };
+  return { 8: INITIAL_MOVE_COUNT, 5: INITIAL_MOVE_COUNT, 3: INITIAL_MOVE_COUNT, 2: INITIAL_MOVE_COUNT };
 }
 
 export function newGame(): GameState {

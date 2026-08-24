@@ -1,24 +1,45 @@
 <script lang="ts">
-  import { COLS, ROWS, cellId, type GameState, type Position } from '../../lib/thebattle/engine';
+  interface BoardPosition {
+    row: number;
+    col: number;
+  }
 
-  export let state: GameState;
+  interface BoardState {
+    occupied: string[];
+    position: BoardPosition | null;
+  }
+
+  export let state: BoardState;
   export let interactive: boolean = false;
-  export let reachable: Position[] = [];
+  export let reachable: BoardPosition[] = [];
   export let onCellClick: (row: number, col: number) => void = () => {};
   /** Ruota il campo di 180°: usato online perché ogni giocatore veda sempre la propria metà in basso. */
   export let flip: boolean = false;
+  /** Dimensioni della scacchiera: 10x4 (classica) di default, 8x3 in modalità compatta. */
+  export let rows: number = 10;
+  export let cols: number = 4;
+
+  /** Id cella indipendente dall'engine in uso (classico o compatto): lettera colonna + numero riga. */
+  function cellId(row: number, col: number): string {
+    return `${String.fromCharCode(97 + col)}${row}`;
+  }
 
   $: occupiedSet = new Set(state.occupied);
   $: reachableSet = new Set(reachable.map((p) => cellId(p.row, p.col)));
   $: positionId = state.position ? cellId(state.position.row, state.position.col) : null;
+  /** Ultima riga della metà "bassa": righe divise in due metà uguali. */
+  $: lastLowerRow = rows / 2 - 1;
 
-  const rowsTopDown = Array.from({ length: ROWS }, (_, i) => ROWS - 1 - i);
-  const cols = Array.from({ length: COLS }, (_, i) => i);
+  $: rowsTopDown = Array.from({ length: rows }, (_, i) => rows - 1 - i);
+  $: colIndexes = Array.from({ length: cols }, (_, i) => i);
 </script>
 
-<div class="tb-board" style={flip ? 'transform: rotate(180deg);' : ''}>
+<div
+  class="tb-board"
+  style={`--tb-cols:${cols}; --tb-rows:${rows};${flip ? ' transform: rotate(180deg);' : ''}`}
+>
   {#each rowsTopDown as row (row)}
-    {#each cols as col (col)}
+    {#each colIndexes as col (col)}
       {@const id = cellId(row, col)}
       {@const isOccupied = occupiedSet.has(id)}
       {@const isPosition = id === positionId}
@@ -26,8 +47,8 @@
       <button
         type="button"
         class="tb-cell"
-        class:tb-cell-lower={row <= 4}
-        class:tb-cell-upper={row >= 5}
+        class:tb-cell-lower={row <= lastLowerRow}
+        class:tb-cell-upper={row > lastLowerRow}
         class:tb-cell-occupied={isOccupied && !isPosition}
         class:tb-cell-position={isPosition}
         class:tb-cell-reachable={isReachable}
@@ -54,11 +75,18 @@
   .tb-board {
     position: relative;
     display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    grid-template-rows: repeat(10, minmax(0, 1fr));
+    grid-template-columns: repeat(var(--tb-cols), minmax(0, 1fr));
+    grid-template-rows: repeat(var(--tb-rows), minmax(0, 1fr));
     gap: 3px;
-    width: min(100%, 30dvh, 280px);
-    aspect-ratio: 4 / 10;
+    /* L'altezza segue lo spazio verticale realmente disponibile nel contenitore
+       flex (non un numero fisso in dvh): così la board si ridimensiona da sola
+       in base a variante/aspect-ratio senza mai coprire ciò che sta sotto, e
+       resta comunque grande quanto lo spazio lo consente. 480px è solo un tetto
+       per schermi molto alti. La larghezza segue di conseguenza via aspect-ratio. */
+    height: min(100%, 480px);
+    width: auto;
+    max-width: 100%;
+    aspect-ratio: var(--tb-cols) / var(--tb-rows);
     margin: 0 auto;
     padding: 4px;
     background: black;

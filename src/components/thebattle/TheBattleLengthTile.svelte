@@ -1,7 +1,5 @@
 <script lang="ts">
-  import type { MoveLength } from '../../lib/thebattle/engine';
-
-  export let length: MoveLength;
+  export let length: number;
   export let count: number;
   export let disabled: boolean = false;
   /** Non è il turno del proprietario di questa tessera: sempre visibile, ma spenta e non cliccabile. */
