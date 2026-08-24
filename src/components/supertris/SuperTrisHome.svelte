@@ -1,7 +1,17 @@
 <script lang="ts">
   import SuperTrisLocal from './SuperTrisLocal.svelte';
+  import SuperTrisBot from './SuperTrisBot.svelte';
+  import { DIFFICULTY_LABEL, type BotDifficulty } from '../../lib/supertris/bot';
 
-  let mode: 'menu' | 'local' = 'menu';
+  let mode: 'menu' | 'local' | 'bot' = 'menu';
+  let botDifficulty: BotDifficulty = 'medium';
+
+  function startBot(difficulty: BotDifficulty) {
+    botDifficulty = difficulty;
+    mode = 'bot';
+  }
+
+  const BOT_DIFFICULTIES: BotDifficulty[] = ['easy', 'medium', 'hard'];
 
   let createName = '';
   let creating = false;
@@ -62,6 +72,8 @@
 
 {#if mode === 'local'}
   <SuperTrisLocal onExit={() => (mode = 'menu')} />
+{:else if mode === 'bot'}
+  <SuperTrisBot difficulty={botDifficulty} onExit={() => (mode = 'menu')} />
 {:else}
   <section class="mb-8">
     <p class="text-sm uppercase tracking-widest font-black text-slate-600">Arcade</p>
@@ -80,6 +92,27 @@
     >
       🎮 Gioca sullo stesso device
     </button>
+
+    <div class="club-card p-4">
+      <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-1">
+        🤖 Gioca contro il bot
+      </p>
+      <p class="text-sm font-semibold text-slate-700 mb-4">
+        Sfida il computer da solo. Tu giochi X e muovi per primo.
+      </p>
+
+      <div class="flex flex-col gap-2 sm:flex-row">
+        {#each BOT_DIFFICULTIES as difficulty (difficulty)}
+          <button
+            type="button"
+            class="club-btn-pastelviolet flex-1 px-4 py-3 font-black uppercase tracking-widest"
+            on:click={() => startBot(difficulty)}
+          >
+            {DIFFICULTY_LABEL[difficulty]}
+          </button>
+        {/each}
+      </div>
+    </div>
 
     <div class="club-card p-4">
       <p class="text-xs uppercase tracking-widest font-black text-slate-600 mb-3">
