@@ -18,10 +18,17 @@
   const { rows: boardRows, cols: boardCols } = VARIANT_BOARD[variant];
 
   const TURN_BACKGROUND: Record<'A' | 'B', string> = { A: '#bfdbfe', B: '#fecaca' };
+  /** "Desktop" = schermo largo con puntatore preciso (mouse/trackpad): qui i due
+      giocatori siedono fianco a fianco davanti allo stesso schermo, non ai lati
+      opposti di un tablet appoggiato sul tavolo, quindi il campo viene ruotato
+      di 90°. `pointer:fine`/`hover:hover` esclude tablet touch (iPad compreso,
+      in qualunque orientamento) a prescindere dalla larghezza. */
+  const DESKTOP_QUERY = '(hover: hover) and (pointer: fine) and (min-width: 1024px)';
 
   let state: AnyGameState = engine.newGame();
   let selectedLength: AnyMoveLength | null = null;
   let error = '';
+  let isDesktop = false;
 
   function ownHalfCells(player: 'A' | 'B'): AnyPosition[] {
     const [lo, hi] = engine.ownHalfRows(player);
@@ -97,6 +104,18 @@
   onMount(() => {
     document.body.style.transition = 'background 200ms ease';
     setChromeHidden(true);
+
+    const mq = window.matchMedia(DESKTOP_QUERY);
+    isDesktop = mq.matches;
+    const onChange = () => (isDesktop = mq.matches);
+    // Sia matchMedia "change" (via il MediaQueryList) sia il resize della
+    // finestra: alcuni browser non notificano in modo affidabile il primo.
+    mq.addEventListener('change', onChange);
+    window.addEventListener('resize', onChange);
+    return () => {
+      mq.removeEventListener('change', onChange);
+      window.removeEventListener('resize', onChange);
+    };
   });
 
   onDestroy(() => {
@@ -134,7 +153,7 @@
     {#if statusText}
       <p
         class="text-xl font-black text-center"
-        style={`transform: rotate(${state.currentPlayer === 'B' ? 180 : 0}deg);`}
+        style={`transform: rotate(${!isDesktop && state.currentPlayer === 'B' ? 180 : 0}deg);`}
       >
         {statusText}
       </p>
@@ -142,8 +161,8 @@
   </div>
 
   <div class="flex min-h-0 flex-1 flex-row justify-center gap-3">
-    <!-- Giocatore B: colonna a sinistra, sempre capovolta, così chi siede dall'altra parte del telefono legge dritto. -->
-    <div class="flex flex-col justify-center gap-2" style="transform: rotate(180deg);">
+    <!-- Giocatore B: colonna a sinistra. Capovolta quando i giocatori siedono ai lati opposti del dispositivo (telefono/tablet appoggiato); dritta su desktop, dove siedono fianco a fianco. -->
+    <div class="flex flex-col justify-center gap-2" style={`transform: rotate(${isDesktop ? 0 : 180}deg);`}>
       {#if state.status !== 'finished'}
         {#each engine.MOVE_LENGTHS as length (length)}
           {#if state.moveCounts.B[length] > 0}
@@ -160,7 +179,7 @@
       {/if}
     </div>
 
-    <div class="relative flex flex-1 items-center justify-center min-w-0 min-h-0">
+    <div class="relative flex items-center justify-center min-h-0">
       <TheBattleBoard
         {state}
         interactive={state.status !== 'finished'}
@@ -168,11 +187,12 @@
         onCellClick={handleCellClick}
         rows={boardRows}
         cols={boardCols}
+        landscape={isDesktop}
       />
       {#if state.status === 'finished'}
         <p
           class="tb-winner-tile"
-          style={`transform: translate(-50%, -50%) rotate(${state.winner === 'B' ? 180 : 0}deg);`}
+          style={`transform: translate(-50%, -50%) rotate(${!isDesktop && state.winner === 'B' ? 180 : 0}deg);`}
         >
           {winnerLabel}
         </p>

@@ -15,6 +15,15 @@
   export let onCellClick: (row: number, col: number) => void = () => {};
   /** Ruota il campo di 180°: usato online perché ogni giocatore veda sempre la propria metà in basso. */
   export let flip: boolean = false;
+  /**
+   * Presenta la scacchiera ruotata di 90° (le due metà divise a sinistra/destra
+   * invece che sopra/sotto, rete verticale): per il gioco locale su desktop,
+   * dove i due giocatori siedono fianco a fianco davanti allo stesso schermo
+   * invece che ai lati opposti di un tablet appoggiato sul tavolo. Le
+   * coordinate logiche (row/col dello stato di gioco) restano invariate: qui
+   * si trasforma solo la disposizione visiva delle celle.
+   */
+  export let landscape: boolean = false;
   /** Dimensioni della scacchiera: 10x4 (classica) di default, 8x3 in modalità compatta. */
   export let rows: number = 10;
   export let cols: number = 4;
@@ -30,16 +39,38 @@
   /** Ultima riga della metà "bassa": righe divise in due metà uguali. */
   $: lastLowerRow = rows / 2 - 1;
 
-  $: rowsTopDown = Array.from({ length: rows }, (_, i) => rows - 1 - i);
-  $: colIndexes = Array.from({ length: cols }, (_, i) => i);
+  /** Conteggio colonne/righe della GRIGLIA CSS: scambiati in landscape per ottenere una board larga. */
+  $: gridCols = landscape ? rows : cols;
+  $: gridRows = landscape ? cols : rows;
+  $: primaryIndexes = Array.from({ length: gridRows }, (_, i) => i);
+  $: secondaryIndexes = Array.from({ length: gridCols }, (_, i) => i);
+
+  /**
+   * Da indice di riga/colonna VISIVA (posizione nella griglia CSS, ordine DOM)
+   * a coordinate LOGICHE row/col dello stato di gioco. In verticale: riga
+   * visiva 0 = riga logica più alta (in cima allo schermo), colonna visiva =
+   * colonna logica diretta. In landscape: colonna logica diventa la riga
+   * visiva (dall'alto in basso), riga logica diventa la colonna visiva ma
+   * invertita, così la riga 0 (metà di A) resta sul lato destro come le
+   * tessere di A, e la riga più alta (metà di B) sul lato sinistro come le
+   * tessere di B — nessuno scambio di colonne da fare nei componenti che usano la board.
+   */
+  function logicalRowCol(primary: number, secondary: number): { row: number; col: number } {
+    if (landscape) {
+      return { row: rows - 1 - secondary, col: primary };
+    }
+    return { row: rows - 1 - primary, col: secondary };
+  }
 </script>
 
 <div
   class="tb-board"
-  style={`--tb-cols:${cols}; --tb-rows:${rows};${flip ? ' transform: rotate(180deg);' : ''}`}
+  class:landscape
+  style={`--tb-cols:${gridCols}; --tb-rows:${gridRows};${flip ? ' transform: rotate(180deg);' : ''}`}
 >
-  {#each rowsTopDown as row (row)}
-    {#each colIndexes as col (col)}
+  {#each primaryIndexes as primary (primary)}
+    {#each secondaryIndexes as secondary (secondary)}
+      {@const { row, col } = logicalRowCol(primary, secondary)}
       {@const id = cellId(row, col)}
       {@const isOccupied = occupiedSet.has(id)}
       {@const isPosition = id === positionId}
@@ -126,6 +157,49 @@
 
   .tb-net-post-right {
     right: 0;
+  }
+
+  /* In landscape la rete diventa verticale (metà a sinistra/destra invece che sopra/sotto). */
+  .tb-board.landscape .tb-net {
+    left: 50%;
+    right: auto;
+    top: -14px;
+    bottom: -14px;
+    width: 6px;
+    height: auto;
+    transform: translateX(-50%);
+  }
+
+  .tb-board.landscape .tb-net-post {
+    top: auto;
+    left: 50%;
+    width: 18px;
+    height: 6px;
+    transform: translateX(-50%);
+  }
+
+  .tb-board.landscape .tb-net-post-left {
+    top: 0;
+    left: 50%;
+  }
+
+  .tb-board.landscape .tb-net-post-right {
+    top: auto;
+    bottom: 0;
+    left: 50%;
+    right: auto;
+  }
+
+  /* Su desktop il campo locale può essere ruotato di 90° (giocatori fianco a
+     fianco). Resta guidato dall'ALTEZZA come in verticale (non dalla
+     larghezza): il contenitore non ha più una larghezza propria da cui
+     calcolare una percentuale (niente più flex-1, altrimenti le tessere
+     finiscono ai bordi dello schermo), quindi "width: min(100%, ...)"
+     sarebbe una dipendenza circolare irrisolvibile. Il tetto è più basso
+     perché qui l'altezza diventata "larghezza visiva" del rettangolo largo:
+     va tenuta contenuta perché non sfori troppo in orizzontale. */
+  .tb-board.landscape {
+    height: min(100%, 320px);
   }
 
   @media (min-width: 768px) {
