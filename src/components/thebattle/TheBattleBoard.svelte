@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+
   interface BoardPosition {
     row: number;
     col: number;
@@ -61,66 +63,112 @@
     }
     return { row: rows - 1 - primary, col: secondary };
   }
+
+  /**
+   * Dimensionamento calcolato in JS (misurando lo spazio davvero disponibile)
+   * invece che con "aspect-ratio" + la funzione CSS "min()": su alcuni motori
+   * mobili meno recenti (es. iOS con WebKit datato, che si porta dietro sia
+   * Safari sia Chrome/Firefox-su-iOS, dato che condividono lo stesso motore
+   * di sistema) quelle proprietà CSS relativamente recenti (~2021) possono
+   * non essere supportate, facendo collassare la board alla dimensione minima
+   * del contenuto. clientWidth/clientHeight e la matematica in JS funzionano
+   * ovunque, senza dipendere dal supporto di feature CSS moderne.
+   */
+  /* Solo l'altezza viene misurata: la larghezza si deduce da altezza × rapporto
+     colonne/righe. Misurare anche la larghezza richiederebbe che questo
+     contenitore abbia "width:100%", ma il suo genitore (nei componenti che
+     usano la board) è volutamente senza una larghezza propria — si restringe
+     al contenuto, cioè alla board stessa — altrimenti le tessere accanto
+     finiscono ai bordi dello schermo. "width:100%" su un genitore che si
+     restringe al proprio contenuto è una dipendenza circolare irrisolvibile. */
+  let measureEl: HTMLDivElement;
+  let measuredHeight = 0;
+  let isWideScreen = false;
+
+  onMount(() => {
+    const mq = window.matchMedia('(min-width: 768px)');
+    isWideScreen = mq.matches;
+    const onChange = () => (isWideScreen = mq.matches);
+    mq.addEventListener('change', onChange);
+    window.addEventListener('resize', onChange);
+
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (!entry) return;
+      measuredHeight = entry.contentRect.height;
+    });
+    ro.observe(measureEl);
+    measuredHeight = measureEl.clientHeight;
+
+    return () => {
+      mq.removeEventListener('change', onChange);
+      window.removeEventListener('resize', onChange);
+      ro.disconnect();
+    };
+  });
+
+  $: heightCap = landscape ? 320 : isWideScreen ? 640 : 480;
+  $: finalHeight = Math.min(measuredHeight, heightCap);
+  $: finalWidth = gridRows > 0 ? finalHeight * (gridCols / gridRows) : 0;
 </script>
 
-<div
-  class="tb-board"
-  class:landscape
-  style={`--tb-cols:${gridCols}; --tb-rows:${gridRows};${flip ? ' transform: rotate(180deg);' : ''}`}
->
-  {#each primaryIndexes as primary (primary)}
-    {#each secondaryIndexes as secondary (secondary)}
-      {@const { row, col } = logicalRowCol(primary, secondary)}
-      {@const id = cellId(row, col)}
-      {@const isOccupied = occupiedSet.has(id)}
-      {@const isPosition = id === positionId}
-      {@const isReachable = interactive && reachableSet.has(id)}
-      <button
-        type="button"
-        class="tb-cell"
-        class:tb-cell-lower={row <= lastLowerRow}
-        class:tb-cell-upper={row > lastLowerRow}
-        class:tb-cell-occupied={isOccupied && !isPosition}
-        class:tb-cell-position={isPosition}
-        class:tb-cell-reachable={isReachable}
-        disabled={!isReachable}
-        on:click={() => onCellClick(row, col)}
-        aria-label={`Casella ${id}${isPosition ? ', gettone qui' : isOccupied ? ', occupata' : ''}`}
-      >
-        {#if isPosition}
-          <span class="tb-token" aria-hidden="true"></span>
-        {:else if isOccupied}
-          <span class="tb-dot" aria-hidden="true"></span>
-        {/if}
-      </button>
+<div bind:this={measureEl} class="tb-board-measure">
+  <div
+    class="tb-board"
+    class:landscape
+    style={`--tb-cols:${gridCols}; --tb-rows:${gridRows}; width:${finalWidth}px; height:${finalHeight}px;${flip ? ' transform: rotate(180deg);' : ''}`}
+  >
+    {#each primaryIndexes as primary (primary)}
+      {#each secondaryIndexes as secondary (secondary)}
+        {@const { row, col } = logicalRowCol(primary, secondary)}
+        {@const id = cellId(row, col)}
+        {@const isOccupied = occupiedSet.has(id)}
+        {@const isPosition = id === positionId}
+        {@const isReachable = interactive && reachableSet.has(id)}
+        <button
+          type="button"
+          class="tb-cell"
+          class:tb-cell-lower={row <= lastLowerRow}
+          class:tb-cell-upper={row > lastLowerRow}
+          class:tb-cell-occupied={isOccupied && !isPosition}
+          class:tb-cell-position={isPosition}
+          class:tb-cell-reachable={isReachable}
+          disabled={!isReachable}
+          on:click={() => onCellClick(row, col)}
+          aria-label={`Casella ${id}${isPosition ? ', gettone qui' : isOccupied ? ', occupata' : ''}`}
+        >
+          {#if isPosition}
+            <span class="tb-token" aria-hidden="true"></span>
+          {:else if isOccupied}
+            <span class="tb-dot" aria-hidden="true"></span>
+          {/if}
+        </button>
+      {/each}
     {/each}
-  {/each}
 
-  <div class="tb-net" aria-hidden="true">
-    <span class="tb-net-post tb-net-post-left"></span>
-    <span class="tb-net-post tb-net-post-right"></span>
+    <div class="tb-net" aria-hidden="true">
+      <span class="tb-net-post tb-net-post-left"></span>
+      <span class="tb-net-post tb-net-post-right"></span>
+    </div>
   </div>
 </div>
 
 <style>
+  .tb-board-measure {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+  }
+
   .tb-board {
     position: relative;
     display: grid;
     grid-template-columns: repeat(var(--tb-cols), minmax(0, 1fr));
     grid-template-rows: repeat(var(--tb-rows), minmax(0, 1fr));
     gap: 3px;
-    /* L'altezza segue lo spazio verticale realmente disponibile nel contenitore
-       flex (non un numero fisso in dvh): così la board si ridimensiona da sola
-       in base a variante/aspect-ratio senza mai coprire ciò che sta sotto.
-       Il tetto è più basso su schermi stretti (telefono): scacchiere come la
-       3×8 sono già di forma stretta e allungata, alzare troppo il tetto le fa
-       sembrare "strisce" sottilissime. Su schermi larghi (desktop/tablet) il
-       tetto è più alto per sfruttare lo spazio verticale in più. */
-    height: min(100%, 480px);
-    width: auto;
-    max-width: 100%;
-    aspect-ratio: var(--tb-cols) / var(--tb-rows);
-    margin: 0 auto;
+    flex: none;
     padding: 4px;
     background: black;
     border: 2px solid black;
@@ -188,24 +236,6 @@
     bottom: 0;
     left: 50%;
     right: auto;
-  }
-
-  /* Su desktop il campo locale può essere ruotato di 90° (giocatori fianco a
-     fianco). Resta guidato dall'ALTEZZA come in verticale (non dalla
-     larghezza): il contenitore non ha più una larghezza propria da cui
-     calcolare una percentuale (niente più flex-1, altrimenti le tessere
-     finiscono ai bordi dello schermo), quindi "width: min(100%, ...)"
-     sarebbe una dipendenza circolare irrisolvibile. Il tetto è più basso
-     perché qui l'altezza diventata "larghezza visiva" del rettangolo largo:
-     va tenuta contenuta perché non sfori troppo in orizzontale. */
-  .tb-board.landscape {
-    height: min(100%, 320px);
-  }
-
-  @media (min-width: 768px) {
-    .tb-board {
-      height: min(100%, 640px);
-    }
   }
 
   .tb-cell {
