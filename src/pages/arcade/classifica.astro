@@ -38,6 +38,18 @@ const { count: totalTriviaMatches } = await supabase
 
 const topTriviaScores = triviaScores || [];
 
+const { data: chilhavintoScores, error: chilhavintoError } = await supabase
+  .from('chilhavinto_game_score')
+  .select('id, nickname, level_reached, created_at')
+  .order('level_reached', { ascending: false })
+  .limit(15);
+
+const { count: totalChilhavintoMatches } = await supabase
+  .from('chilhavinto_game_score')
+  .select('id', { count: 'exact', head: true });
+
+const topChilhavintoScores = chilhavintoScores || [];
+
 const DIFFICULTY_LABELS: Record<string, string> = {
   '1': 'Liv. 1',
   '2': 'Liv. 2',
@@ -82,6 +94,11 @@ const DIFFICULTY_LABELS: Record<string, string> = {
         {
           triviaError && (
             <pre class="err">{JSON.stringify(triviaError, null, 2)}</pre>
+          )
+        }
+        {
+          chilhavintoError && (
+            <pre class="err">{JSON.stringify(chilhavintoError, null, 2)}</pre>
           )
         }
 
@@ -234,6 +251,51 @@ const DIFFICULTY_LABELS: Record<string, string> = {
               )
             }
           </section>
+
+          <section class="board" id="board-chilhavinto">
+            <div class="board-head">
+              <div>
+                <span class="name">Chi l'ha vinto?</span>
+              </div>
+              <span class="meta">Top 15 · {totalChilhavintoMatches ?? 0} partite</span>
+            </div>
+
+            {
+              topChilhavintoScores.length === 0 ? (
+                <p class="empty">Nessun punteggio ancora registrato: gioca la prima partita!</p>
+              ) : (
+                <ol class="board-list">
+                  {topChilhavintoScores.map((score, index) => {
+                    const isFirst = index === 0;
+                    return (
+                      <li class:list={['row', { first: isFirst, extra: index >= 6 }]}>
+                        <div class="row-top">
+                          <span class="rank">
+                            <span class="caret">►</span>
+                            {String(index + 1).padStart(2, '0')}
+                          </span>
+                          <span class="who">{score.nickname}</span>
+                        </div>
+                        <div class="row-sub">
+                          <span class="sub">livello raggiunto</span>
+                          <span class="leader" />
+                          <span class="score">{score.level_reached}</span>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              )
+            }
+
+            {
+              topChilhavintoScores.length > 6 && (
+                <button type="button" class="show-more" data-board="board-chilhavinto">
+                  Mostra altro
+                </button>
+              )
+            }
+          </section>
         </div>
 
         <p class="eyebrow" style="margin-top: 2.5rem;">Gioca ora</p>
@@ -241,6 +303,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
           <a class="cab-btn primary" href="/arcade/legends">► Legends Game</a>
           <a class="cab-btn primary" href="/arcade/slice">► Slice</a>
           <a class="cab-btn primary" href="/arcade/trivia">► Trivia</a>
+          <a class="cab-btn primary" href="/arcade/chilhavinto">► Chi l'ha vinto?</a>
         </div>
       </div>
     </div>

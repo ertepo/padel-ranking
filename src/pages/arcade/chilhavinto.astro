@@ -1,0 +1,12 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import ChiLHaVintoGame from '../../components/chilhavinto/ChiLHaVintoGame.svelte';
+---
+
+<Layout
+  title="Chi l'ha vinto?"
+  headerTheme="tennis"
+  description="Chi l'ha vinto?: 100 finali Slam dal 1980 a oggi, indovina il vincitore entro 8 secondi. Un errore ti ferma: arriva più lontano che puoi."
+>
+  <ChiLHaVintoGame client:load />
+</Layout>
