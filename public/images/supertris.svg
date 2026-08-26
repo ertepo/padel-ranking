@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 450" role="img" aria-label="Super Tris">
+  <rect x="0" y="0" width="800" height="450" fill="#EDE9E1" />
+
+  <!-- Titolo -->
+  <text x="400" y="34" text-anchor="middle" font-family="'Arial Black', Helvetica, sans-serif" font-weight="900" font-size="28" letter-spacing="2" fill="#000">SUPER TRIS</text>
+
+  <!-- Scacchiera 3x3 di riquadri, ciascuno un tris 3x3: nero come cornice/griglia -->
+  <rect x="208" y="48" width="384" height="384" fill="#000" />
+
+  <rect x="214" y="54" width="120" height="120" fill="#ddd" />
+  <rect x="214.00" y="54.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="255.00" y="54.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="296.00" y="54.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="214.00" y="95.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="255.00" y="95.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="296.00" y="95.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="214.00" y="136.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="255.00" y="136.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="296.00" y="136.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="214" y="54" width="120" height="120" fill="#005ad8" />
+  <text x="274" y="132" text-anchor="middle" font-family="'Arial Black', Helvetica, sans-serif" font-weight="900" font-size="64" fill="#fff">X</text>
+
+  <rect x="340" y="54" width="120" height="120" fill="#ddd" />
+  <rect x="340.00" y="54.00" width="38.00" height="38.00" fill="#005ad8" stroke="#fff" stroke-width="3" />
+  <rect x="381.00" y="54.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="422.00" y="54.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="340.00" y="95.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="381.00" y="95.00" width="38.00" height="38.00" fill="#dc2828" stroke="#fff" stroke-width="3" />
+  <rect x="422.00" y="95.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="340.00" y="136.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="381.00" y="136.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="422.00" y="136.00" width="38.00" height="38.00" fill="#005ad8" stroke="#fff" stroke-width="3" />
+
+  <rect x="466" y="54" width="120" height="120" fill="#ddd" />
+  <rect x="466.00" y="54.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="507.00" y="54.00" width="38.00" height="38.00" fill="#dc2828" stroke="#fff" stroke-width="3" />
+  <rect x="548.00" y="54.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="466.00" y="95.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="507.00" y="95.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="548.00" y="95.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="466.00" y="136.00" width="38.00" height="38.00" fill="#005ad8" stroke="#fff" stroke-width="3" />
+  <rect x="507.00" y="136.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="548.00" y="136.00" width="38.00" height="38.00" fill="#fff" />
+
+  <rect x="214" y="180" width="120" height="120" fill="#ddd" />
+  <rect x="214.00" y="180.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="255.00" y="180.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="296.00" y="180.00" width="38.00" height="38.00" fill="#dc2828" stroke="#fff" stroke-width="3" />
+  <rect x="214.00" y="221.00" width="38.00" height="38.00" fill="#005ad8" stroke="#fff" stroke-width="3" />
+  <rect x="255.00" y="221.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="296.00" y="221.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="214.00" y="262.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="255.00" y="262.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="296.00" y="262.00" width="38.00" height="38.00" fill="#fff" />
+
+  <rect x="340" y="180" width="120" height="120" fill="#ffcc00" />
+  <rect x="340.00" y="180.00" width="38.00" height="38.00" fill="#dc2828" stroke="#fff" stroke-width="3" />
+  <rect x="381.00" y="180.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="422.00" y="180.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="340.00" y="221.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="381.00" y="221.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="422.00" y="221.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="340.00" y="262.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="381.00" y="262.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="422.00" y="262.00" width="38.00" height="38.00" fill="#005ad8" stroke="#fff" stroke-width="3" />
+
+  <rect x="466" y="180" width="120" height="120" fill="#ddd" />
+  <rect x="466.00" y="180.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="507.00" y="180.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="548.00" y="180.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="466.00" y="221.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="507.00" y="221.00" width="38.00" height="38.00" fill="#005ad8" stroke="#fff" stroke-width="3" />
+  <rect x="548.00" y="221.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="466.00" y="262.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="507.00" y="262.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="548.00" y="262.00" width="38.00" height="38.00" fill="#fff" />
+
+  <rect x="214" y="306" width="120" height="120" fill="#ddd" />
+  <rect x="214.00" y="306.00" width="38.00" height="38.00" fill="#005ad8" stroke="#fff" stroke-width="3" />
+  <rect x="255.00" y="306.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="296.00" y="306.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="214.00" y="347.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="255.00" y="347.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="296.00" y="347.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="214.00" y="388.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="255.00" y="388.00" width="38.00" height="38.00" fill="#dc2828" stroke="#fff" stroke-width="3" />
+  <rect x="296.00" y="388.00" width="38.00" height="38.00" fill="#fff" />
+
+  <rect x="340" y="306" width="120" height="120" fill="#ddd" />
+  <rect x="340.00" y="306.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="381.00" y="306.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="422.00" y="306.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="340.00" y="347.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="381.00" y="347.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="422.00" y="347.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="340.00" y="388.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="381.00" y="388.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="422.00" y="388.00" width="38.00" height="38.00" fill="#fff" />
+
+  <rect x="466" y="306" width="120" height="120" fill="#ddd" />
+  <rect x="466.00" y="306.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="507.00" y="306.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="548.00" y="306.00" width="38.00" height="38.00" fill="#005ad8" stroke="#fff" stroke-width="3" />
+  <rect x="466.00" y="347.00" width="38.00" height="38.00" fill="#dc2828" stroke="#fff" stroke-width="3" />
+  <rect x="507.00" y="347.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="548.00" y="347.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="466.00" y="388.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="507.00" y="388.00" width="38.00" height="38.00" fill="#fff" />
+  <rect x="548.00" y="388.00" width="38.00" height="38.00" fill="#fff" />
+</svg>

@@ -133,6 +133,33 @@ body {
   box-shadow: -0.5em 0.5em var(--verde-tennis);
 }
 
+/* dark-club-card è usata sia per link/bottoni (arcade) sia per tessere non
+   cliccabili (foto in PhotoCarousel): il feedback hover/active va acceso solo
+   sugli <a href> veri, altrimenti una foto sembrerebbe cliccabile senza esserlo.
+   :active copre anche il tocco su mobile, dove :hover da solo non basta. */
+a[href].dark-club-card:hover,
+a[href].dark-club-card:active {
+  background: var(--giallo-club);
+}
+
+a[href].dark-club-card-blue:hover,
+a[href].dark-club-card-blue:active {
+  background: var(--blu-padel);
+  color: white;
+}
+
+a[href].dark-club-card-violet:hover,
+a[href].dark-club-card-violet:active {
+  background: var(--viola-tennis);
+  color: white;
+}
+
+a[href].dark-club-card-green:hover,
+a[href].dark-club-card-green:active {
+  background: var(--verde-tennis);
+  color: white;
+}
+
 .stamp {
     --stamp-hole: 0.30rem;
     --stamp-step: 1rem;
