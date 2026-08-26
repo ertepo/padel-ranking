@@ -3,8 +3,7 @@ import svelte from '@astrojs/svelte';
 import netlify from '@astrojs/netlify';
 import sitemap from '@astrojs/sitemap';
 import tailwindcss from '@tailwindcss/vite';
-
-const EXCLUDED_PATH_PREFIXES = ['/admin', '/api', '/login', '/livescore-watch', '/livescore-screen', '/404'];
+import { EXCLUDED_PATH_PREFIXES } from './src/lib/trackedPaths.ts';
 
 export default defineConfig({
   site: 'https://tie-break.it',

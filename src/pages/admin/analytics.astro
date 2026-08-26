@@ -1,0 +1,101 @@
+---
+import { getSupabaseAdmin } from "../../lib/supabaseAdmin";
+import "../../styles/global.css";
+import Layout from "../../layouts/Layout.astro";
+import PageViewsChart from "../../components/PageViewsChart.svelte";
+
+const adminPassword = Astro.cookies.get("admin_password");
+
+if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
+    const redirectTo = encodeURIComponent(Astro.url.pathname);
+    return Astro.redirect(`/login?redirect=${redirectTo}`);
+}
+
+const supabase = getSupabaseAdmin();
+
+const RANGE_DAYS = 30;
+const today = new Date();
+const cutoff = new Date(today);
+cutoff.setDate(cutoff.getDate() - (RANGE_DAYS - 1));
+const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+const { data: rows, error } = await supabase
+    .from("page_views")
+    .select("day, path, views")
+    .gte("day", cutoffStr)
+    .order("day", { ascending: true });
+
+const dailyTotals = new Map<string, number>();
+const pathTotals = new Map<string, number>();
+
+for (const row of rows ?? []) {
+    dailyTotals.set(row.day, (dailyTotals.get(row.day) ?? 0) + row.views);
+    pathTotals.set(row.path, (pathTotals.get(row.path) ?? 0) + row.views);
+}
+
+const points = [];
+for (let i = 0; i < RANGE_DAYS; i++) {
+    const d = new Date(cutoff);
+    d.setDate(d.getDate() + i);
+    const key = d.toISOString().slice(0, 10);
+    points.push({
+        label: d.toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }),
+        views: dailyTotals.get(key) ?? 0,
+    });
+}
+
+const totalViews = points.reduce((sum, p) => sum + p.views, 0);
+
+const topPages = [...pathTotals.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 10);
+---
+
+<Layout title="Analytics" headerTheme="club" noindex={true}>
+    <section class="mb-8">
+        <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+            Area riservata
+        </p>
+
+        <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+            Analytics
+        </h1>
+
+        <p class="mt-4 max-w-xl text-slate-700 font-medium">
+            Andamento delle visite negli ultimi {RANGE_DAYS} giorni. Nessun cookie, nessun dato personale.
+        </p>
+    </section>
+
+    {error && (
+        <p class="mb-6 font-bold text-red-600">
+            Errore nel caricamento dei dati: {error.message}
+        </p>
+    )}
+
+    <div class="club-card p-5 bg-white mb-8">
+        <p class="text-xs uppercase tracking-widest font-black text-slate-500">
+            Totale visite ({RANGE_DAYS} giorni)
+        </p>
+        <p class="text-4xl font-black mt-1">{totalViews}</p>
+
+        <div class="mt-6">
+            <PageViewsChart points={points} client:load />
+        </div>
+    </div>
+
+    <div class="club-card p-5 bg-white">
+        <h2 class="text-2xl font-black mb-4">Pagine più visitate</h2>
+        {topPages.length === 0 ? (
+            <p class="text-slate-600 font-medium">Nessun dato disponibile ancora.</p>
+        ) : (
+            <ol class="divide-y divide-slate-200">
+                {topPages.map(([path, views]) => (
+                    <li class="flex items-center justify-between py-2">
+                        <span class="font-bold text-black">{path}</span>
+                        <span class="font-black text-slate-700">{views}</span>
+                    </li>
+                ))}
+            </ol>
+        )}
+    </div>
+</Layout>
