@@ -57,7 +57,13 @@
   // fisso della fase 'setup'.
   let headerOffset = 0;
 
-  function startGame() {
+  // Su mobile "Inizia gioco" è l'unico varco verso la board: la verifica del
+  // nickname va fatta qui, PRIMA di mostrare la board, così un nickname già
+  // preso mostra l'errore direttamente nella schermata di setup (dove c'è
+  // già il testo di errore sotto i campi) invece che a partita già iniziata.
+  async function startGame() {
+    const verified = await verifyNickname();
+    if (!verified) return;
     newMatch();
     started = true;
     if (typeof window !== 'undefined') window.scrollTo(0, 0);
@@ -186,12 +192,14 @@
   // il nickname va verificato/abbinato PRIMA che la mossa venga giocata, non
   // solo a fine partita: altrimenti un nickname già in uso da qualcun altro
   // si scopre solo a partita finita, quando è troppo tardi per correggerlo e
-  // il punteggio va perso. La board qui non ha uno schermo di "setup" a sé
-  // (su desktop è già interattiva dal caricamento pagina), quindi il
-  // controllo scatta alla prima mossa di ogni partita invece che su un
-  // pulsante "Inizia" dedicato (schema usato invece in Trivia/Legends).
-  // Nickname e nome/cognome sono facoltativi: lasciandoli entrambi vuoti si
-  // gioca comunque, semplicemente la partita non entra in classifica.
+  // il punteggio va perso. Su mobile la verifica scatta al click su "Inizia
+  // gioco" (vedi startGame), quindi qui sotto nicknameVerified è già true e
+  // questa chiamata è un no-op. Su desktop però non c'è uno schermo di
+  // "setup" a sé (la board è già interattiva dal caricamento pagina, niente
+  // pulsante "Inizia" da intercettare), quindi lì il controllo scatta ancora
+  // alla prima mossa di ogni partita. Nickname e nome/cognome restano
+  // facoltativi: lasciandoli entrambi vuoti si gioca comunque, semplicemente
+  // la partita non entra in classifica.
   async function verifyNickname(): Promise<boolean> {
     if (nicknameVerified) return true;
     const hasNickname = nickname.trim() !== '';
@@ -517,7 +525,8 @@
     <div class="flex justify-center mt-6 lg:hidden">
       <button
         type="button"
-        class="club-btn-yellow px-8 py-4 text-lg font-black uppercase tracking-widest"
+        class="club-btn-yellow px-8 py-4 text-lg font-black uppercase tracking-widest disabled:opacity-40 disabled:cursor-not-allowed"
+        disabled={verifyingNickname}
         on:click={startGame}
       >
         Inizia gioco
