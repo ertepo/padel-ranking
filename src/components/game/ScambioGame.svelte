@@ -334,41 +334,32 @@
 <div class="flex flex-col gap-4">
   {#if phase === 'draft'}
     <section class="mb-2">
-      <p class="text-sm uppercase tracking-widest font-black text-slate-600">Tennis</p>
+      <div class="flex items-center justify-between gap-3">
+        <a href="/arcade" class="shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black">
+          ← Arcade
+        </a>
+        <a href="/arcade/classifica" class="shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black">
+          Classifica →
+        </a>
+      </div>
       <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Legends Game</h1>
       <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
         Scegli il tuo roster di 6 leggende del tennis e sfida l'avversario: memorizza la sequenza di colpi e ripetila prima che scada il tempo. Primo a 6 game vince il match.
-      </p>
+      <button
+        type="button"
+        class="self-start shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black"
+        aria-expanded={regolamentoOpen}
+        aria-controls="regolamento-panel"
+        on:click={() => (regolamentoOpen = !regolamentoOpen)}
+        >
+       {regolamentoOpen ? 'Nascondi regole' : 'QUI REGOLAMENTO COMPLETO'}
+      </button></p>
 
       {#if replayActive && replayConfig}
         <div class="mt-4 max-w-3xl border-2 border-black bg-[var(--giallo-club)] p-4 font-black text-sm uppercase tracking-widest">
           Stai giocando la sfida di {replayConfig.challengerNickname || 'un amico'} — superficie {SURFACE_LABELS[replayConfig.surface]}, difficoltà {DIFFICULTY_OPTIONS.find((o) => o.value === replayConfig.difficulty)?.label ?? replayConfig.difficulty} — punteggio da battere: {replayConfig.targetPoints}
         </div>
       {/if}
-
-      <button
-        type="button"
-        class="club-btn-yellow mt-4 inline-flex items-center justify-center gap-2 px-5 py-3"
-        aria-expanded={regolamentoOpen}
-        aria-controls="regolamento-panel"
-        on:click={() => (regolamentoOpen = !regolamentoOpen)}
-      >
-        {regolamentoOpen ? 'Nascondi regolamento' : 'Regolamento'}
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          class={`shrink-0 transition-transform ${regolamentoOpen ? 'rotate-180' : ''}`}
-          aria-hidden="true"
-        >
-          <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
-        </svg>
-      </button>
-      <a href="/arcade/classifica" class="club-btn px-6 py-3 font-black uppercase tracking-widest text-center">
-          Classifica
-        </a>
 
       {#if regolamentoOpen}
         <div id="regolamento-panel" transition:slide={{ duration: 220 }}>

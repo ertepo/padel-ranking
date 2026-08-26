@@ -214,33 +214,27 @@
 {#if !started}
   <div class="max-w-3xl">
     <section>
-      <p class="text-sm uppercase tracking-widest font-black text-slate-600">Tennis</p>
+      <div class="flex items-center justify-between gap-3">
+        <a href="/arcade" class="shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black">
+          ← Arcade
+        </a>
+        <a href="/arcade/classifica" class="shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black">
+          Classifica →
+        </a>
+      </div>
       <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Chi l'ha vinto?</h1>
       <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
         {TOTAL_LEVELS} finali Slam dal 1980 a oggi: indovina chi ha vinto prima
         che scadano gli {(LEVEL_TIME_MS / 1000).toFixed(0)} secondi. Se sbagli o scade il tempo hai perso: arriva più lontano che puoi.
-      </p>
-
       <button
         type="button"
-        class="club-btn-yellow mt-4 inline-flex items-center justify-center gap-2 px-5 py-3"
+        class="self-start shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black"
         aria-expanded={rulesOpen}
         aria-controls="chilhavinto-rules"
         on:click={() => (rulesOpen = !rulesOpen)}
-      >
-        {rulesOpen ? 'Nascondi regole' : 'Regole'}
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-          class={`shrink-0 transition-transform ${rulesOpen ? 'rotate-180' : ''}`}
-          aria-hidden="true"
         >
-          <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
-        </svg>
-      </button>
+       {rulesOpen ? 'Nascondi regole' : 'QUI REGOLAMENTO COMPLETO'}
+      </button></p>
 
       {#if rulesOpen}
         <div id="chilhavinto-rules" transition:slide={{ duration: 220 }}>
@@ -393,7 +387,8 @@
   <div class="max-w-3xl">
     <a href="/arcade/chilhavinto" class="self-start shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black">
       ← Esci
-    </a><section class="text-center">
+    </a>
+    <section class="text-center">
     
       <p class="text-sm uppercase tracking-widest font-black text-slate-600">Partita finita</p>
       <h1 class="text-5xl md:text-6xl font-black leading-none text-black">

@@ -68,34 +68,28 @@
 
 <div class="flex flex-col gap-4">
   <section class="mb-2">
-    <p class="text-sm uppercase tracking-widest font-black text-slate-600">Tennis</p>
+    <div class="flex items-center justify-between gap-3">
+      <a href="/arcade" class="shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black">
+        ← Arcade
+      </a>
+      <a href="/arcade/classifica" class="shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black">
+        Classifica →
+      </a>
+    </div>
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">Quindici</h1>
     <p class="mt-5 max-w-3xl text-lg font-semibold leading-relaxed text-slate-700">
       Il 2048 del tennis: somma le tessere lungo la scala 15-30-40-AD. Completarla non chiude il
       punto, ma apre il <b>livello successivo</b> — una scala tutta nuova, che parte da 0 e
       interagisce solo con sé stessa. Supera il livello {MAX_LEVEL} per vincere.
-    </p>
-
     <button
       type="button"
-      class="club-btn-yellow mt-4 inline-flex items-center justify-center gap-2 px-5 py-3"
+      class="self-start shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black"
       aria-expanded={rulesOpen}
       aria-controls="quindici-rules"
       on:click={() => (rulesOpen = !rulesOpen)}
-    >
-      {rulesOpen ? 'Nascondi regole' : 'Regole'}
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        class={`shrink-0 transition-transform ${rulesOpen ? 'rotate-180' : ''}`}
-        aria-hidden="true"
       >
-        <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
-      </svg>
-    </button>
+     {rulesOpen ? 'Nascondi regole' : 'QUI REGOLAMENTO COMPLETO'}
+    </button></p>
 
     {#if rulesOpen}
       <div id="quindici-rules" transition:slide={{ duration: 220 }}>

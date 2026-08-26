@@ -86,33 +86,27 @@
   <TheBattleBot difficulty={botDifficulty} onExit={() => (mode = 'menu')} />
 {:else}
   <section class="mb-8">
-    <p class="text-sm uppercase tracking-widest font-black text-slate-600">Arcade</p>
+    <div class="flex items-center justify-between gap-3">
+      <a href="/arcade" class="shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black">
+        ← Arcade
+      </a>
+      <a href="/arcade/classifica" class="shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black">
+        Classifica →
+      </a>
+    </div>
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">The Battle</h1>
     <p class="mt-5 max-w-2xl text-lg font-semibold leading-relaxed text-slate-700">
-      Scegli la casella da cui partire e la profondità del colpo. La palla schizza tra un campo e l'altro 
+      Scegli la casella da cui partire e la profondità del colpo. La palla schizza tra un campo e l'altro
       finché uno dei due non resta senza mosse valide.
-    </p>
-
     <button
       type="button"
-      class="club-btn-yellow mt-4 inline-flex items-center justify-center gap-2 px-5 py-3"
+      class="self-start shrink-0 text-xs font-black uppercase tracking-widest text-black/60 hover:text-black"
       aria-expanded={rulesOpen}
       aria-controls="thebattle-rules"
       on:click={() => (rulesOpen = !rulesOpen)}
-    >
-      {rulesOpen ? 'Nascondi regole' : 'Regole'}
-      <svg
-        width="24"
-        height="24"
-        viewBox="0 0 24 24"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
-        class={`shrink-0 transition-transform ${rulesOpen ? 'rotate-180' : ''}`}
-        aria-hidden="true"
       >
-        <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
-      </svg>
-    </button>
+     {rulesOpen ? 'Nascondi regole' : 'QUI REGOLAMENTO COMPLETO'}
+    </button></p>
 
     {#if rulesOpen}
       <div id="thebattle-rules" transition:slide={{ duration: 220 }}>
