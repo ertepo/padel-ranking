@@ -3,10 +3,12 @@ import { getSupabaseAdmin } from './lib/supabaseAdmin';
 import { EXCLUDED_PATH_PREFIXES } from './lib/trackedPaths';
 
 const STATIC_FILE_RE = /\.[a-z0-9]+$/i;
+const BOT_UA_RE = /bot|spider|crawl|slurp|facebookexternalhit|whatsapp|telegrambot|slackbot|discordbot|preview|headless/i;
 
-function shouldTrack(pathname: string, method: string): boolean {
+function shouldTrack(pathname: string, method: string, userAgent: string): boolean {
   if (method !== 'GET') return false;
   if (STATIC_FILE_RE.test(pathname)) return false;
+  if (BOT_UA_RE.test(userAgent)) return false;
   return !EXCLUDED_PATH_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 }
 
@@ -26,7 +28,7 @@ async function trackPageView(path: string): Promise<void> {
 export const onRequest = defineMiddleware(async (context, next) => {
   const response = await next();
 
-  if (response.status < 400 && shouldTrack(context.url.pathname, context.request.method)) {
+  if (response.status < 400 && shouldTrack(context.url.pathname, context.request.method, context.request.headers.get('user-agent') ?? '')) {
     const tracking = trackPageView(context.url.pathname);
     context.locals.netlify?.context?.waitUntil(tracking);
   }
