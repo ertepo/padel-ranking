@@ -99,6 +99,9 @@
     const created: RenderTile[] = result.created.map((t) => ({ ...t, state: 'pop' }));
     const spawned: RenderTile[] = result.spawned ? [{ ...result.spawned, state: 'spawn' }] : [];
 
+    // Micro-vibrazione al momento della fusione (silenziosa su dispositivi/browser senza supporto).
+    if (created.length > 0) navigator.vibrate?.(15);
+
     renderTiles = [...renderTiles.filter((t) => !removedIds.has(t.id)), ...created, ...spawned];
 
     await wait(20);
