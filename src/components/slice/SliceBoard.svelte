@@ -82,6 +82,11 @@
     return gap * 0.5;
   }
 
+  /** Ampiezza (px) del rimbalzino dopo l'atterraggio: una frazione del sobbalzo principale. */
+  function bounceDistance(): number {
+    return hopDistance() * 0.4;
+  }
+
   function wait(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
@@ -185,7 +190,7 @@
         class={`absolute flex items-center justify-center border-2 border-black font-black text-center transition-transform duration-[80ms] ease-out ${
           tile.state === 'spawn' ? 'tile-spawn' : ''
         } ${tile.state === 'pop' ? 'tile-pop' : ''} ${tile.state === 'vanish' ? 'tile-vanish' : ''} ${hop ? 'tile-hop' : ''}`}
-        style={`width:${cell}px;height:${cell}px;font-size:${fontSize(tile.level)}px;background:${tileBackground(tile.level)};color:${tileTextColor(tile.level)};--pos:translate(${pos(tile.col)}px,${pos(tile.row)}px);transform:var(--pos)${hop ? `;--hop:0px, -${hopDistance()}px` : ''}`}
+        style={`width:${cell}px;height:${cell}px;font-size:${fontSize(tile.level)}px;background:${tileBackground(tile.level)};color:${tileTextColor(tile.level)};--pos:translate(${pos(tile.col)}px,${pos(tile.row)}px);transform:var(--pos)${hop ? `;--hop:0px, -${hopDistance()}px;--hop-bounce:0px, -${bounceDistance()}px` : ''}`}
       >
         {#if tile.level === 0}
           <span
@@ -249,8 +254,26 @@
     to { transform: var(--pos) scale(0.3); opacity: 0; }
   }
   @keyframes slice-hop {
-    0%, 16%, 100% { transform: var(--pos); }
-    8% { transform: var(--pos) translate(var(--hop)); }
+    0%, 100% { transform: var(--pos); }
+    /* Salita: invariata, stesso ease-in-out di prima (ereditato da .tile-hop). */
+    8% {
+      transform: var(--pos) translate(var(--hop));
+      /* Discesa che segue: rapida, accelera come una molla che cade (ease-in ripido). */
+      animation-timing-function: cubic-bezier(0.7, 0, 1, 0.4);
+    }
+    /* Atterraggio: tocca la base. */
+    11% {
+      transform: var(--pos);
+      /* Rimbalzino che segue: rallenta verso il suo apice (ease-out). */
+      animation-timing-function: ease-out;
+    }
+    /* Apice del rimbalzino. */
+    13% {
+      transform: var(--pos) translate(var(--hop-bounce));
+      /* Ridiscesa finale: breve e accelerata, come l'atterraggio principale. */
+      animation-timing-function: ease-in;
+    }
+    15% { transform: var(--pos); }
   }
   /* Definita prima di .tile-spawn/.tile-pop/.tile-vanish: se una tessera è
      anche in una di quelle transizioni, la loro animation (definita dopo,
