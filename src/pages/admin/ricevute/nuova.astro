@@ -1,0 +1,132 @@
+---
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import "../../../styles/global.css";
+import Layout from "../../../layouts/Layout.astro";
+import RicevutaForm from "../../../components/RicevutaForm.svelte";
+
+const adminPassword = Astro.cookies.get("admin_password");
+
+if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
+    const redirectTo = encodeURIComponent(Astro.url.pathname);
+    return Astro.redirect(`/login?redirect=${redirectTo}`);
+}
+
+const supabase = getSupabaseAdmin();
+
+const { data: prossimoNumero, error } = await supabase.rpc("prossimo_numero_ricevuta");
+---
+
+<Layout title="Nuova ricevuta" noindex={true}>
+    <section class="mb-8">
+        <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+            Area riservata
+        </p>
+
+        <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+            Nuova ricevuta
+        </h1>
+
+        <p class="mt-4 max-w-xl text-slate-700 font-medium">
+            Compila i campi e premi <strong>Stampa</strong>: la ricevuta viene salvata con
+            numero progressivo definitivo e inviata alla stampante termica (rotolo 60mm).
+        </p>
+
+        <div class="mt-6">
+            <a href="/admin" class="club-btn px-5 py-3">← Admin</a>
+        </div>
+    </section>
+
+    {error && (
+        <p class="mb-6 font-bold text-red-600">
+            Errore nel calcolo del prossimo numero: {error.message}
+        </p>
+    )}
+
+    <RicevutaForm prossimoNumero={Number(prossimoNumero ?? 1)} client:load />
+</Layout>
+
+<style is:global>
+    /* Il blocco ricevuta esiste solo per la stampa: nascosto a schermo,
+       reso visibile e formattato per il rotolo continuo da 60mm della
+       Dymo LabelWriter 450 Turbo. */
+    #receipt {
+        display: none;
+    }
+
+    #receipt .r-head {
+        margin-top: 3mm;
+        font-size: 16px;
+        font-weight: bold;
+        text-align: center;
+        letter-spacing: 1px;
+    }
+
+    #receipt .r-sub {
+        font-size: 12px;
+        text-align: center;
+        margin-bottom: 6px;
+    }
+
+    #receipt .r-rule {
+        border-top: 1px dashed #000;
+        margin: 6px 0;
+    }
+
+    #receipt .r-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 6px;
+    }
+
+    #receipt .r-field {
+        margin: 4px 0;
+        word-break: break-word;
+    }
+
+    #receipt .r-label {
+        display: block;
+        text-transform: uppercase;
+        font-size: 10px;
+    }
+
+    #receipt .r-total {
+        display: flex;
+        justify-content: space-between;
+        font-weight: bold;
+        font-size: 15px;
+    }
+
+    #receipt .r-foot {
+        margin-top: 18px;
+        font-size: 10px;
+    }
+
+    @media print {
+        @page {
+            size: 60mm auto;
+            margin: 0;
+        }
+
+        body * {
+            visibility: hidden;
+        }
+
+        #receipt,
+        #receipt * {
+            visibility: visible;
+        }
+
+        #receipt {
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 60mm;
+            padding: 3mm 2mm;
+            font-family: monospace;
+            font-size: 13px;
+            line-height: 1.4;
+            color: #000;
+        }
+    }
+</style>

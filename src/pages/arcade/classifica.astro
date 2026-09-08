@@ -2,53 +2,96 @@
 import Layout from '../../layouts/Layout.astro';
 import { supabase } from '../../lib/supabase';
 
+// Quante righe grezze scarichiamo per classifica. Le posizioni consecutive
+// dello stesso giocatore vengono poi accorpate in un'unica riga, quindi ne
+// prendiamo parecchie per avere comunque abbastanza giocatori distinti a
+// schermo anche quando qualcuno domina le prime centinaia di posizioni.
+const FETCH_LIMIT = 400;
+
+// Quanti gruppi (righe accorpate) mostrare al massimo per classifica.
+const MAX_GROUPS = 30;
+
+// Righe già ordinate per punteggio decrescente -> raggruppa le sequenze
+// consecutive con lo stesso nickname. entries[0] è sempre il risultato
+// migliore del gruppo (posizione più alta).
+type RunGroup<T extends { nickname: string }> = {
+  nickname: string;
+  startRank: number;
+  endRank: number;
+  entries: T[];
+};
+
+function groupRuns<T extends { nickname: string }>(rows: T[]): RunGroup<T>[] {
+  const groups: RunGroup<T>[] = [];
+  rows.forEach((row, i) => {
+    const last = groups[groups.length - 1];
+    if (last && last.nickname === row.nickname) {
+      last.endRank = i + 1;
+      last.entries.push(row);
+    } else {
+      groups.push({ nickname: row.nickname, startRank: i + 1, endRank: i + 1, entries: [row] });
+    }
+  });
+  return groups;
+}
+
+function rankLabel(g: RunGroup<{ nickname: string }>): string {
+  const start = String(g.startRank).padStart(2, '0');
+  if (g.startRank === g.endRank) return start;
+  return `${start}–${String(g.endRank).padStart(2, '0')}`;
+}
+
 const { data: scores, error } = await supabase
   .from('legends_game_score')
   .select('id, nickname, match_score, points, difficulty, created_at')
   .order('points', { ascending: false })
-  .limit(15);
+  .limit(FETCH_LIMIT);
 
 const { count: totalMatches } = await supabase
   .from('legends_game_score')
   .select('id', { count: 'exact', head: true });
 
 const topScores = scores || [];
+const legendGroups = groupRuns(topScores).slice(0, MAX_GROUPS);
 
 const { data: sliceScores, error: sliceError } = await supabase
   .from('slice_game_score')
   .select('id, nickname, points, board_snapshot, created_at')
   .order('points', { ascending: false })
-  .limit(15);
+  .limit(FETCH_LIMIT);
 
 const { count: totalSliceMatches } = await supabase
   .from('slice_game_score')
   .select('id', { count: 'exact', head: true });
 
 const topSliceScores = sliceScores || [];
+const sliceGroups = groupRuns(topSliceScores).slice(0, MAX_GROUPS);
 
 const { data: triviaScores, error: triviaError } = await supabase
   .from('trivia_game_score')
   .select('id, nickname, points, correct_count, total_questions, created_at')
   .order('points', { ascending: false })
-  .limit(15);
+  .limit(FETCH_LIMIT);
 
 const { count: totalTriviaMatches } = await supabase
   .from('trivia_game_score')
   .select('id', { count: 'exact', head: true });
 
 const topTriviaScores = triviaScores || [];
+const triviaGroups = groupRuns(topTriviaScores).slice(0, MAX_GROUPS);
 
 const { data: chilhavintoScores, error: chilhavintoError } = await supabase
   .from('chilhavinto_game_score')
   .select('id, nickname, level_reached, created_at')
   .order('level_reached', { ascending: false })
-  .limit(15);
+  .limit(FETCH_LIMIT);
 
 const { count: totalChilhavintoMatches } = await supabase
   .from('chilhavinto_game_score')
   .select('id', { count: 'exact', head: true });
 
 const topChilhavintoScores = chilhavintoScores || [];
+const chilhavintoGroups = groupRuns(topChilhavintoScores).slice(0, MAX_GROUPS);
 
 const DIFFICULTY_LABELS: Record<string, string> = {
   '1': 'Liv. 1',
@@ -108,33 +151,38 @@ const DIFFICULTY_LABELS: Record<string, string> = {
               <div>
                 <span class="name">Legends Game</span>
               </div>
-              <span class="meta">Top 15 · {totalMatches ?? 0} partite</span>
+              <span class="meta">{totalMatches ?? 0} partite</span>
             </div>
 
             {
-              topScores.length === 0 ? (
+              legendGroups.length === 0 ? (
                 <p class="empty">Nessun punteggio ancora registrato: gioca la prima partita!</p>
               ) : (
                 <ol class="board-list">
-                  {topScores.map((score, index) => {
-                    const difficultyLabel = DIFFICULTY_LABELS[score.difficulty] || score.difficulty || '—';
+                  {legendGroups.map((group, index) => {
+                    const best = group.entries[0];
+                    const runs = group.entries.length;
+                    const difficultyLabel = DIFFICULTY_LABELS[best.difficulty] || best.difficulty || '—';
                     const isFirst = index === 0;
                     return (
                       <li class:list={['row', { first: isFirst, extra: index >= 6 }]}>
                         <div class="row-top">
                           <span class="rank">
                             <span class="caret">►</span>
-                            {String(index + 1).padStart(2, '0')}
+                            {rankLabel(group)}
                           </span>
-                          <span class="who">{score.nickname}</span>
-                          <a class="mini-btn" href={`/arcade/legends?replay=${score.id}`}>
+                          <span class="who">{group.nickname}</span>
+                          <a class="mini-btn" href={`/arcade/legends?replay=${best.id}`}>
                             Fai meglio
                           </a>
                         </div>
                         <div class="row-sub">
-                          <span class="sub">{score.match_score} · {difficultyLabel}</span>
+                          <span class="sub">
+                            {best.match_score} · {difficultyLabel}
+                            {runs > 1 && ` · ${runs} partite`}
+                          </span>
                           <span class="leader" />
-                          <span class="score">{score.points}</span>
+                          <span class="score">{best.points}</span>
                         </div>
                       </li>
                     );
@@ -144,7 +192,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
             }
 
             {
-              topScores.length > 6 && (
+              legendGroups.length > 6 && (
                 <button type="button" class="show-more" data-board="board-legends">
                   Mostra altro
                 </button>
@@ -157,39 +205,44 @@ const DIFFICULTY_LABELS: Record<string, string> = {
               <div>
                 <span class="name">Slice</span>
               </div>
-              <span class="meta">Top 15 · {totalSliceMatches ?? 0} partite</span>
+              <span class="meta">{totalSliceMatches ?? 0} partite</span>
             </div>
 
             {
-              topSliceScores.length === 0 ? (
+              sliceGroups.length === 0 ? (
                 <p class="empty">Nessun punteggio ancora registrato: gioca la prima partita!</p>
               ) : (
                 <ol class="board-list">
-                  {topSliceScores.map((score, index) => {
-                    const date = new Date(score.created_at).toLocaleDateString('it-IT');
+                  {sliceGroups.map((group, index) => {
+                    const best = group.entries[0];
+                    const runs = group.entries.length;
+                    const date = new Date(best.created_at).toLocaleDateString('it-IT');
                     const isFirst = index === 0;
                     return (
                       <li class:list={['row', { first: isFirst, extra: index >= 6 }]}>
                         <div class="row-top">
                           <span class="rank">
                             <span class="caret">►</span>
-                            {String(index + 1).padStart(2, '0')}
+                            {rankLabel(group)}
                           </span>
-                          <span class="who">{score.nickname}</span>
-                          {score.board_snapshot && (
+                          <span class="who">{group.nickname}</span>
+                          {best.board_snapshot && (
                             <button
                               type="button"
                               class="mini-btn ghost slice-board-btn"
-                              data-slice-board={score.board_snapshot}
+                              data-slice-board={best.board_snapshot}
                             >
                               Info
                             </button>
                           )}
                         </div>
                         <div class="row-sub">
-                          <span class="sub">{date}</span>
+                          <span class="sub">
+                            {date}
+                            {runs > 1 && ` · ${runs} partite`}
+                          </span>
                           <span class="leader" />
-                          <span class="score">{score.points}</span>
+                          <span class="score">{best.points}</span>
                         </div>
                       </li>
                     );
@@ -199,7 +252,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
             }
 
             {
-              topSliceScores.length > 6 && (
+              sliceGroups.length > 6 && (
                 <button type="button" class="show-more" data-board="board-slice">
                   Mostra altro
                 </button>
@@ -212,29 +265,34 @@ const DIFFICULTY_LABELS: Record<string, string> = {
               <div>
                 <span class="name">Trivia</span>
               </div>
-              <span class="meta">Top 15 · {totalTriviaMatches ?? 0} partite</span>
+              <span class="meta">{totalTriviaMatches ?? 0} partite</span>
             </div>
 
             {
-              topTriviaScores.length === 0 ? (
+              triviaGroups.length === 0 ? (
                 <p class="empty">Nessun punteggio ancora registrato: gioca la prima partita!</p>
               ) : (
                 <ol class="board-list">
-                  {topTriviaScores.map((score, index) => {
+                  {triviaGroups.map((group, index) => {
+                    const best = group.entries[0];
+                    const runs = group.entries.length;
                     const isFirst = index === 0;
                     return (
                       <li class:list={['row', { first: isFirst, extra: index >= 6 }]}>
                         <div class="row-top">
                           <span class="rank">
                             <span class="caret">►</span>
-                            {String(index + 1).padStart(2, '0')}
+                            {rankLabel(group)}
                           </span>
-                          <span class="who">{score.nickname}</span>
+                          <span class="who">{group.nickname}</span>
                         </div>
                         <div class="row-sub">
-                          <span class="sub">{score.correct_count}/{score.total_questions} corrette</span>
+                          <span class="sub">
+                            {best.correct_count}/{best.total_questions} corrette
+                            {runs > 1 && ` · ${runs} partite`}
+                          </span>
                           <span class="leader" />
-                          <span class="score">{score.points}</span>
+                          <span class="score">{best.points}</span>
                         </div>
                       </li>
                     );
@@ -244,7 +302,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
             }
 
             {
-              topTriviaScores.length > 6 && (
+              triviaGroups.length > 6 && (
                 <button type="button" class="show-more" data-board="board-trivia">
                   Mostra altro
                 </button>
@@ -257,29 +315,34 @@ const DIFFICULTY_LABELS: Record<string, string> = {
               <div>
                 <span class="name">Chi l'ha vinto?</span>
               </div>
-              <span class="meta">Top 15 · {totalChilhavintoMatches ?? 0} partite</span>
+              <span class="meta">{totalChilhavintoMatches ?? 0} partite</span>
             </div>
 
             {
-              topChilhavintoScores.length === 0 ? (
+              chilhavintoGroups.length === 0 ? (
                 <p class="empty">Nessun punteggio ancora registrato: gioca la prima partita!</p>
               ) : (
                 <ol class="board-list">
-                  {topChilhavintoScores.map((score, index) => {
+                  {chilhavintoGroups.map((group, index) => {
+                    const best = group.entries[0];
+                    const runs = group.entries.length;
                     const isFirst = index === 0;
                     return (
                       <li class:list={['row', { first: isFirst, extra: index >= 6 }]}>
                         <div class="row-top">
                           <span class="rank">
                             <span class="caret">►</span>
-                            {String(index + 1).padStart(2, '0')}
+                            {rankLabel(group)}
                           </span>
-                          <span class="who">{score.nickname}</span>
+                          <span class="who">{group.nickname}</span>
                         </div>
                         <div class="row-sub">
-                          <span class="sub">livello raggiunto</span>
+                          <span class="sub">
+                            livello raggiunto
+                            {runs > 1 && ` · ${runs} partite`}
+                          </span>
                           <span class="leader" />
-                          <span class="score">{score.level_reached}</span>
+                          <span class="score">{best.level_reached}</span>
                         </div>
                       </li>
                     );
@@ -289,7 +352,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
             }
 
             {
-              topChilhavintoScores.length > 6 && (
+              chilhavintoGroups.length > 6 && (
                 <button type="button" class="show-more" data-board="board-chilhavinto">
                   Mostra altro
                 </button>
@@ -643,7 +706,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
     display: flex;
     align-items: baseline;
     gap: 0.5rem;
-    padding-left: 1.85em;
+    padding-left: 4.5em;
     margin-top: 0.15rem;
   }
 
@@ -651,6 +714,7 @@ const DIFFICULTY_LABELS: Record<string, string> = {
     color: var(--yellow-dim);
     font-variant-numeric: tabular-nums;
     flex: 0 0 auto;
+    min-width: 3.9em;
   }
 
   .row .who {
