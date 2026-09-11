@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import TorneoManager from '../../components/torneo/TorneoManager.svelte';
+import BackLink from '../../components/BackLink.astro';
 ---
 
 <Layout
@@ -8,6 +9,8 @@ import TorneoManager from '../../components/torneo/TorneoManager.svelte';
   headerTheme="padel"
   description="Organizza un mini torneo di padel: scegli i giocatori, genera il calendario delle partite con coppie sempre diverse e tieni la classifica in tempo reale."
 >
+  <BackLink />
+
   <section class="mb-8">
     <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
       Coppie a rotazione

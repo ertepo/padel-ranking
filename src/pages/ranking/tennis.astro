@@ -1,6 +1,7 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { supabase } from '../../lib/supabase';
+import BackLink from '../../components/BackLink.astro';
 
 // Recuperiamo ranking tennis + dati anagrafici
 const { data: players, error } = await supabase
@@ -22,11 +23,10 @@ const { data: players, error } = await supabase
   description="Classifica tennis a scala del circolo Tie-Break Poggio San Vicino, con posizioni, partite giocate, vittorie, sconfitte e win rate."
   headerTheme="tennis"
 >
-  <section class="mb-8">
-    <p class="text-sm uppercase tracking-widest font-black text-slate-600">
-      Tennis Ranking
-    </p>
+  <BackLink />
 
+  <section class="mb-8">
+   
     <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
       Classifica Tennis
     </h1>

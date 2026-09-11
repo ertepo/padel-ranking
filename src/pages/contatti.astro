@@ -1,0 +1,140 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+// mapsUrl: ricerca del luogo su Google Maps (nome del posto registrato). Si può
+//   sostituire con un link "condividi" preciso o /maps/dir/?api=1&destination=lat,long.
+// mapImg: mappa in public/images/mappa-tiebreak.svg; se null si mostra un
+//   riquadro segnaposto con l'indirizzo.
+const indirizzo = "Via Giacomo Leopardi 2, Poggio San Vicino (MC)";
+const mapsUrl =
+    "https://www.google.com/maps/search/?api=1&query=Tie-Break+Tennis+e+Padel+Poggio+San+Vicino";
+const mapImg: string | null = "/images/mappa-tiebreak.svg";
+
+const recapiti = [
+    {
+        label: "Indirizzo",
+        value: indirizzo,
+        href: mapsUrl,
+    },{
+        label: "Telefono",
+        value: "+3382437113",
+        href: "tel:+3382437113",
+    },
+    {
+        label: "Email",
+        value: "tiebreakpoggio@gmail.com",
+        href: "mailto:tiebreakpoggio@gmail.com",
+    },
+    {
+        label: "Instagram",
+        value: "@tiebreak.poggiosanvicino",
+        href: "https://instagram.com/tiebreak.poggiosanvicino",
+        external: true,
+    },
+    {
+        label: "WhatsApp",
+        value: "Scrivici in chat",
+        href: "https://wa.me/3382437113",
+        external: true,
+    },
+    {
+        label: "Community WhatsApp",
+        value: "Entra nel gruppo",
+        href: "https://chat.whatsapp.com/HOKXwefA8qDFQqpVwL4HwA",
+        external: true,
+    },
+];
+---
+
+<Layout
+    title="Contatti e dove siamo"
+    description="Come contattare il Tie-Break Poggio San Vicino e come raggiungere il circolo: telefono, email, Instagram, community WhatsApp e mappa."
+>
+    <section class="mb-14">
+        <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-4">
+            Contatti
+        </p>
+
+        <h1 class="text-4xl md:text-6xl font-black leading-none text-black">
+            Contatti e dove siamo
+        </h1>
+
+        <p class="mt-6 max-w-3xl text-lg md:text-xl font-bold leading-snug text-slate-700">
+            Contattateci per informazioni su tesseramento, corsi, prenotazioni e tornei.
+        </p>
+    </section>
+
+    <div class="grid gap-8 lg:grid-cols-2 lg:items-start">
+        <section>
+            <h2 class="text-2xl md:text-3xl font-black leading-none text-black mb-5">
+                Recapiti
+            </h2>
+
+            <ul class="club-card grid">
+                {
+                    recapiti.map((r) => (
+                        <li>
+                            <a
+                                href={r.href}
+                                target={r.external ? "_blank" : undefined}
+                                rel={r.external ? "noreferrer" : undefined}
+                                class="flex min-w-0 items-baseline gap-x-1 bg-white p-4 transition hover:bg-[var(--giallo-club)]"
+                            >
+                                <span class="shrink-0 text-xs uppercase tracking-widest font-black text-slate-500">
+                                    {r.label} :
+                                </span>
+                                <span class="min-w-0 flex-1 wrap-anywhere text-sm font-black text-black md:text-lg">
+                                   {r.value}
+                                </span>
+                            </a>
+                        </li>
+                    ))
+                }
+            </ul>
+        </section>
+
+        <section>
+            <h2 class="text-2xl md:text-3xl font-black leading-none text-black mb-5">
+                Dove siamo
+            </h2>
+
+            <a
+                href={mapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                class="club-card block overflow-hidden bg-white transition hover:bg-[var(--giallo-club)]"
+            >
+                {
+                    mapImg ? (
+                        <img
+                            src={mapImg}
+                            alt={`Mappa: come raggiungere il Tie-Break, ${indirizzo}`}
+                            loading="lazy"
+                            class="block aspect-[4/3] w-full border-b-2 border-black object-cover"
+                        />
+                    ) : (
+                        <span class="flex aspect-[4/3] w-full items-center justify-center border-b-2 border-dashed border-black bg-slate-100 p-6 text-center text-sm font-bold text-slate-500">
+                            Mappa in arrivo — tocca per aprire Google Maps
+                        </span>
+                    )
+                }
+
+                <span class="flex items-center justify-center gap-2 px-4 py-3 text-sm font-black uppercase tracking-widest text-black">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        fill="currentColor"
+                        class="shrink-0"
+                        viewBox="0 0 16 16"
+                        aria-hidden="true"
+                    >
+                        <path d="M12.166 8.94c-.524 1.062-1.234 2.12-1.96 3.07A32 32 0 0 1 8 14.58a32 32 0 0 1-2.206-2.57c-.726-.95-1.436-2.008-1.96-3.07C3.304 7.867 3 6.862 3 6a5 5 0 0 1 10 0c0 .862-.305 1.867-.834 2.94M8 16s6-5.686 6-10A6 6 0 0 0 2 6c0 4.314 6 10 6 10" />
+                        <path d="M8 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4m0 1a3 3 0 1 0 0-6 3 3 0 0 0 0 6" />
+                    </svg>
+                    Apri in Google Maps
+                </span>
+            </a>
+        </section>
+    </div>
+</Layout>

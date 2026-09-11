@@ -1,0 +1,20 @@
+---
+// Link "torna indietro" in alto a sinistra, stessa resa dei giochi arcade
+// (es. "← Arcade" in QuindiciGame.svelte). Default: torna alla pagina hub
+// Tornei & Campionati.
+interface Props {
+    href?: string;
+    label?: string;
+}
+
+const { href = "/tornei", label = "Tornei & Campionati" } = Astro.props;
+---
+
+<div class="mb-4">
+    <a
+        href={href}
+        class="text-xs font-black uppercase tracking-widest text-black/60 transition-colors hover:text-black"
+    >
+        &larr; {label}
+    </a>
+</div>

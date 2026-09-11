@@ -1,6 +1,7 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import { supabase } from "../../lib/supabase";
+import BackLink from "../../components/BackLink.astro";
 
 const { data: players, error } = await supabase
     .from("padel_rankings")
@@ -69,6 +70,8 @@ const debutPlayers = activePlayers
     description="Classifica padel aggiornata del circolo Tie-Break Poggio San Vicino, con punteggi ELO, partite giocate, vittorie e win rate."
     headerTheme="padel"
 >
+    <BackLink />
+
     <section class="mb-8">
         <p class="text-sm uppercase tracking-widest font-black text-slate-600">
             Padel Ranking

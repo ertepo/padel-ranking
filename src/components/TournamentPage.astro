@@ -1,6 +1,7 @@
 ---
 import Layout from '../layouts/Layout.astro';
 import PhotoCarousel from './PhotoCarousel.svelte';
+import BackLink from './BackLink.astro';
 
 const { tournament } = Astro.props;
 const registeredTeams = tournament.registrationDays.flatMap((day) => day.teams);
@@ -12,7 +13,8 @@ const registeredTeams = tournament.registrationDays.flatMap((day) => day.teams);
   image={tournament.ogImage || tournament.image}
   headerTheme="padel"
 >
-        
+  <BackLink />
+
           {tournament.winnerBanner && (
             <section class="mb-12">
               <article class="club-card flex min-h-20 -rotate-2 items-center justify-center gap-4 !bg-[var(--giallo-club)] p-6 text-center md:gap-6">

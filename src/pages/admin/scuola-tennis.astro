@@ -1,0 +1,101 @@
+---
+import { getSupabaseAdmin } from "../../lib/supabaseAdmin";
+import "../../styles/global.css";
+import Layout from "../../layouts/Layout.astro";
+import ScuolaTennisCalendar from "../../components/ScuolaTennisCalendar.svelte";
+
+const adminPassword = Astro.cookies.get("admin_password");
+
+if (adminPassword?.value !== import.meta.env.ADMIN_PASSWORD) {
+    const redirectTo = encodeURIComponent(Astro.url.pathname);
+    return Astro.redirect(`/login?redirect=${redirectTo}`);
+}
+
+const supabase = getSupabaseAdmin();
+
+const [{ data: gruppi }, { data: studenti }, { data: lezioni }, { data: lezioneStudenti }] = await Promise.all([
+    supabase.from("scuola_tennis_gruppi").select("*").order("created_at", { ascending: true }),
+    supabase.from("scuola_tennis_studenti").select("*").order("cognome", { ascending: true }),
+    supabase.from("scuola_tennis_lezioni").select("*"),
+    supabase.from("scuola_tennis_lezione_studenti").select("*"),
+]);
+---
+
+<Layout title="Scuola Tennis" noindex={true} fullBleed>
+    <div class="px-4 py-8">
+        <section class="mb-8">
+            <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+                Area riservata
+            </p>
+
+            <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+                Scuola Tennis
+            </h1>
+
+            <p class="mt-4 max-w-xl text-slate-700 font-medium">
+                Gestisci gruppi, iscritti e orario settimanale dei corsi. Clicca su una cella libera
+                del calendario per aggiungere una lezione, trascina un blocco per spostarlo, trascina
+                il bordo inferiore per allungarlo o accorciarlo.
+            </p>
+
+            <div class="mt-6">
+                <a href="/admin" class="club-btn px-5 py-3">← Admin</a>
+            </div>
+        </section>
+
+        <ScuolaTennisCalendar
+            gruppiIniziali={gruppi ?? []}
+            studentiIniziali={studenti ?? []}
+            lezioniIniziali={lezioni ?? []}
+            lezioneStudentiIniziali={lezioneStudenti ?? []}
+            client:load
+        />
+    </div>
+</Layout>
+
+<style is:global>
+    /* Tabella stampabile dell'orario (#stampa-orario, dentro ScuolaTennisCalendar.svelte):
+       nascosta a schermo, resa visibile e isolata dal resto della pagina solo
+       in stampa, in bianco e nero. Stesso pattern usato per #receipt in
+       admin/ricevute/nuova.astro. */
+    #stampa-orario {
+        display: none;
+    }
+
+    @media print {
+        @page {
+            size: portrait;
+            margin: 10mm;
+        }
+
+        #stampa-orario {
+            display: block;
+        }
+
+        /* "visibility: hidden" da solo nasconde il resto della pagina ma non
+           lo rimuove dal flusso: la dashboard (calendario, form, accordion)
+           resta alta quanto sempre e il browser stampa comunque tutte le
+           pagine bianche necessarie a "coprirla". Azzerando l'altezza si
+           evita la stampa di pagine vuote dopo quella con la tabella. */
+        body * {
+            visibility: hidden;
+            height: 0 !important;
+            overflow: hidden !important;
+        }
+
+        #stampa-orario,
+        #stampa-orario * {
+            visibility: visible;
+            height: auto !important;
+            overflow: visible !important;
+        }
+
+        #stampa-orario {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            color: black;
+        }
+    }
+</style>

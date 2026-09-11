@@ -2,6 +2,7 @@
 import Layout from '../../../layouts/Layout.astro';
 import { supabase } from '../../../lib/supabase';
 import { slugify } from '../../../lib/torneo/slug';
+import BackLink from '../../../components/BackLink.astro';
 
 interface MatchRow {
   teamA: [number, number];
@@ -98,6 +99,8 @@ const dataTorneoStr = tournamentRow.data_torneo
   headerTheme="padel"
   description={`Classifica e risultati del torneo "${tournamentRow.nome}" giocato il ${dataTorneoStr}.`}
 >
+  <BackLink />
+
   <section class="mb-8">
     <p class="text-sm uppercase tracking-widest font-black text-slate-600 mb-3">
       Torneo Americano &middot; {dataTorneoStr}

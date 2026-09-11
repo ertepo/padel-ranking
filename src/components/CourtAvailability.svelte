@@ -121,7 +121,7 @@
 </script>
 
 <section aria-busy={loading}>
-  <div class="sticky top-[var(--header-h,4.6rem)] z-40 mb-7 grid min-h-[5.5rem] w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-2 border-black bg-white px-3 py-3 shadow-[-1rem_1rem_0_rgb(0_0_0_/_45%)] sm:gap-4 sm:px-4">
+  <div class="sticky top-[var(--header-offset,4.6rem)] z-40 mb-7 grid min-h-[5.5rem] w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-2 border-black bg-white px-3 py-3 shadow-[-1rem_1rem_0_rgb(0_0_0_/_45%)] transition-[top] duration-300 sm:gap-4 sm:px-4">
     <button class="club-btn-yellow grid h-10 w-10 shrink-0 place-items-center !text-black sm:h-12 sm:w-12" type="button" on:click={() => shiftDay(-1)} aria-label="Giorno precedente">
       <svg class="h-5 w-5 rotate-90 sm:h-6 sm:w-6" viewBox="0 0 24 24" aria-hidden="true">
         <path d="M6 9L18 9L12 18L6 9Z" fill="currentColor" />
