@@ -398,12 +398,44 @@
 
   let mostraOrarioCompleto = false;
 
-  $: oraVisibileInizio = mostraOrarioCompleto ? START_HOUR * 60 : ORA_COLLASSATA;
+  // Di default si nascondono le ore prima della prima lezione e dopo
+  // l'ultima (arrotondando alle ore piene): un unico toggle mostra tutto
+  // l'orario 12:00-24:00. Essendo calcolati dalle lezioni correnti, questi
+  // limiti seguono anche il trascinamento in corso: spostando uno slot verso
+  // un'ora nascosta, quella riga compare via via che ci si arriva.
+  $: oraVisibileInizio = mostraOrarioCompleto
+    ? START_HOUR * 60
+    : (() => {
+        if (lezioni.length === 0) return ORA_COLLASSATA;
+
+        let minInizio = Infinity;
+        for (const l of lezioni) {
+          minInizio = Math.min(minInizio, l.ora_inizio_minuti);
+        }
+
+        return clamp(Math.min(ORA_COLLASSATA, Math.floor(minInizio / 60) * 60), START_HOUR * 60, END_HOUR * 60);
+      })();
+
+  $: oraVisibileFine = mostraOrarioCompleto
+    ? END_HOUR * 60
+    : (() => {
+        if (lezioni.length === 0) return END_HOUR * 60;
+
+        let maxFine = -Infinity;
+        for (const l of lezioni) {
+          maxFine = Math.max(maxFine, l.ora_inizio_minuti + l.durata_minuti);
+        }
+
+        return clamp(Math.ceil(maxFine / 60) * 60, oraVisibileInizio + 60, END_HOUR * 60);
+      })();
+
   $: rowOffset = Math.round((oraVisibileInizio - START_HOUR * 60) / SLOT_MIN);
-  $: totalSlotsVisibili = TOTAL_SLOTS - rowOffset;
-  $: hoursVisibili = HOURS.filter((h) => h * 60 >= oraVisibileInizio);
-  $: slotsVisibiliIdx = SLOTS_IDX.filter((i) => i >= rowOffset);
-  $: lezioniVisibili = lezioni.filter((l) => l.ora_inizio_minuti + l.durata_minuti > oraVisibileInizio);
+  $: totalSlotsVisibili = Math.round((oraVisibileFine - oraVisibileInizio) / SLOT_MIN);
+  $: hoursVisibili = HOURS.filter((h) => h * 60 >= oraVisibileInizio && h * 60 < oraVisibileFine);
+  $: slotsVisibiliIdx = SLOTS_IDX.filter((i) => i >= rowOffset && i < rowOffset + totalSlotsVisibili);
+  $: lezioniVisibili = lezioni.filter(
+    (l) => l.ora_inizio_minuti + l.durata_minuti > oraVisibileInizio && l.ora_inizio_minuti < oraVisibileFine,
+  );
 
   // Range orario da stampare: solo dalla prima alla ultima ora effettivamente
   // occupata da una lezione (arrotondato alle ore piene), per non stampare
@@ -483,8 +515,9 @@
   function blockStyle(l: Lezione) {
     const g = gruppoById(l.gruppo_id);
     const col = l.giorno_settimana + 1;
+    const maxRow = totalSlotsVisibili + 2;
     const rowStart = Math.max(2, Math.round((l.ora_inizio_minuti - oraVisibileInizio) / SLOT_MIN) + 2);
-    const rowEnd = Math.round((l.ora_inizio_minuti + l.durata_minuti - oraVisibileInizio) / SLOT_MIN) + 2;
+    const rowEnd = Math.min(maxRow, Math.round((l.ora_inizio_minuti + l.durata_minuti - oraVisibileInizio) / SLOT_MIN) + 2);
     const rowSpan = Math.max(1, rowEnd - rowStart);
     const colore = g?.colore || '#94a3b8';
     return `grid-column:${col}; grid-row:${rowStart} / span ${rowSpan}; background:${colore};`;
@@ -997,7 +1030,7 @@
     </section>
   </div>
 
-  <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start">
+  <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-stretch">
     <section class="club-card bg-white p-5">
       <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div class="flex flex-wrap items-center gap-3">
@@ -1034,20 +1067,13 @@
         </div>
       {/if}
 
-      <div class="cal-scroll border-2 border-black">
+      <div class="cal-grid-wrap border-2 border-black">
         <div
           bind:this={gridEl}
           class="cal-grid"
           style={`--slot-px:${SLOT_PX}px; --time-col:${TIME_COL_PX}px; grid-template-rows: auto repeat(${totalSlotsVisibili}, var(--slot-px));`}
         >
-          <div class="cal-corner">
-            <a
-              href="#"
-              class="cal-toggle-orario"
-              on:click|preventDefault={() => (mostraOrarioCompleto = !mostraOrarioCompleto)}
-              title={mostraOrarioCompleto ? 'Nascondi le ore prima delle 15:00' : 'Mostra le ore prima delle 15:00'}
-            >{mostraOrarioCompleto ? '−' : '+'}</a>
-          </div>
+          <div class="cal-corner"></div>
 
           {#each GIORNI_BREVI as giorno, i}
             <div class="cal-day-header" style={`grid-column:${i + 2}`}>{giorno}</div>
@@ -1082,12 +1108,23 @@
           {/each}
         </div>
       </div>
+
+      <div class="mt-2 text-center">
+        <a
+          href="#"
+          class="cal-toggle-orario"
+          on:click|preventDefault={() => (mostraOrarioCompleto = !mostraOrarioCompleto)}
+          title={mostraOrarioCompleto ? 'Nascondi le ore fuori orario' : 'Mostra tutte le ore, da mezzogiorno a mezzanotte'}
+        >
+          {mostraOrarioCompleto ? '− nascondi ore esterne' : '+ mostra tutte le ore'}
+        </a>
+      </div>
     </section>
 
-    <section class="club-card bg-white p-5">
+    <section class="club-card flex flex-col bg-white p-5">
       <h2 class="mb-4 text-2xl font-black">Elenco studenti</h2>
 
-      <div class="cal-scroll space-y-4 pr-1">
+      <div class="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
         {#each studentiPerGruppo as bucket (bucket.id || 'senza-gruppo')}
           <div>
             <p class="text-xs font-black uppercase tracking-widest text-slate-500">{bucket.label} ({bucket.studenti.length})</p>
@@ -1359,6 +1396,17 @@
     overflow: auto;
   }
 
+  /* Il calendario mostra tutte le sue righe senza scroll interno: scrolla
+     solo la pagina. Nessun overflow qui apposta: impostare overflow-x senza
+     un overflow-y altrettanto vincolato trasforma anche quest'ultimo in
+     "auto" (per spec CSS), il che rompe lo sticky di intestazioni/orari
+     rispetto allo scroll di pagina. Le colonne si restringono invece con
+     1fr fino a stare nella larghezza disponibile senza mai avere bisogno
+     di scorrere. */
+  .cal-grid-wrap {
+    overflow: visible;
+  }
+
   .leader-row {
     display: flex;
     align-items: baseline;
@@ -1387,8 +1435,7 @@
   .cal-grid {
     position: relative;
     display: grid;
-    grid-template-columns: var(--time-col) repeat(7, minmax(5.5rem, 1fr));
-    min-width: 46rem;
+    grid-template-columns: var(--time-col) repeat(7, 1fr);
     user-select: none;
   }
 
@@ -1396,7 +1443,7 @@
     grid-column: 1;
     grid-row: 1;
     position: sticky;
-    top: 0;
+    top: var(--header-offset, 4.6rem);
     left: 0;
     z-index: 4;
     display: flex;
@@ -1408,9 +1455,10 @@
   }
 
   .cal-toggle-orario {
+    display: inline-block;
     font-weight: 900;
-    font-size: 0.85rem;
-    line-height: 1;
+    font-size: 0.7rem;
+    text-transform: uppercase;
     color: black;
     text-decoration: none;
   }
@@ -1422,7 +1470,7 @@
   .cal-day-header {
     grid-row: 1;
     position: sticky;
-    top: 0;
+    top: var(--header-offset, 4.6rem);
     z-index: 3;
     background: var(--giallo-club);
     border-bottom: 2px solid black;
