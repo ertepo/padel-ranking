@@ -36,6 +36,7 @@
   let gruppi = [...gruppiIniziali];
   let studenti = [...studentiIniziali];
   let lezioni = [...lezioniIniziali];
+  let titoloStampa = 'Orario settimanale — Scuola Tennis';
 
   function buildLezioneStudentiMap(rows: LezioneStudente[]) {
     const map: Record<string, string[]> = {};
@@ -1053,6 +1054,19 @@
         </button>
       </div>
 
+      <div class="mb-4">
+        <label for="titolo-stampa" class="mb-1 block text-xs font-black uppercase tracking-widest text-slate-600">
+          Titolo di stampa
+        </label>
+        <input
+          id="titolo-stampa"
+          type="text"
+          bind:value={titoloStampa}
+          placeholder="Orario settimanale — Scuola Tennis"
+          class="w-full max-w-md border-2 border-black p-2 font-bold"
+        />
+      </div>
+
       {#if gruppi.length}
         <div class="mb-4 flex flex-wrap gap-2">
           {#each gruppi as g}
@@ -1333,7 +1347,7 @@
 {/if}
 
 <div id="stampa-orario" aria-hidden="true">
-  <h1 class="print-titolo">Orario settimanale — Scuola Tennis</h1>
+  <h1 class="print-titolo">{titoloStampa}</h1>
 
   <div
     class="print-grid"
