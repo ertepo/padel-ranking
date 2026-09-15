@@ -972,7 +972,7 @@
         </details>
       </section>
 
-    <section class="club-card bg-white p-5">
+    <section class="club-card flex flex-col bg-white p-5">
       <h2 class="mb-4 text-2xl font-black">Nuovo studente</h2>
 
       <form class="grid grid-cols-2 gap-2 border-2 border-black bg-slate-50 p-4" on:submit|preventDefault={creaStudente}>
@@ -989,12 +989,12 @@
         </button>
       </form>
 
-      <details class="mt-4">
+      <details class="mt-4 [&[open]]:flex [&[open]]:min-h-0 [&[open]]:flex-1 [&[open]]:flex-col">
         <summary class="cursor-pointer select-none text-xs font-black uppercase tracking-widest text-slate-600">
           Studenti esistenti ({studenti.length})
         </summary>
 
-        <div class="mt-3 max-h-[26rem] space-y-4 overflow-y-auto pr-1">
+        <div class="mt-3 min-h-[52rem] flex-1 space-y-4 overflow-y-auto pr-1">
           {#each studentiPerGruppo as bucket (bucket.id || 'senza-gruppo')}
             <div>
               <p class="text-xs font-black uppercase tracking-widest text-slate-500">{bucket.label} ({bucket.studenti.length})</p>
@@ -1046,12 +1046,7 @@
         <p class="text-xs font-bold text-slate-500">
           Clicca una cella libera per creare · trascina un blocco per spostarlo · trascina il bordo inferiore per ridimensionarlo
         </p>
-        <button type="button" class="club-btn px-3 py-2 text-xs uppercase" on:click={esportaOrario}>
-          Esporta JSON
-        </button>
-        <button type="button" class="club-btn px-3 py-2 text-xs uppercase" on:click={() => window.print()}>
-          Stampa
-        </button>
+        
       </div>
 
       <div class="mb-4">
@@ -1065,6 +1060,12 @@
           placeholder="Orario settimanale — Scuola Tennis"
           class="w-full max-w-md border-2 border-black p-2 font-bold"
         />
+        <button type="button" class="club-btn mx-2 px-3 py-2 text-md uppercase" on:click={esportaOrario}>
+          Esporta JSON
+        </button>
+        <button type="button" class="club-btn px-3 py-2 text-md uppercase" on:click={() => window.print()}>
+          Stampa
+        </button>
       </div>
 
       {#if gruppi.length}
@@ -1257,8 +1258,16 @@
 
 {#if lezioneInModifica}
   <div class="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50 p-4" on:click|self={chiudiModificaLezione}>
-    <div class="club-card flex w-full max-w-sm flex-col bg-white p-5" style="max-height: 88vh;">
-      <h3 class="mb-4 text-xl font-black">Modifica lezione</h3>
+    <div class="club-card relative flex w-full max-w-sm flex-col bg-white p-5" style="max-height: 88vh;">
+      <button
+        type="button"
+        class="club-btn-red absolute right-3 top-3 px-3 py-1.5 text-xs"
+        on:click={eliminaLezione}
+      >
+        Elimina
+      </button>
+
+      <h3 class="mb-4 pl-20 text-xl font-black">Modifica lezione</h3>
 
       <div class="space-y-3 overflow-y-auto pr-1">
         <div>
@@ -1338,9 +1347,8 @@
       </div>
 
       <div class="mt-5 flex gap-3">
-        <button type="button" class="club-btn px-4 py-3 text-sm" on:click={eliminaLezione}>Elimina</button>
         <button type="button" class="club-btn flex-1 py-3" on:click={chiudiModificaLezione}>Annulla</button>
-        <button type="button" class="club-btn-yellow flex-1 py-3" on:click={salvaModificaLezione}>Salva</button>
+        <button type="button" class="club-btn-pastelgreen flex-1 py-3" on:click={salvaModificaLezione}>Salva</button>
       </div>
     </div>
   </div>
