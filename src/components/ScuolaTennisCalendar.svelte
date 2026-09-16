@@ -109,11 +109,15 @@
           const membri = studentiByIds(lezioneStudenti[l.id] ?? []);
           return {
             gruppo: g?.nome ?? 'Gruppo eliminato',
+            gruppo_id: l.gruppo_id,
             giorno: GIORNI[l.giorno_settimana - 1],
+            giorno_settimana: l.giorno_settimana,
             inizio: minutiToTime(l.ora_inizio_minuti),
+            ora_inizio_minuti: l.ora_inizio_minuti,
             fine: minutiToTime(l.ora_inizio_minuti + l.durata_minuti),
             durata_minuti: l.durata_minuti,
             partecipanti: membri.map((s) => `${s.nome} ${s.cognome}`),
+            partecipanti_id: membri.map((s) => s.id),
           };
         }),
     };
@@ -127,6 +131,165 @@
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
+  }
+
+  type EsitoImportOrario = {
+    creati: number;
+    lezioniSaltate: string[];
+    partecipantiMancanti: string[];
+    erroriApi: string[];
+  };
+
+  type LezioneDaImportare = {
+    gruppo_id: string;
+    giorno_settimana: number;
+    ora_inizio_minuti: number;
+    durata_minuti: number;
+    studente_ids: string[];
+  };
+
+  let fileImportEl: HTMLInputElement;
+  let importazioneInCorso = false;
+  let importReport: EsitoImportOrario | null = null;
+
+  function apriSelezioneFileImport() {
+    fileImportEl?.click();
+  }
+
+  async function onFileImportSelezionato(event: Event) {
+    const input = event.currentTarget as HTMLInputElement;
+    const file = input.files?.[0];
+    input.value = '';
+    if (!file) return;
+
+    let dati: any;
+    try {
+      dati = JSON.parse(await file.text());
+    } catch {
+      flashErrore('Il file selezionato non è un JSON valido.');
+      return;
+    }
+
+    if (!dati || !Array.isArray(dati.lezioni)) {
+      flashErrore('Il file non contiene un orario esportato da questa pagina.');
+      return;
+    }
+
+    const valide: LezioneDaImportare[] = [];
+    const lezioniSaltate: string[] = [];
+    const partecipantiMancanti: string[] = [];
+
+    for (const raw of dati.lezioni) {
+      const etichetta = `${raw?.gruppo ?? 'gruppo sconosciuto'} — ${raw?.giorno ?? '?'} ${raw?.inizio ?? '?'}`;
+
+      const gruppoId = typeof raw?.gruppo_id === 'string' ? raw.gruppo_id : '';
+      if (!gruppoId || !gruppoById(gruppoId)) {
+        lezioniSaltate.push(`${etichetta}: il gruppo "${raw?.gruppo ?? gruppoId}" non esiste più nel database.`);
+        continue;
+      }
+
+      const giorno = raw?.giorno_settimana;
+      const ora = raw?.ora_inizio_minuti;
+      const durata = raw?.durata_minuti;
+      const orarioValido =
+        typeof giorno === 'number' && Number.isInteger(giorno) && giorno >= 1 && giorno <= 7 &&
+        typeof ora === 'number' && Number.isInteger(ora) && ora >= 0 && ora <= 1439 &&
+        typeof durata === 'number' && Number.isInteger(durata) && durata >= 30 && durata <= 480;
+
+      if (!orarioValido) {
+        lezioniSaltate.push(`${etichetta}: dati orario non validi nel file.`);
+        continue;
+      }
+
+      const idRichiesti: string[] = Array.isArray(raw?.partecipanti_id)
+        ? raw.partecipanti_id.filter((id: unknown) => typeof id === 'string')
+        : [];
+      const nomiRichiesti: string[] = Array.isArray(raw?.partecipanti) ? raw.partecipanti : [];
+      const idValidi = idRichiesti.filter((id) => studenti.some((s) => s.id === id));
+
+      if (idValidi.length < idRichiesti.length) {
+        const mancanti = idRichiesti
+          .map((id, i) => (studenti.some((s) => s.id === id) ? null : nomiRichiesti[i] ?? id))
+          .filter((v): v is string => Boolean(v));
+        partecipantiMancanti.push(`${etichetta}: ${mancanti.join(', ')}`);
+      }
+
+      valide.push({
+        gruppo_id: gruppoId,
+        giorno_settimana: giorno,
+        ora_inizio_minuti: ora,
+        durata_minuti: durata,
+        studente_ids: idValidi,
+      });
+    }
+
+    if (!valide.length && !lezioniSaltate.length) {
+      flashErrore('Il file non contiene lezioni da importare.');
+      return;
+    }
+
+    const conferma = confirm(
+      `Importare ${valide.length} lezion${valide.length === 1 ? 'e' : 'i'} dal file?\n` +
+        `Le ${lezioni.length} lezioni attualmente in calendario verranno eliminate e sostituite con quelle del file.`,
+    );
+    if (!conferma) return;
+
+    await eseguiImportOrario(valide, lezioniSaltate, partecipantiMancanti);
+  }
+
+  async function eseguiImportOrario(valide: LezioneDaImportare[], lezioniSaltate: string[], partecipantiMancanti: string[]) {
+    importazioneInCorso = true;
+    const erroriApi: string[] = [];
+
+    for (const l of [...lezioni]) {
+      try {
+        const res = await fetch('/api/scuola-tennis/lezioni', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: l.id }),
+        });
+        if (!res.ok) {
+          const result = await res.json().catch(() => ({}));
+          erroriApi.push(`Impossibile eliminare una lezione esistente: ${result.error ?? 'errore sconosciuto'}.`);
+        }
+      } catch {
+        erroriApi.push('Impossibile eliminare una lezione esistente: errore di rete.');
+      }
+    }
+
+    lezioni = [];
+    lezioneStudenti = {};
+
+    const nuoveLezioni: Lezione[] = [];
+    const nuovaMappa: Record<string, string[]> = {};
+    let creati = 0;
+
+    for (const entry of valide) {
+      try {
+        const res = await fetch('/api/scuola-tennis/lezioni', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(entry),
+        });
+        const result = await res.json();
+        if (!res.ok || !result.lezione) {
+          erroriApi.push(
+            `Lezione non creata (gruppo ${gruppoById(entry.gruppo_id)?.nome ?? entry.gruppo_id}): ${result.error ?? 'errore sconosciuto'}.`,
+          );
+          continue;
+        }
+        nuoveLezioni.push(result.lezione);
+        nuovaMappa[result.lezione.id] = result.studente_ids ?? entry.studente_ids;
+        creati++;
+      } catch {
+        erroriApi.push(`Lezione non creata (gruppo ${gruppoById(entry.gruppo_id)?.nome ?? entry.gruppo_id}): errore di rete.`);
+      }
+    }
+
+    lezioni = nuoveLezioni;
+    lezioneStudenti = nuovaMappa;
+    importazioneInCorso = false;
+    importReport = { creati, lezioniSaltate, partecipantiMancanti, erroriApi };
   }
 
   function conteggioSlot(studenteId: string) {
@@ -1063,6 +1226,15 @@
         <button type="button" class="club-btn mx-2 px-3 py-2 text-md uppercase" on:click={esportaOrario}>
           Esporta JSON
         </button>
+        <button
+          type="button"
+          class="club-btn px-3 py-2 text-md uppercase"
+          on:click={apriSelezioneFileImport}
+          disabled={importazioneInCorso}
+        >
+          {importazioneInCorso ? 'Importazione…' : 'Importa JSON'}
+        </button>
+        <input type="file" accept="application/json" class="hidden" bind:this={fileImportEl} on:change={onFileImportSelezionato} />
         <button type="button" class="club-btn px-3 py-2 text-md uppercase" on:click={() => window.print()}>
           Stampa
         </button>
@@ -1350,6 +1522,63 @@
         <button type="button" class="club-btn flex-1 py-3" on:click={chiudiModificaLezione}>Annulla</button>
         <button type="button" class="club-btn-pastelgreen flex-1 py-3" on:click={salvaModificaLezione}>Salva</button>
       </div>
+    </div>
+  </div>
+{/if}
+
+{#if importReport}
+  <div class="fixed inset-0 z-[9998] flex items-center justify-center bg-black/50 p-4" on:click|self={() => (importReport = null)}>
+    <div class="club-card flex w-full max-w-lg flex-col bg-white p-5" style="max-height: 88vh;">
+      <h3 class="mb-4 text-xl font-black">Esito importazione orario</h3>
+
+      <div class="space-y-4 overflow-y-auto pr-1">
+        <p class="font-bold">
+          {importReport.creati} lezion{importReport.creati === 1 ? 'e creata' : 'i create'}.
+        </p>
+
+        {#if importReport.lezioniSaltate.length}
+          <div>
+            <p class="mb-1 text-xs font-black uppercase tracking-widest text-rose-600">
+              Lezioni saltate ({importReport.lezioniSaltate.length})
+            </p>
+            <ul class="list-disc space-y-1 pl-5 text-sm font-bold">
+              {#each importReport.lezioniSaltate as riga}
+                <li>{riga}</li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+
+        {#if importReport.partecipantiMancanti.length}
+          <div>
+            <p class="mb-1 text-xs font-black uppercase tracking-widest text-amber-600">
+              Partecipanti non trovati ({importReport.partecipantiMancanti.length})
+            </p>
+            <ul class="list-disc space-y-1 pl-5 text-sm font-bold">
+              {#each importReport.partecipantiMancanti as riga}
+                <li>{riga}</li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+
+        {#if importReport.erroriApi.length}
+          <div>
+            <p class="mb-1 text-xs font-black uppercase tracking-widest text-rose-600">Errori</p>
+            <ul class="list-disc space-y-1 pl-5 text-sm font-bold">
+              {#each importReport.erroriApi as riga}
+                <li>{riga}</li>
+              {/each}
+            </ul>
+          </div>
+        {/if}
+
+        {#if !importReport.lezioniSaltate.length && !importReport.partecipantiMancanti.length && !importReport.erroriApi.length}
+          <p class="font-bold text-emerald-600">Nessun problema riscontrato.</p>
+        {/if}
+      </div>
+
+      <button type="button" class="club-btn mt-5 py-3" on:click={() => (importReport = null)}>Chiudi</button>
     </div>
   </div>
 {/if}
