@@ -4,6 +4,7 @@
   // vengono dalle funzioni SQL; qui si disegna e si raccolgono le eccezioni.
   import WeekGrid, { type BloccoGriglia } from '../shared/WeekGrid.svelte';
   import StaffPanel from './StaffPanel.svelte';
+  import OrarioPanel from './OrarioPanel.svelte';
   import EccezioneModal, { type ProspettoEccezione } from './EccezioneModal.svelte';
   import {
     GIORNI_BREVI, addGiorni, fmtDurata, fmtFascia, fmtGiornoMese, fmtSettimana, giorniSettimana, lunediDi, minutiToTime, oggiRoma,
@@ -33,6 +34,13 @@
   let errore = $state(erroreIniziale);
   let erroreTimer: ReturnType<typeof setTimeout> | undefined;
   let prospetto: ProspettoEccezione | null = $state(null);
+  /** Cresce a ogni salvataggio, per far ricaricare il riquadro dell'orario. */
+  let versione = $state(0);
+
+  function aggiorna() {
+    versione++;
+    carica();
+  }
 
   const oggi = oggiRoma();
   const giorni = $derived(giorniSettimana(lunedi));
@@ -165,8 +173,9 @@
   }
 
   /** Proposta per un turno (mio o di un collega) e una fascia scelta dentro o attorno. */
-  function daTurno(s: Segmento, inizio: number, fine: number): ProspettoEccezione {
+  function daTurno(s: Segmento, inizio: number, fine: number, turnoNuovo?: { inizio: number; fine: number }): ProspettoEccezione {
     const mio = s.tipo === 'lavorato';
+    const turno = s.turno ?? s;
     return {
       data: s.data,
       inizio,
@@ -178,11 +187,25 @@
       note: null,
       turno: s.turno ? { ...s.turno, staff_id: s.staff_id } : undefined,
       daTurno: mio,
+      ricorrente: s.slot_id
+        ? { staff_id: s.staff_id, slot_id: s.slot_id, ...(turnoNuovo ?? turno), club: s.club, attivita: s.attivita }
+        : undefined,
     };
   }
 
   function nuovaExtra(data: string, inizio: number, fine: number): ProspettoEccezione {
-    return { data, inizio, fine, assente_id: null, sostituto_id: staffId, club: club ?? 'cingoli', attivita: 'tennis', note: null };
+    const c = club ?? 'cingoli';
+    return {
+      data,
+      inizio,
+      fine,
+      assente_id: null,
+      sostituto_id: staffId,
+      club: c,
+      attivita: 'tennis',
+      note: null,
+      ricorrente: staffId ? { staff_id: staffId, inizio, fine, club: c, attivita: 'tennis' } : undefined,
+    };
   }
 
   function apriDaBlocco(b: Blocco, inizio = b.inizio, fine = b.fine) {
@@ -215,11 +238,20 @@
       carica();
       return;
     }
-    // Turno previsto: la parte tolta diventa un'assenza, quella aggiunta ore extra.
-    if (inizio > b.inizio) prospetto = daTurno(s, b.inizio, inizio);
-    else if (fine < b.fine) prospetto = daTurno(s, fine, b.fine);
-    else if (inizio < b.inizio) prospetto = { ...nuovaExtra(s.data, inizio, b.inizio), club: s.club, attivita: s.attivita };
-    else if (fine > b.fine) prospetto = { ...nuovaExtra(s.data, b.fine, fine), club: s.club, attivita: s.attivita };
+    // Turno previsto: per "solo questo giorno" la parte tolta diventa un'assenza
+    // e quella aggiunta ore extra; per "da qui in poi" il turno prende i nuovi orari.
+    const turno = s.turno ?? s;
+    const turnoNuovo = {
+      inizio: b.inizio === turno.inizio ? inizio : turno.inizio,
+      fine: b.fine === turno.fine ? fine : turno.fine,
+    };
+    const ricorrente = s.slot_id
+      ? { staff_id: s.staff_id, slot_id: s.slot_id, ...turnoNuovo, club: s.club, attivita: s.attivita }
+      : undefined;
+    if (inizio > b.inizio) prospetto = daTurno(s, b.inizio, inizio, turnoNuovo);
+    else if (fine < b.fine) prospetto = daTurno(s, fine, b.fine, turnoNuovo);
+    else if (inizio < b.inizio) prospetto = { ...nuovaExtra(s.data, inizio, b.inizio), club: s.club, attivita: s.attivita, ricorrente };
+    else if (fine > b.fine) prospetto = { ...nuovaExtra(s.data, b.fine, fine), club: s.club, attivita: s.attivita, ricorrente };
   }
 
   const ridimensionabile = (b: Blocco) => ['lavorato', 'assente', 'extra'].includes(b.segmento.tipo);
@@ -341,6 +373,10 @@
         {/if}
       </section>
 
+      {#if selezionato}
+        <OrarioPanel staffId={selezionato.id} nome={selezionato.nome} {versione} onChanged={aggiorna} onErrore={flashErrore} />
+      {/if}
+
       <StaffPanel {staff} onChange={(s) => (staff = s)} onErrore={flashErrore} />
     </div>
   </div>
@@ -355,7 +391,7 @@
     onClose={() => (prospetto = null)}
     onSaved={() => {
       prospetto = null;
-      carica();
+      aggiorna();
     }}
     onErrore={flashErrore}
   />

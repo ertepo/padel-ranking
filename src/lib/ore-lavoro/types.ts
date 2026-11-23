@@ -25,6 +25,8 @@ export interface TurnoPrevisto {
   staff_id: string;
   club: Club;
   attivita: Attivita;
+  /** Il turno dell'orario ricorrente da cui nasce. */
+  slot_id: string;
 }
 
 export interface Eccezione {
@@ -38,6 +40,30 @@ export interface Eccezione {
   attivita: Attivita;
   note: string | null;
 }
+
+/** Un turno dell'orario ricorrente. giorno_settimana: 1=lunedì ... 7=domenica. */
+export interface TurnoOrario {
+  id: string;
+  giorno_settimana: number;
+  ora_inizio: string;
+  ora_fine: string;
+  club: Club;
+  attivita: Attivita;
+}
+
+/** Un periodo di validità dell'orario di un maestro (valido_al null = in corso). */
+export interface PeriodoOrario {
+  id: string;
+  valido_dal: string;
+  valido_al: string | null;
+  note: string | null;
+  turni: TurnoOrario[];
+}
+
+export type OperazioneOrario =
+  | { op: 'add'; giorno_settimana: number; ora_inizio: string; ora_fine: string; club: Club; attivita: Attivita }
+  | { op: 'update'; slot_id: string; ora_inizio?: string; ora_fine?: string; club?: Club; attivita?: Attivita }
+  | { op: 'delete'; slot_id: string };
 
 export interface SostitutoMinuti {
   sostituto_id: string;

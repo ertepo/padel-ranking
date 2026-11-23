@@ -2,7 +2,7 @@
 // vengono sempre dalle funzioni SQL della migrazione 20261123_ore_lavoro.sql.
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { isIsoDate } from '../time-grid.ts';
-import type { Club, DatiPeriodo, Eccezione, GiornoOre, RiepilogoOre, Staff, TurnoPrevisto } from './types';
+import type { Club, DatiPeriodo, PeriodoOrario, Eccezione, GiornoOre, RiepilogoOre, Staff, TurnoPrevisto } from './types';
 
 export const MAX_GIORNI_PERIODO = 400;
 
@@ -85,8 +85,8 @@ export async function caricaPeriodo(
     dal,
     al,
     club,
-    previsti: ((previsti.data ?? []) as TurnoPrevisto[]).map(({ data, ora_inizio, ora_fine, staff_id, club, attivita }) => ({
-      data, ora_inizio, ora_fine, staff_id, club, attivita,
+    previsti: ((previsti.data ?? []) as TurnoPrevisto[]).map(({ data, ora_inizio, ora_fine, staff_id, club, attivita, slot_id }) => ({
+      data, ora_inizio, ora_fine, staff_id, club, attivita, slot_id,
     })),
     eccezioni: (eccezioni.data ?? []) as Eccezione[],
     giorni: ((giorni.data ?? []) as (GiornoOre & Record<string, unknown>)[]).map((g) => ({
@@ -103,4 +103,22 @@ export async function caricaPeriodo(
     })),
     riepiloghi: (riepiloghi.data ?? []) as RiepilogoOre[],
   };
+}
+
+/** I periodi dell'orario di un maestro, dal più recente, con i turni ordinati. */
+export async function caricaOrario(supabase: SupabaseClient, staffId: string): Promise<PeriodoOrario[]> {
+  if (!isUuid(staffId)) throw new Error('Maestro non valido.');
+  const { data, error } = await supabase
+    .from('work_schedule')
+    .select('id, valido_dal, valido_al, note, work_schedule_slots(id, giorno_settimana, ora_inizio, ora_fine, club, attivita)')
+    .eq('staff_id', staffId)
+    .order('valido_dal', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((p) => {
+    const { work_schedule_slots: slots, ...resto } = p as typeof p & { work_schedule_slots: PeriodoOrario['turni'] };
+    return {
+      ...(resto as Omit<PeriodoOrario, 'turni'>),
+      turni: [...(slots ?? [])].sort((a, b) => a.giorno_settimana - b.giorno_settimana || a.ora_inizio.localeCompare(b.ora_inizio)),
+    };
+  });
 }

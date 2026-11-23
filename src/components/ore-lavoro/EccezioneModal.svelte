@@ -16,6 +16,18 @@
     turno?: { inizio: number; fine: number; staff_id: string };
     /** Se true il modale propone anche "nessuna eccezione" (solo il segno del giorno). */
     daTurno?: boolean;
+    /** Proposta per l'orario ricorrente (aggiungere o cambiare un turno da questa data in poi). */
+    ricorrente?: {
+      staff_id: string;
+      /** Turno esistente dell'orario (per modificarlo o toglierlo); assente = turno nuovo. */
+      slot_id?: string;
+      inizio: number;
+      fine: number;
+      club: Club;
+      attivita: Attivita;
+    };
+    /** Con quale scheda aprire il modale. */
+    ambito?: 'giorno' | 'ricorrente';
   }
 </script>
 
@@ -60,6 +72,16 @@
   let note = $state(p.note ?? '');
   let verifica = $state(daVerificare);
   let salvando = $state(false);
+
+  // Orario ricorrente
+  const ric = p.ricorrente;
+  let ambito: 'giorno' | 'ricorrente' = $state(ric && p.ambito === 'ricorrente' ? 'ricorrente' : 'giorno');
+  let ricDal = $state(p.data);
+  let ricInizio = $state(minutiToTime(ric?.inizio ?? p.inizio));
+  let ricFine = $state(minutiToTime(ric?.fine ?? p.fine));
+  let ricClub: Club = $state(ric?.club ?? p.club);
+  let ricAttivita: Attivita = $state(ric?.attivita ?? p.attivita);
+  const giornoRic = isoDow(p.data);
 
   const io = persona.sono_io;
   const nome = persona.nome;
@@ -139,6 +161,31 @@
     }
   }
 
+  async function salvaOrario(togli = false) {
+    if (!ric) return;
+    const inizio = timeToMinuti(ricInizio);
+    const fine = timeToMinuti(ricFine);
+    if (!togli && (Number.isNaN(inizio) || Number.isNaN(fine) || fine <= inizio)) {
+      return onErrore("L'ora di fine deve venire dopo quella di inizio.");
+    }
+    if (togli && !confirm(`Togliere questo turno dall'orario di ${nomeDi(ric.staff_id)} dal ${fmtData(ricDal)} in poi?`)) return;
+    const orari = { ora_inizio: minutiToTime(inizio), ora_fine: minutiToTime(fine), club: ricClub, attivita: ricAttivita };
+    const op = togli
+      ? { op: 'delete', slot_id: ric.slot_id }
+      : ric.slot_id
+        ? { op: 'update', slot_id: ric.slot_id, ...orari }
+        : { op: 'add', giorno_settimana: giornoRic, ...orari };
+    salvando = true;
+    try {
+      await chiama('/api/ore-lavoro/orario', 'POST', { staff_id: ric.staff_id, dal: ricDal, ops: [op] });
+      onSaved();
+    } catch (err) {
+      onErrore(err instanceof Error ? err.message : 'Errore nel salvataggio.');
+    } finally {
+      salvando = false;
+    }
+  }
+
   async function elimina() {
     if (!p.id || !confirm("Eliminare questa eccezione? Il turno torna come da calendario.")) return;
     salvando = true;
@@ -162,7 +209,56 @@
   ];
 </script>
 
-<Modal {titolo} {onClose} larghezza="max-w-md">
+<Modal titolo={ambito === 'ricorrente' ? 'Orario ricorrente' : titolo} {onClose} larghezza="max-w-md">
+  {#if ric}
+    <div class="grid grid-cols-2 border-2 border-black text-xs font-black uppercase">
+      <button type="button" class="px-2 py-2" class:bg-black={ambito === 'giorno'} class:text-white={ambito === 'giorno'}
+        onclick={() => (ambito = 'giorno')}>
+        Solo {GIORNI[isoDow(p.data) - 1].toLowerCase()} {fmtData(p.data).slice(0, 5)}
+      </button>
+      <button type="button" class="border-l-2 border-black px-2 py-2" class:bg-black={ambito === 'ricorrente'}
+        class:text-white={ambito === 'ricorrente'} onclick={() => (ambito = 'ricorrente')}>
+        Ogni {GIORNI[giornoRic - 1].toLowerCase()} da qui in poi
+      </button>
+    </div>
+  {/if}
+
+  {#if ambito === 'ricorrente' && ric}
+    <p class="border-l-4 border-black pl-2 font-bold">
+      {ric.slot_id ? 'Cambia' : 'Aggiunge'} il turno del {GIORNI[giornoRic - 1].toLowerCase()} nell'orario di {nomeDi(ric.staff_id)},
+      dal {fmtData(ricDal)} in poi. I giorni precedenti restano come sono.
+    </p>
+
+    <div class="grid grid-cols-3 gap-3">
+      <div>
+        <label for="ric-dal" class="mb-1 block text-xs font-black uppercase text-slate-600">Dal</label>
+        <input id="ric-dal" type="date" class="w-full border-2 border-black p-2 font-bold" bind:value={ricDal} required />
+      </div>
+      <div>
+        <label for="ric-dalle" class="mb-1 block text-xs font-black uppercase text-slate-600">Dalle</label>
+        <input id="ric-dalle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={ricInizio} required />
+      </div>
+      <div>
+        <label for="ric-alle" class="mb-1 block text-xs font-black uppercase text-slate-600">Alle</label>
+        <input id="ric-alle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={ricFine} required />
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-3">
+      <div>
+        <label for="ric-club" class="mb-1 block text-xs font-black uppercase text-slate-600">Club</label>
+        <select id="ric-club" class="w-full border-2 border-black p-2 font-bold" bind:value={ricClub}>
+          {#each Object.entries(CLUB) as [k, v] (k)}<option value={k}>{v}</option>{/each}
+        </select>
+      </div>
+      <div>
+        <label for="ric-attivita" class="mb-1 block text-xs font-black uppercase text-slate-600">Attività</label>
+        <select id="ric-attivita" class="w-full border-2 border-black p-2 font-bold" bind:value={ricAttivita}>
+          {#each Object.entries(ATTIVITA) as [k, v] (k)}<option value={k}>{v}</option>{/each}
+        </select>
+      </div>
+    </div>
+  {:else}
   <p class="text-sm font-black uppercase text-slate-600">
     {GIORNI[isoDow(data) - 1]} {fmtData(data)}
   </p>
@@ -260,14 +356,24 @@
     <input type="checkbox" bind:checked={verifica} />
     Giorno da verificare{io ? '' : ` (${nome})`}
   </label>
+  {/if}
 
   {#snippet azioni()}
     <button type="button" class="club-btn flex-1 py-3" onclick={onClose}>Annulla</button>
-    {#if p.id}
-      <button type="button" class="club-btn-red flex-1 py-3" disabled={salvando} onclick={elimina}>Elimina</button>
+    {#if ambito === 'ricorrente' && ric}
+      {#if ric.slot_id}
+        <button type="button" class="club-btn-red flex-1 py-3" disabled={salvando} onclick={() => salvaOrario(true)}>Togli</button>
+      {/if}
+      <button type="button" class="club-btn-yellow flex-1 py-3" disabled={salvando} onclick={() => salvaOrario()}>
+        {salvando ? 'Salvataggio…' : 'Salva orario'}
+      </button>
+    {:else}
+      {#if p.id}
+        <button type="button" class="club-btn-red flex-1 py-3" disabled={salvando} onclick={elimina}>Elimina</button>
+      {/if}
+      <button type="button" class="club-btn-yellow flex-1 py-3" disabled={salvando} onclick={salva}>
+        {salvando ? 'Salvataggio…' : 'Salva'}
+      </button>
     {/if}
-    <button type="button" class="club-btn-yellow flex-1 py-3" disabled={salvando} onclick={salva}>
-      {salvando ? 'Salvataggio…' : 'Salva'}
-    </button>
   {/snippet}
 </Modal>

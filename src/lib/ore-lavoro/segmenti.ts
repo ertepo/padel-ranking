@@ -19,8 +19,9 @@ export interface Segmento extends Fascia {
   staff_id: string;
   club: Club;
   attivita: Attivita;
-  /** Il turno previsto da cui nasce (lavorato, collega). */
+  /** Il turno previsto da cui nasce (lavorato, collega) e il suo id nell'orario. */
   turno?: Fascia;
+  slot_id?: string;
   /** L'eccezione da cui nasce (assente, extra, collega-assente). */
   eccezione?: Eccezione;
 }
@@ -70,6 +71,7 @@ function turniMenoAssenze(
           club: p.club,
           attivita: p.attivita,
           turno,
+          slot_id: p.slot_id,
           ...f,
         });
       });
