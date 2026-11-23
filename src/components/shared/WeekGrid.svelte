@@ -32,6 +32,8 @@
   //   clic su una cella vuota           -> onSelezione(colonna, slot, slot+1, null)  (o onCellClick)
   //   trascinamento in verticale        -> onSelezione(colonna, inizio, fine, blocco di partenza o null)
   //   maniglie sopra/sotto di un blocco -> onResize(blocco, inizio, fine), con anteprima
+  // Al tocco (smartphone) il trascinamento normale scorre la pagina: per
+  // selezionare più caselle si tiene premuto un attimo e poi si trascina.
   import type { Snippet } from 'svelte';
   import { assegnaCorsie, clamp, fasciaVisibile, fmtFascia, type Fascia } from '../../lib/time-grid';
 
@@ -114,6 +116,37 @@
 
   let interazione: Interazione | null = $state(null);
 
+  // Tocco: selezione in attesa della pressione lunga.
+  const PRESSIONE_LUNGA_MS = 350;
+  const TOLLERANZA_PX = 8;
+  let attesa: { nuova: Interazione; x0: number; y0: number; timer: ReturnType<typeof setTimeout> } | null = null;
+  let scrollBloccato = false;
+
+  function bloccaScroll(ev: TouchEvent) {
+    ev.preventDefault();
+  }
+
+  function sbloccaScroll() {
+    if (!scrollBloccato) return;
+    window.removeEventListener('touchmove', bloccaScroll);
+    scrollBloccato = false;
+  }
+
+  function togliSelezioneTesto() {
+    window.getSelection()?.removeAllRanges();
+  }
+
+  function attivaPressioneLunga() {
+    if (!attesa) return;
+    interazione = attesa.nuova;
+    attesa = null;
+    // Da qui il dito seleziona le caselle invece di scorrere la pagina.
+    window.addEventListener('touchmove', bloccaScroll, { passive: false });
+    scrollBloccato = true;
+    togliSelezioneTesto();
+    navigator.vibrate?.(10);
+  }
+
   function minutiDaY(y: number): number {
     const rect = gridEl!.getBoundingClientRect();
     const header = gridEl!.querySelector<HTMLElement>('.wg-day-header')?.offsetHeight ?? 0;
@@ -123,20 +156,36 @@
 
   function inizia(e: PointerEvent, nuova: Interazione) {
     if (e.button !== 0) return;
-    e.preventDefault();
-    interazione = nuova;
+    togliSelezioneTesto();
     window.addEventListener('pointermove', muovi);
     window.addEventListener('pointerup', termina);
     window.addEventListener('pointercancel', annulla);
+    if (e.pointerType === 'touch' && nuova.tipo === 'seleziona') {
+      // Niente preventDefault: se il dito si sposta subito, la pagina scorre.
+      attesa = { nuova, x0: e.clientX, y0: e.clientY, timer: setTimeout(attivaPressioneLunga, PRESSIONE_LUNGA_MS) };
+      return;
+    }
+    e.preventDefault();
+    interazione = nuova;
   }
 
   function rimuoviListener() {
     window.removeEventListener('pointermove', muovi);
     window.removeEventListener('pointerup', termina);
     window.removeEventListener('pointercancel', annulla);
+    sbloccaScroll();
   }
 
   function muovi(e: PointerEvent) {
+    if (attesa) {
+      // Il dito si è mosso prima della pressione lunga: è uno scorrimento.
+      if (Math.hypot(e.clientX - attesa.x0, e.clientY - attesa.y0) > TOLLERANZA_PX) {
+        clearTimeout(attesa.timer);
+        attesa = null;
+        rimuoviListener();
+      }
+      return;
+    }
     const i = interazione;
     if (!i) return;
     const dy = e.clientY - i.y0;
@@ -154,9 +203,16 @@
   }
 
   function termina() {
-    const i = interazione;
+    let i = interazione;
+    if (attesa) {
+      // Tocco breve: vale come un clic.
+      clearTimeout(attesa.timer);
+      i = attesa.nuova;
+      attesa = null;
+    }
     interazione = null;
     rimuoviListener();
+    togliSelezioneTesto();
     if (!i) return;
     if (i.tipo === 'seleziona') {
       if (!i.mosso) {
@@ -174,6 +230,8 @@
   }
 
   function annulla() {
+    if (attesa) clearTimeout(attesa.timer);
+    attesa = null;
     interazione = null;
     rimuoviListener();
   }
@@ -236,6 +294,7 @@
     class="wg-grid"
     class:wg-trascinando={interazione?.tipo === 'resize'}
     class:wg-stretta={stretta}
+    oncontextmenu={(e) => e.preventDefault()}
     style={`--time-col:${timeColPx}px; grid-template-columns: var(--time-col) repeat(${colonneMostrate.length}, minmax(0, 1fr)); grid-template-rows: auto repeat(${nSlot}, ${slotPx}px);`}
   >
     <div class="wg-corner"></div>
@@ -326,10 +385,14 @@
     background: white;
   }
 
+  /* Niente selezione del testo né menu della pressione lunga dentro la
+     griglia: il "tieni premuto" serve a selezionare le caselle. */
   .wg-grid {
     position: relative;
     display: grid;
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
   }
 
   .wg-corner {

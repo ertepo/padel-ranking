@@ -86,6 +86,13 @@
     min-height: 2.25rem;
   }
 
+  .ag-blocco,
+  .ag-piu {
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+
   .ag-blocco {
     display: grid;
     grid-template-columns: auto 1fr;
