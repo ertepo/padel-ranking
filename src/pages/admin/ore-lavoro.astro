@@ -1,0 +1,69 @@
+---
+import { getSupabaseAdmin } from "../../lib/supabaseAdmin";
+import { isAdmin } from "../../lib/adminAuth";
+import { caricaPeriodo, caricaStaff, isUuid } from "../../lib/ore-lavoro/server";
+import { addGiorni, isIsoDate, lunediDi, oggiRoma } from "../../lib/time-grid";
+import type { DatiPeriodo, Staff } from "../../lib/ore-lavoro/types";
+import "../../styles/global.css";
+import Layout from "../../layouts/Layout.astro";
+import OreLavoro from "../../components/ore-lavoro/OreLavoro.svelte";
+
+if (!isAdmin(Astro.cookies)) {
+    const redirectTo = encodeURIComponent(Astro.url.pathname);
+    return Astro.redirect(`/login?redirect=${redirectTo}`);
+}
+
+const paramSettimana = Astro.url.searchParams.get("settimana");
+const paramStaff = Astro.url.searchParams.get("staff");
+const lunedi = lunediDi(paramSettimana && isIsoDate(paramSettimana) ? paramSettimana : oggiRoma());
+
+let staff: Staff[] = [];
+let dati: DatiPeriodo | null = null;
+let errore = "";
+
+try {
+    const supabase = getSupabaseAdmin();
+    staff = await caricaStaff(supabase);
+    const selezionato =
+        staff.find((s) => isUuid(paramStaff) && s.id === paramStaff) ?? staff.find((s) => s.sono_io) ?? staff[0];
+    if (selezionato) {
+        dati = await caricaPeriodo(supabase, selezionato.id, lunedi, addGiorni(lunedi, 6));
+    }
+} catch (err) {
+    errore = err instanceof Error ? err.message : "Errore nel caricamento.";
+}
+
+const staffSelezionato = dati?.staff_id ?? staff[0]?.id ?? null;
+---
+
+<Layout title="Ore di lavoro" noindex={true} fullBleed>
+    <div class="px-4 py-8">
+        <section class="mb-8">
+            <p class="text-sm uppercase tracking-widest font-black text-slate-600">
+                Area riservata
+            </p>
+
+            <h1 class="text-5xl md:text-7xl font-black leading-none text-black">
+                Ore di lavoro
+            </h1>
+
+            <p class="mt-4 max-w-xl text-slate-700 font-medium">
+                Ogni turno dell'orario settimanale conta come lavorato. Le eccezioni (assenze,
+                sostituzioni, ore extra) cambiano il conteggio del giorno.
+            </p>
+
+            <div class="mt-6">
+                <a href="/admin" class="club-btn px-5 py-3">← Admin</a>
+            </div>
+        </section>
+
+        <OreLavoro
+            staffIniziale={staff}
+            staffSelezionatoIniziale={staffSelezionato}
+            settimanaIniziale={lunedi}
+            datiIniziali={dati}
+            erroreIniziale={errore}
+            client:load
+        />
+    </div>
+</Layout>
