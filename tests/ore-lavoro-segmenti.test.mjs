@@ -10,29 +10,50 @@ test('sottrazione di fasce', () => {
   ]);
   assert.deepEqual(sottraiFasce([{ inizio: 960, fine: 1050 }], [{ inizio: 900, fine: 1100 }]), []);
   assert.deepEqual(sottraiFasce([{ inizio: 960, fine: 1050 }], [{ inizio: 1100, fine: 1200 }]), [{ inizio: 960, fine: 1050 }]);
-  // assenze sovrapposte
   assert.deepEqual(sottraiFasce([{ inizio: 930, fine: 1170 }], [{ inizio: 930, fine: 1050 }, { inizio: 990, fine: 1080 }]), [
     { inizio: 1080, fine: 1170 },
   ]);
 });
 
-test('segmenti di un periodo', () => {
-  const IO = 'io', ALTRO = 'altro';
-  const previsti = [
-    { data: '2026-11-02', ora_inizio: '16:00:00', ora_fine: '21:30:00' },
-    { data: '2026-11-03', ora_inizio: '16:30:00', ora_fine: '18:30:00' },
-  ];
-  const eccezioni = [
-    { id: 'a', data: '2026-11-02', ora_inizio: '16:00:00', ora_fine: '18:00:00', assente_id: IO, sostituto_id: ALTRO, note: null },
-    { id: 'b', data: '2026-11-03', ora_inizio: '15:30:00', ora_fine: '19:30:00', assente_id: ALTRO, sostituto_id: IO, note: null },
-    { id: 'c', data: '2026-11-05', ora_inizio: '21:00:00', ora_fine: '22:00:00', assente_id: null, sostituto_id: IO, note: 'torneo' },
-  ];
-  const s = segmentiPeriodo(IO, previsti, eccezioni).map(({ data, tipo, inizio, fine }) => [data, tipo, inizio, fine]);
+const IO = 'io', ALDO = 'aldo', DARIO = 'dario', BRUNO = 'bruno';
+const t = (data, i, f, staff_id, attivita = 'tennis') => ({ data, ora_inizio: i, ora_fine: f, staff_id, club: 'cingoli', attivita });
+const e = (id, data, i, f, assente_id, sostituto_id, note = null) => ({
+  id, data, ora_inizio: i, ora_fine: f, assente_id, sostituto_id, club: 'cingoli', attivita: 'tennis', note,
+});
+
+const previsti = [
+  t('2026-11-02', '16:00:00', '21:30:00', IO),
+  t('2026-11-02', '17:00:00', '18:00:00', BRUNO, 'atletica'),
+  t('2026-11-03', '15:30:00', '19:30:00', ALDO),
+  t('2026-11-03', '16:30:00', '18:30:00', IO, 'atletica'),
+  t('2026-11-05', '15:00:00', '20:00:00', ALDO),
+  t('2026-11-05', '20:00:00', '21:00:00', IO),
+];
+const eccezioni = [
+  e('a', '2026-11-02', '16:00:00', '18:00:00', IO, DARIO, 'parte del turno'),
+  e('b', '2026-11-03', '15:30:00', '19:30:00', ALDO, IO),
+  e('c', '2026-11-05', '15:00:00', '17:00:00', ALDO, DARIO),
+  e('d', '2026-11-06', '21:00:00', '22:00:00', null, IO, 'torneo'),
+];
+const riga = ({ data, tipo, staff_id, attivita, inizio, fine }) => [data, tipo, staff_id, attivita, inizio, fine];
+
+test('segmenti del maestro, senza colleghi', () => {
+  assert.deepEqual(segmentiPeriodo(IO, previsti, eccezioni, false).map(riga), [
+    ['2026-11-02', 'lavorato', IO, 'tennis', 1080, 1290],
+    ['2026-11-02', 'assente', IO, 'tennis', 960, 1080],
+    ['2026-11-03', 'lavorato', IO, 'atletica', 990, 1110],
+    ['2026-11-03', 'extra', IO, 'tennis', 930, 1170],
+    ['2026-11-05', 'lavorato', IO, 'tennis', 1200, 1260],
+    ['2026-11-06', 'extra', IO, 'tennis', 1260, 1320],
+  ]);
+});
+
+test('segmenti con i colleghi', () => {
+  const s = segmentiPeriodo(IO, previsti, eccezioni).filter((x) => x.tipo.startsWith('collega')).map(riga);
   assert.deepEqual(s, [
-    ['2026-11-02', 'lavorato', 1080, 1290],
-    ['2026-11-02', 'assente', 960, 1080],
-    ['2026-11-03', 'lavorato', 990, 1110],
-    ['2026-11-03', 'extra', 930, 1170],
-    ['2026-11-05', 'extra', 1260, 1320],
+    ['2026-11-02', 'collega', BRUNO, 'atletica', 1020, 1080],
+    // martedì Aldo è coperto da me: nessun blocco del collega (c'è il mio extra)
+    ['2026-11-05', 'collega', ALDO, 'tennis', 1020, 1200],
+    ['2026-11-05', 'collega-assente', ALDO, 'tennis', 900, 1020],
   ]);
 });

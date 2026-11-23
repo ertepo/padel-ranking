@@ -26,8 +26,14 @@
   // calendario della scuola tennis. Di default mostra solo le ore occupate
   // dai blocchi (più minimoVisibile), con un link per vedere tutto il range.
   // I blocchi sovrapposti nella stessa colonna vengono affiancati in corsie.
+  //
+  // Interazione (tutta con il puntatore, senza librerie):
+  //   clic su un blocco                 -> onBlockClick(blocco)
+  //   clic su una cella vuota           -> onSelezione(colonna, slot, slot+1, null)  (o onCellClick)
+  //   trascinamento in verticale        -> onSelezione(colonna, inizio, fine, blocco di partenza o null)
+  //   maniglie sopra/sotto di un blocco -> onResize(blocco, inizio, fine), con anteprima
   import type { Snippet } from 'svelte';
-  import { assegnaCorsie, fasciaVisibile, fmtFascia, type Fascia } from '../../lib/time-grid';
+  import { assegnaCorsie, clamp, fasciaVisibile, fmtFascia, type Fascia } from '../../lib/time-grid';
 
   interface Props {
     colonne: ColonnaGriglia[];
@@ -42,6 +48,9 @@
     onCellClick?: (colonna: number, minuti: number) => void;
     onBlockClick?: (blocco: T) => void;
     onBlockPointerDown?: (e: PointerEvent, blocco: T) => void;
+    onSelezione?: (colonna: number, inizio: number, fine: number, blocco: T | null) => void;
+    onResize?: (blocco: T, inizio: number, fine: number) => void;
+    ridimensionabile?: (blocco: T) => boolean;
     blocco?: Snippet<[T]>;
     gridEl?: HTMLDivElement;
   }
@@ -59,6 +68,9 @@
     onCellClick,
     onBlockClick,
     onBlockPointerDown,
+    onSelezione,
+    onResize,
+    ridimensionabile,
     blocco,
     gridEl = $bindable(),
   }: Props = $props();
@@ -73,14 +85,112 @@
   const ore = $derived(slots.filter((m) => m % 60 === 0));
   const visibili = $derived(blocchi.filter((b) => b.fine > fascia.inizio && b.inizio < fascia.fine));
   const corsie = $derived(assegnaCorsie(visibili));
+  const cliccabile = $derived(Boolean(onSelezione || onCellClick));
+
+  // --- Interazione con il puntatore -------------------------------------------
+
+  type Interazione =
+    | { tipo: 'seleziona'; colonna: number; ancora: number; corrente: number; blocco: T | null; y0: number; mosso: boolean }
+    | { tipo: 'resize'; blocco: T; lato: 'sopra' | 'sotto'; y0: number; inizio: number; fine: number; mosso: boolean };
+
+  let interazione: Interazione | null = $state(null);
+
+  function minutiDaY(y: number): number {
+    const rect = gridEl!.getBoundingClientRect();
+    const header = gridEl!.querySelector<HTMLElement>('.wg-day-header')?.offsetHeight ?? 0;
+    const slot = Math.floor((y - rect.top - header) / slotPx);
+    return clamp(fascia.inizio + slot * slotMin, fascia.inizio, fascia.fine - slotMin);
+  }
+
+  function inizia(e: PointerEvent, nuova: Interazione) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    interazione = nuova;
+    window.addEventListener('pointermove', muovi);
+    window.addEventListener('pointerup', termina);
+    window.addEventListener('pointercancel', annulla);
+  }
+
+  function rimuoviListener() {
+    window.removeEventListener('pointermove', muovi);
+    window.removeEventListener('pointerup', termina);
+    window.removeEventListener('pointercancel', annulla);
+  }
+
+  function muovi(e: PointerEvent) {
+    const i = interazione;
+    if (!i) return;
+    const dy = e.clientY - i.y0;
+    if (Math.abs(dy) > 4) i.mosso = true;
+    if (i.tipo === 'seleziona') {
+      if (i.mosso) i.corrente = minutiDaY(e.clientY);
+    } else {
+      const delta = Math.round(dy / slotPx) * slotMin;
+      if (i.lato === 'sopra') {
+        i.inizio = clamp(i.blocco.inizio + delta, fascia.inizio, i.blocco.fine - slotMin);
+      } else {
+        i.fine = clamp(i.blocco.fine + delta, i.blocco.inizio + slotMin, fascia.fine);
+      }
+    }
+  }
+
+  function termina() {
+    const i = interazione;
+    interazione = null;
+    rimuoviListener();
+    if (!i) return;
+    if (i.tipo === 'seleziona') {
+      if (!i.mosso) {
+        if (i.blocco) onBlockClick?.(i.blocco);
+        else if (onSelezione) onSelezione(i.colonna, i.ancora, i.ancora + slotMin, null);
+        else onCellClick?.(i.colonna, i.ancora);
+        return;
+      }
+      const a = Math.min(i.ancora, i.corrente);
+      const b = Math.max(i.ancora, i.corrente) + slotMin;
+      onSelezione?.(i.colonna, a, b, i.blocco);
+    } else if (i.inizio !== i.blocco.inizio || i.fine !== i.blocco.fine) {
+      onResize?.(i.blocco, i.inizio, i.fine);
+    }
+  }
+
+  function annulla() {
+    interazione = null;
+    rimuoviListener();
+  }
+
+  function giuSuCella(e: PointerEvent, colonna: number, minuti: number) {
+    if (!cliccabile) return;
+    inizia(e, { tipo: 'seleziona', colonna, ancora: minuti, corrente: minuti, blocco: null, y0: e.clientY, mosso: false });
+  }
+
+  function giuSuBlocco(e: PointerEvent, b: T) {
+    onBlockPointerDown?.(e, b);
+    if (!onBlockClick && !onSelezione) return;
+    const m = clamp(minutiDaY(e.clientY), b.inizio, b.fine - slotMin);
+    inizia(e, { tipo: 'seleziona', colonna: b.colonna, ancora: m, corrente: m, blocco: b, y0: e.clientY, mosso: false });
+  }
+
+  function giuSuManiglia(e: PointerEvent, b: T, lato: 'sopra' | 'sotto') {
+    e.stopPropagation();
+    inizia(e, { tipo: 'resize', blocco: b, lato, y0: e.clientY, inizio: b.inizio, fine: b.fine, mosso: false });
+  }
+
+  // --- Posizionamento ----------------------------------------------------------
 
   function riga(minuti: number) {
     return Math.round((minuti - fascia.inizio) / slotMin) + 2;
   }
 
+  function fasciaMostrata(b: T): Fascia {
+    const i = interazione;
+    return i?.tipo === 'resize' && i.blocco.id === b.id ? { inizio: i.inizio, fine: i.fine } : b;
+  }
+
   function stileBlocco(b: T) {
-    const inizio = Math.max(2, riga(b.inizio));
-    const fine = Math.min(nSlot + 2, riga(b.fine));
+    const f = fasciaMostrata(b);
+    const inizio = Math.max(2, riga(f.inizio));
+    const fine = Math.min(nSlot + 2, riga(f.fine));
     const { corsia, corsie: n } = corsie.get(b) ?? { corsia: 0, corsie: 1 };
     const colore = b.colore || '#94a3b8';
     const larghezza = `calc((100% - 4px) / ${n})`;
@@ -91,12 +201,21 @@
       n > 1 ? `width:${larghezza}; margin-left:calc(2px + ${larghezza} * ${corsia}); margin-right:0; justify-self:start` : '',
     ].join(';');
   }
+
+  const selezione = $derived.by(() => {
+    const i = interazione;
+    if (i?.tipo !== 'seleziona' || !i.mosso) return null;
+    const a = Math.min(i.ancora, i.corrente);
+    const b = Math.max(i.ancora, i.corrente) + slotMin;
+    return { colonna: i.colonna, inizio: a, fine: b };
+  });
 </script>
 
 <div class="wg-wrap border-2 border-black">
   <div
     bind:this={gridEl}
     class="wg-grid"
+    class:wg-trascinando={interazione?.tipo === 'resize'}
     style={`--time-col:${timeColPx}px; grid-template-columns: var(--time-col) repeat(${colonne.length}, minmax(0, 1fr)); grid-template-rows: auto repeat(${nSlot}, ${slotPx}px);`}
   >
     <div class="wg-corner"></div>
@@ -114,35 +233,55 @@
 
     {#each colonne as c, i (c.key)}
       {#each slots as m (m)}
-        <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+        <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
           class="wg-cell"
           class:wg-cell-hour={m % 60 === 0}
           class:wg-cell-oggi={c.evidenziata}
-          class:wg-cell-cliccabile={Boolean(onCellClick)}
+          class:wg-cell-cliccabile={cliccabile}
           style={`grid-column:${i + 2}; grid-row:${riga(m)}`}
-          onclick={() => onCellClick?.(i, m)}
+          onpointerdown={(e) => giuSuCella(e, i, m)}
         ></div>
       {/each}
     {/each}
 
     {#each visibili as b (b.id)}
-      <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
+      {@const f = fasciaMostrata(b)}
+      {@const conManiglie = Boolean(onResize && ridimensionabile?.(b))}
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class={`wg-block ${b.classe ?? ''}`}
-        class:wg-block-cliccabile={Boolean(onBlockClick)}
+        class:wg-block-cliccabile={Boolean(onBlockClick || onSelezione)}
         style={stileBlocco(b)}
-        onclick={() => onBlockClick?.(b)}
-        onpointerdown={(e) => onBlockPointerDown?.(e, b)}
+        onpointerdown={(e) => giuSuBlocco(e, b)}
       >
+        {#if conManiglie}
+          <div class="wg-handle wg-handle-sopra" title="Trascina per spostare l'inizio" onpointerdown={(e) => giuSuManiglia(e, b, 'sopra')}></div>
+        {/if}
         {#if blocco}
           {@render blocco(b)}
         {:else}
           {#if b.titolo}<p class="wg-block-title">{b.titolo}</p>{/if}
-          <p class="wg-block-time">{fmtFascia(b.inizio, b.fine)}</p>
+          <p class="wg-block-time">{fmtFascia(f.inizio, f.fine)}</p>
+        {/if}
+        {#if conManiglie}
+          <div class="wg-handle wg-handle-sotto" title="Trascina per spostare la fine" onpointerdown={(e) => giuSuManiglia(e, b, 'sotto')}></div>
         {/if}
       </div>
     {/each}
+
+    {#if interazione?.tipo === 'resize'}
+      {@const r = interazione}
+      <div class="wg-resize-label" style={`grid-column:${r.blocco.colonna + 2}; grid-row:${riga(r.inizio)}`}>
+        {fmtFascia(r.inizio, r.fine)}
+      </div>
+    {/if}
+
+    {#if selezione}
+      <div class="wg-selezione" style={`grid-column:${selezione.colonna + 2}; grid-row:${riga(selezione.inizio)} / ${riga(selezione.fine)}`}>
+        <span>{fmtFascia(selezione.inizio, selezione.fine)}</span>
+      </div>
+    {/if}
   </div>
 </div>
 
@@ -248,6 +387,7 @@
 
   .wg-block {
     position: relative;
+    touch-action: none;
     margin: 1px 2px;
     padding: 0.25rem 0.4rem;
     border: 2px solid black;
@@ -286,6 +426,81 @@
     font-size: 0.65rem;
     font-weight: 700;
     opacity: 0.85;
+  }
+
+  .wg-trascinando,
+  .wg-trascinando * {
+    cursor: ns-resize !important;
+  }
+
+  .wg-handle {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 8px;
+    cursor: ns-resize;
+    touch-action: none;
+    z-index: 2;
+    display: flex;
+    justify-content: center;
+  }
+
+  .wg-handle-sopra {
+    top: 0;
+    align-items: flex-start;
+  }
+
+  .wg-handle-sotto {
+    bottom: 0;
+    align-items: flex-end;
+  }
+
+  .wg-handle::after {
+    content: '';
+    width: 22px;
+    height: 3px;
+    margin: 2px 0;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.35);
+    opacity: 0;
+  }
+
+  .wg-block:hover .wg-handle::after {
+    opacity: 1;
+  }
+
+  .wg-handle:hover::after {
+    background: rgba(0, 0, 0, 0.8);
+  }
+
+  .wg-selezione {
+    position: relative;
+    z-index: 5;
+    margin: 1px 2px;
+    border: 2px dashed black;
+    background: rgba(255, 204, 0, 0.35);
+    pointer-events: none;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    font-size: 0.7rem;
+    font-weight: 900;
+    padding-top: 0.15rem;
+  }
+
+  .wg-resize-label {
+    position: relative;
+    z-index: 6;
+    align-self: start;
+    justify-self: center;
+    transform: translateY(-110%);
+    background: black;
+    color: white;
+    font-size: 0.65rem;
+    font-weight: 900;
+    padding: 0.1rem 0.35rem;
+    pointer-events: none;
+    white-space: nowrap;
   }
 
   .wg-toggle {

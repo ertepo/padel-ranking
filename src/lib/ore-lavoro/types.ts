@@ -2,6 +2,11 @@
 // orari "HH:MM" o "HH:MM:SS" come li restituisce Postgres.
 
 export type Ruolo = 'maestro' | 'collaboratore';
+export type Club = 'cingoli' | 'poggio';
+export type Attivita = 'tennis' | 'atletica';
+
+export const CLUB: Record<Club, string> = { cingoli: 'Cingoli', poggio: 'Poggio' };
+export const ATTIVITA: Record<Attivita, string> = { tennis: 'Tennis', atletica: 'Atletica' };
 
 export interface Staff {
   id: string;
@@ -17,6 +22,9 @@ export interface TurnoPrevisto {
   data: string;
   ora_inizio: string;
   ora_fine: string;
+  staff_id: string;
+  club: Club;
+  attivita: Attivita;
 }
 
 export interface Eccezione {
@@ -26,6 +34,8 @@ export interface Eccezione {
   ora_fine: string;
   assente_id: string | null;
   sostituto_id: string | null;
+  club: Club;
+  attivita: Attivita;
   note: string | null;
 }
 
@@ -66,8 +76,11 @@ export interface DatiPeriodo {
   staff_id: string;
   dal: string;
   al: string;
+  /** Filtro per club (null = tutti). */
+  club: Club | null;
+  /** Turni previsti di tutti i maestri (per mostrare anche i colleghi). */
   previsti: TurnoPrevisto[];
-  /** Eccezioni in cui il maestro è assente o sostituto. */
+  /** Tutte le eccezioni del periodo (anche tra colleghi). */
   eccezioni: Eccezione[];
   giorni: GiornoOre[];
   /** Totali per settimana o per mese, calcolati in SQL (work_hours_summary). */
@@ -79,4 +92,5 @@ export const COLORI = {
   extra: '#f0abfc',
   assente: '#fde047',
   verifica: '#7dd3fc',
+  collega: '#e2e8f0',
 } as const;

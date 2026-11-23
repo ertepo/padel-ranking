@@ -1,11 +1,11 @@
 import type { APIRoute } from 'astro';
 import { getSupabaseAdmin } from '../../../lib/supabaseAdmin';
 import { isAdminRequest, nonAutorizzato } from '../../../lib/adminAuth';
-import { caricaPeriodo, isUuid, periodoValido } from '../../../lib/ore-lavoro/server';
+import { caricaPeriodo, isClub, isUuid, periodoValido } from '../../../lib/ore-lavoro/server';
 
 export const prerender = false;
 
-// GET /api/ore-lavoro/periodo?staff=<uuid>&dal=AAAA-MM-GG&al=AAAA-MM-GG[&raggruppa=week|month]
+// GET /api/ore-lavoro/periodo?staff=<uuid>&dal=AAAA-MM-GG&al=AAAA-MM-GG[&raggruppa=week|month][&club=cingoli|poggio]
 export const GET: APIRoute = async ({ request, cookies, url }) => {
   if (!isAdminRequest(request, cookies)) return nonAutorizzato();
 
@@ -13,6 +13,8 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
   const dal = url.searchParams.get('dal');
   const al = url.searchParams.get('al');
   const raggruppa = url.searchParams.get('raggruppa') === 'month' ? 'month' : 'week';
+  const clubParam = url.searchParams.get('club');
+  const club = isClub(clubParam) ? clubParam : null;
 
   if (!isUuid(staff)) {
     return Response.json({ error: 'Maestro non valido.' }, { status: 400 });
@@ -22,7 +24,7 @@ export const GET: APIRoute = async ({ request, cookies, url }) => {
   }
 
   try {
-    const dati = await caricaPeriodo(getSupabaseAdmin(), staff, dal, al!, raggruppa);
+    const dati = await caricaPeriodo(getSupabaseAdmin(), staff, dal, al!, { raggruppa, club });
     return Response.json(dati);
   } catch (err) {
     return Response.json({ error: err instanceof Error ? err.message : 'Errore nel caricamento.' }, { status: 500 });

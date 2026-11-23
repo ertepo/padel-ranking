@@ -1,24 +1,33 @@
 // Geometria dei blocchi del calendario di un maestro, giorno per giorno.
 // Solo disegno: i minuti e i totali vengono dalle funzioni SQL.
-//   verde/azzurro  turno previsto, tolte le fasce in cui è assente
-//   giallo         ogni assenza (con o senza sostituto), per intero
-//   fucsia         ogni sostituzione o ora extra fatta da lui, per intero
+//   lavorato        suo turno previsto, tolte le fasce in cui è assente
+//   assente         ogni sua assenza (con o senza sostituto), per intero
+//   extra           ogni sostituzione o ora extra fatta da lui, per intero
+//   collega         turno previsto di un collega, tolte le sue assenze
+//   collega-assente assenza di un collega non coperta da lui (scoperta o
+//                   coperta da un terzo)
 import { timeToMinuti, type Fascia } from '../time-grid.ts';
-import type { Eccezione, TurnoPrevisto } from './types';
+import type { Attivita, Club, Eccezione, TurnoPrevisto } from './types';
 
-export type TipoSegmento = 'lavorato' | 'assente' | 'extra';
+export type TipoSegmento = 'lavorato' | 'assente' | 'extra' | 'collega' | 'collega-assente';
 
 export interface Segmento extends Fascia {
   id: string;
   data: string;
   tipo: TipoSegmento;
-  /** L'eccezione da cui nasce (assente, extra). */
+  /** Di chi è il turno (per collega / collega-assente è il collega). */
+  staff_id: string;
+  club: Club;
+  attivita: Attivita;
+  /** Il turno previsto da cui nasce (lavorato, collega). */
+  turno?: Fascia;
+  /** L'eccezione da cui nasce (assente, extra, collega-assente). */
   eccezione?: Eccezione;
 }
 
 /** Sottrae da ogni fascia di base tutte le fasce da togliere. */
 export function sottraiFasce(base: Fascia[], togli: Fascia[]): Fascia[] {
-  let resto = base.map((f) => ({ ...f }));
+  let resto = base.map((f) => ({ inizio: f.inizio, fine: f.fine }));
   for (const t of togli) {
     const prossimo: Fascia[] = [];
     for (const f of resto) {
@@ -34,26 +43,72 @@ export function sottraiFasce(base: Fascia[], togli: Fascia[]): Fascia[] {
   return resto.sort((a, b) => a.inizio - b.inizio);
 }
 
-const fasciaDi = (x: { ora_inizio: string; ora_fine: string }): Fascia => ({
+export const fasciaDi = (x: { ora_inizio: string; ora_fine: string }): Fascia => ({
   inizio: timeToMinuti(x.ora_inizio),
   fine: timeToMinuti(x.ora_fine),
 });
 
-export function segmentiPeriodo(staffId: string, previsti: TurnoPrevisto[], eccezioni: Eccezione[]): Segmento[] {
+/** I turni (già tolte le assenze) di una persona in un giorno, con i loro attributi. */
+function turniMenoAssenze(
+  data: string,
+  staffId: string,
+  previsti: TurnoPrevisto[],
+  assenze: Eccezione[],
+  tipo: 'lavorato' | 'collega',
+): Segmento[] {
+  const out: Segmento[] = [];
+  previsti
+    .filter((p) => p.data === data && p.staff_id === staffId)
+    .forEach((p, i) => {
+      const turno = fasciaDi(p);
+      sottraiFasce([turno], assenze.map(fasciaDi)).forEach((f, j) => {
+        out.push({
+          id: `${tipo}-${staffId}-${data}-${i}-${j}`,
+          data,
+          tipo,
+          staff_id: staffId,
+          club: p.club,
+          attivita: p.attivita,
+          turno,
+          ...f,
+        });
+      });
+    });
+  return out;
+}
+
+export function segmentiPeriodo(
+  staffId: string,
+  previsti: TurnoPrevisto[],
+  eccezioni: Eccezione[],
+  conColleghi = true,
+): Segmento[] {
   const out: Segmento[] = [];
   const date = new Set([...previsti.map((p) => p.data), ...eccezioni.map((e) => e.data)]);
 
   for (const data of [...date].sort()) {
-    const turni = previsti.filter((p) => p.data === data).map(fasciaDi);
     const delGiorno = eccezioni.filter((e) => e.data === data);
-    const assenze = delGiorno.filter((e) => e.assente_id === staffId);
-    const sostituzioni = delGiorno.filter((e) => e.sostituto_id === staffId);
+    const mieAssenze = delGiorno.filter((e) => e.assente_id === staffId);
 
-    sottraiFasce(turni, assenze.map(fasciaDi)).forEach((f, i) => {
-      out.push({ id: `turno-${data}-${i}`, data, tipo: 'lavorato', ...f });
-    });
-    for (const e of assenze) out.push({ id: e.id, data, tipo: 'assente', eccezione: e, ...fasciaDi(e) });
-    for (const e of sostituzioni) out.push({ id: e.id, data, tipo: 'extra', eccezione: e, ...fasciaDi(e) });
+    out.push(...turniMenoAssenze(data, staffId, previsti, mieAssenze, 'lavorato'));
+    for (const e of mieAssenze) {
+      out.push({ id: e.id, data, tipo: 'assente', staff_id: staffId, club: e.club, attivita: e.attivita, eccezione: e, ...fasciaDi(e) });
+    }
+    for (const e of delGiorno.filter((x) => x.sostituto_id === staffId)) {
+      out.push({ id: e.id, data, tipo: 'extra', staff_id: staffId, club: e.club, attivita: e.attivita, eccezione: e, ...fasciaDi(e) });
+    }
+
+    if (!conColleghi) continue;
+    const colleghi = new Set(previsti.filter((p) => p.data === data && p.staff_id !== staffId).map((p) => p.staff_id));
+    for (const e of delGiorno) if (e.assente_id && e.assente_id !== staffId) colleghi.add(e.assente_id);
+
+    for (const c of colleghi) {
+      const assenzeCollega = delGiorno.filter((e) => e.assente_id === c);
+      out.push(...turniMenoAssenze(data, c, previsti, assenzeCollega, 'collega'));
+      for (const e of assenzeCollega.filter((x) => x.sostituto_id !== staffId)) {
+        out.push({ id: e.id, data, tipo: 'collega-assente', staff_id: c, club: e.club, attivita: e.attivita, eccezione: e, ...fasciaDi(e) });
+      }
+    }
   }
   return out;
 }

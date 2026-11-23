@@ -1,7 +1,7 @@
 ---
 import { getSupabaseAdmin } from "../../lib/supabaseAdmin";
 import { isAdmin } from "../../lib/adminAuth";
-import { caricaPeriodo, caricaStaff, isUuid } from "../../lib/ore-lavoro/server";
+import { caricaPeriodo, caricaStaff, isClub, isUuid } from "../../lib/ore-lavoro/server";
 import { addGiorni, isIsoDate, lunediDi, oggiRoma } from "../../lib/time-grid";
 import type { DatiPeriodo, Staff } from "../../lib/ore-lavoro/types";
 import "../../styles/global.css";
@@ -15,6 +15,8 @@ if (!isAdmin(Astro.cookies)) {
 
 const paramSettimana = Astro.url.searchParams.get("settimana");
 const paramStaff = Astro.url.searchParams.get("staff");
+const paramClub = Astro.url.searchParams.get("club");
+const club = isClub(paramClub) ? paramClub : null;
 const lunedi = lunediDi(paramSettimana && isIsoDate(paramSettimana) ? paramSettimana : oggiRoma());
 
 let staff: Staff[] = [];
@@ -27,7 +29,7 @@ try {
     const selezionato =
         staff.find((s) => isUuid(paramStaff) && s.id === paramStaff) ?? staff.find((s) => s.sono_io) ?? staff[0];
     if (selezionato) {
-        dati = await caricaPeriodo(supabase, selezionato.id, lunedi, addGiorni(lunedi, 6));
+        dati = await caricaPeriodo(supabase, selezionato.id, lunedi, addGiorni(lunedi, 6), { club });
     }
 } catch (err) {
     errore = err instanceof Error ? err.message : "Errore nel caricamento.";
@@ -61,6 +63,7 @@ const staffSelezionato = dati?.staff_id ?? staff[0]?.id ?? null;
             staffIniziale={staff}
             staffSelezionatoIniziale={staffSelezionato}
             settimanaIniziale={lunedi}
+            clubIniziale={club}
             datiIniziali={dati}
             erroreIniziale={errore}
             client:load

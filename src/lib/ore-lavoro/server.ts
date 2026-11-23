@@ -2,7 +2,7 @@
 // vengono sempre dalle funzioni SQL della migrazione 20261123_ore_lavoro.sql.
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { isIsoDate } from '../time-grid.ts';
-import type { DatiPeriodo, Eccezione, GiornoOre, RiepilogoOre, Staff, TurnoPrevisto } from './types';
+import type { Club, DatiPeriodo, Eccezione, GiornoOre, RiepilogoOre, Staff, TurnoPrevisto } from './types';
 
 export const MAX_GIORNI_PERIODO = 400;
 
@@ -10,6 +10,24 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 
 export function isUuid(value: unknown): value is string {
   return typeof value === 'string' && UUID_RE.test(value);
+}
+
+export function isClub(value: unknown): value is Club {
+  return value === 'cingoli' || value === 'poggio';
+}
+
+export function isAttivita(value: unknown): value is 'tennis' | 'atletica' {
+  return value === 'tennis' || value === 'atletica';
+}
+
+/** "16:30" o "16:30:00" con minuti multipli di 5, fino a 24:00. */
+export function isOrario(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const m = /^(\d{2}):(\d{2})(?::00)?$/.exec(value);
+  if (!m) return false;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  return (h < 24 && min < 60 && min % 5 === 0) || (h === 24 && min === 0);
 }
 
 export async function caricaStaff(supabase: SupabaseClient): Promise<Staff[]> {
@@ -36,24 +54,26 @@ export async function caricaPeriodo(
   staffId: string,
   dal: string,
   al: string,
-  raggruppa: 'week' | 'month' = 'week',
+  opzioni: { raggruppa?: 'week' | 'month'; club?: Club | null } = {},
 ): Promise<DatiPeriodo> {
-  // staffId finisce in un filtro PostgREST testuale: deve essere un uuid.
   if (!isUuid(staffId)) throw new Error('Maestro non valido.');
-  const filtroPersona = `assente_id.eq.${staffId},sostituto_id.eq.${staffId}`;
+  const raggruppa = opzioni.raggruppa ?? 'week';
+  const club = opzioni.club ?? null;
+
+  let queryEccezioni = supabase
+    .from('work_exceptions')
+    .select('id, data, ora_inizio, ora_fine, assente_id, sostituto_id, club, attivita, note')
+    .gte('data', dal)
+    .lte('data', al)
+    .order('data')
+    .order('ora_inizio');
+  if (club) queryEccezioni = queryEccezioni.eq('club', club);
 
   const [previsti, eccezioni, giorni, riepiloghi] = await Promise.all([
-    supabase.rpc('work_planned_intervals', { p_staff: staffId, p_dal: dal, p_al: al }),
-    supabase
-      .from('work_exceptions')
-      .select('id, data, ora_inizio, ora_fine, assente_id, sostituto_id, note')
-      .gte('data', dal)
-      .lte('data', al)
-      .or(filtroPersona)
-      .order('data')
-      .order('ora_inizio'),
-    supabase.rpc('work_hours_daily', { p_staff: staffId, p_dal: dal, p_al: al }),
-    supabase.rpc('work_hours_summary', { p_staff: staffId, p_dal: dal, p_al: al, p_periodo: raggruppa }),
+    supabase.rpc('work_planned_intervals', { p_staff: null, p_dal: dal, p_al: al, p_club: club }),
+    queryEccezioni,
+    supabase.rpc('work_hours_daily', { p_staff: staffId, p_dal: dal, p_al: al, p_club: club }),
+    supabase.rpc('work_hours_summary', { p_staff: staffId, p_dal: dal, p_al: al, p_periodo: raggruppa, p_club: club }),
   ]);
 
   for (const r of [previsti, eccezioni, giorni, riepiloghi]) {
@@ -64,7 +84,10 @@ export async function caricaPeriodo(
     staff_id: staffId,
     dal,
     al,
-    previsti: ((previsti.data ?? []) as TurnoPrevisto[]).map(({ data, ora_inizio, ora_fine }) => ({ data, ora_inizio, ora_fine })),
+    club,
+    previsti: ((previsti.data ?? []) as TurnoPrevisto[]).map(({ data, ora_inizio, ora_fine, staff_id, club, attivita }) => ({
+      data, ora_inizio, ora_fine, staff_id, club, attivita,
+    })),
     eccezioni: (eccezioni.data ?? []) as Eccezione[],
     giorni: ((giorni.data ?? []) as (GiornoOre & Record<string, unknown>)[]).map((g) => ({
       data: g.data,
