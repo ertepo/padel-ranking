@@ -277,8 +277,8 @@
       <p class="text-sm font-medium text-slate-600">I giorni precedenti restano come sono.</p>
     </div>
 
-    <div class="grid grid-cols-3 gap-3">
-      <div>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div class="col-span-2 sm:col-span-1">
         <label for="ric-dal" class="mb-1 block text-xs font-black uppercase text-slate-600">Dal</label>
         <input id="ric-dal" type="date" class="w-full border-2 border-black p-2 font-bold" bind:value={ricDal} required />
       </div>
@@ -350,8 +350,8 @@
       </div>
     </div>
 
-    <div class="grid grid-cols-3 gap-3">
-      <div>
+    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+      <div class="col-span-2 sm:col-span-1">
         <label for="ecc-data" class="mb-1 block text-xs font-black uppercase text-slate-600">Data</label>
         <input id="ecc-data" type="date" class="w-full border-2 border-black p-2 font-bold" bind:value={data} required />
       </div>

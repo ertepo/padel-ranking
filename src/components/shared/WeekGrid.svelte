@@ -387,7 +387,7 @@
 
   .wg-block {
     position: relative;
-    touch-action: none;
+    touch-action: manipulation;
     margin: 1px 2px;
     padding: 0.25rem 0.4rem;
     border: 2px solid black;

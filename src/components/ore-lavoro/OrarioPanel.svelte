@@ -76,13 +76,13 @@
 <section class="club-card bg-white p-5">
   <h2 class="mb-1 text-2xl font-black">Orario di {nome}</h2>
   <p class="mb-4 text-sm font-medium text-slate-600">
-    Per cambiare un turno da una certa data in poi, cliccalo nel calendario e scegli "da qui in poi".
+    Per cambiare un turno da una certa data in poi, aprilo nel calendario e scegli "da qui in poi".
   </p>
 
   {#if caricamento && periodi.length === 0}
     <p class="font-bold text-slate-500">Caricamento…</p>
   {:else if periodi.length === 0}
-    <p class="font-bold text-slate-500">Nessun orario. Clicca una cella vuota del calendario e scegli "da qui in poi".</p>
+    <p class="font-bold text-slate-500">Nessun orario. Nel calendario aggiungi un turno (cella vuota o "+") e scegli "da qui in poi".</p>
   {/if}
 
   <div class="space-y-4">

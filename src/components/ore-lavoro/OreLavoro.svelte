@@ -8,6 +8,7 @@
   import MonthGrid from './MonthGrid.svelte';
   import Riepilogo from './Riepilogo.svelte';
   import ImportPanel from './ImportPanel.svelte';
+  import WeekAgenda from './WeekAgenda.svelte';
   import EccezioneModal, { type ProspettoEccezione } from './EccezioneModal.svelte';
   import {
     GIORNI_BREVI, addGiorni, addMesi, fmtDurata, fmtFascia, fmtGiornoMese, fmtMese, fmtSettimana, giorniSettimana, lunediDi,
@@ -323,6 +324,13 @@
     vista = v;
   }
 
+  /** Agenda (smartphone): "+" su un giorno propone un'ora dopo l'ultimo turno, o dalle 16. */
+  function aggiungiNelGiorno(colonna: number) {
+    const miei = blocchi.filter((b) => b.colonna === colonna && !b.segmento.tipo.startsWith('collega'));
+    const inizio = miei.length ? Math.min(Math.max(...miei.map((b) => b.fine)), 23 * 60) : 16 * 60;
+    prospetto = nuovaExtra(giorni[colonna], inizio, inizio + 60);
+  }
+
   /** Etichetta di una settimana dentro il mese: "1–6/9", "28/9–4/10" tagliata al mese. */
   function etichettaSettimana(inizio: string) {
     const a = inizio < periodo.dal ? periodo.dal : inizio;
@@ -333,7 +341,7 @@
 </script>
 
 {#if errore}
-  <div class="fixed right-4 top-24 z-[9999] max-w-sm border-2 border-black bg-white p-3 font-black text-red-700 shadow-[-4px_4px_0_black]" role="alert">
+  <div class="fixed inset-x-4 top-20 z-[9999] border-2 border-black bg-white p-3 font-black text-red-700 shadow-[-4px_4px_0_black] sm:left-auto sm:right-4 sm:top-24 sm:max-w-sm" role="alert" onclick={() => (errore = '')}>
     {errore}
   </div>
 {/if}
@@ -347,8 +355,8 @@
   </section>
 {:else}
   <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-    <section class="club-card bg-white p-5">
-      <div class="mb-4 flex flex-wrap items-center gap-3">
+    <section class="club-card bg-white p-3 sm:p-5">
+      <div class="mb-3 flex flex-wrap items-center gap-2 sm:mb-4 sm:gap-3">
         <div class="flex border-2 border-black text-xs font-black uppercase">
           <button type="button" class="px-3 py-2" class:bg-black={vista === 'settimana'} class:text-white={vista === 'settimana'}
             onclick={() => mostra('settimana')}>Settimana</button>
@@ -356,30 +364,32 @@
             onclick={() => mostra('mese')}>Mese</button>
         </div>
         <div class="flex gap-2">
-          <button type="button" class="club-btn px-3 py-2" aria-label={vista === 'mese' ? 'Mese precedente' : 'Settimana precedente'} onclick={() => sposta(-1)}>‹</button>
-          <button type="button" class="club-btn px-3 py-2" onclick={vaiAOggi}>Oggi</button>
-          <button type="button" class="club-btn px-3 py-2" aria-label={vista === 'mese' ? 'Mese successivo' : 'Settimana successiva'} onclick={() => sposta(1)}>›</button>
+          <button type="button" class="club-btn px-3 py-1.5 sm:py-2" aria-label={vista === 'mese' ? 'Mese precedente' : 'Settimana precedente'} onclick={() => sposta(-1)}>‹</button>
+          <button type="button" class="club-btn px-3 py-1.5 sm:py-2" onclick={vaiAOggi}>Oggi</button>
+          <button type="button" class="club-btn px-3 py-1.5 sm:py-2" aria-label={vista === 'mese' ? 'Mese successivo' : 'Settimana successiva'} onclick={() => sposta(1)}>›</button>
         </div>
-        <h2 class="text-2xl font-black first-letter:uppercase">{vista === 'mese' ? fmtMese(mese) : fmtSettimana(lunedi)}</h2>
-        {#if caricamento}<span class="text-sm font-bold text-slate-500">caricamento…</span>{/if}
+        <h2 class="w-full text-xl font-black first-letter:uppercase sm:w-auto sm:text-2xl">
+          {vista === 'mese' ? fmtMese(mese) : fmtSettimana(lunedi)}
+          {#if caricamento}<span class="ml-1 text-sm font-bold text-slate-500">caricamento…</span>{/if}
+        </h2>
         {#if linkExport}
-          <a href={linkExport} class="club-btn px-3 py-2 text-sm" download title="Riepilogo giorno per giorno del periodo mostrato">
+          <a href={linkExport} class="club-btn hidden px-3 py-2 text-sm md:inline-block" download title="Riepilogo giorno per giorno del periodo mostrato">
             Esporta CSV
           </a>
         {/if}
 
-        <div class="ml-auto flex flex-wrap items-center gap-3">
-          <label class="flex items-center gap-2 text-sm font-black uppercase">
+        <div class="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto sm:gap-3">
+          <label class="flex items-center gap-1.5 text-xs font-black uppercase sm:gap-2 sm:text-sm">
             Maestro
-            <select class="border-2 border-black px-2 py-1 text-base font-bold normal-case" bind:value={staffId}>
+            <select class="border-2 border-black px-2 py-1 text-sm font-bold normal-case sm:text-base" bind:value={staffId}>
               {#each attivi as s (s.id)}
                 <option value={s.id}>{s.nome}{s.sono_io ? ' (io)' : ''}</option>
               {/each}
             </select>
           </label>
-          <label class="flex items-center gap-2 text-sm font-black uppercase">
+          <label class="flex items-center gap-1.5 text-xs font-black uppercase sm:gap-2 sm:text-sm">
             Club
-            <select class="border-2 border-black px-2 py-1 text-base font-bold normal-case" bind:value={club}>
+            <select class="border-2 border-black px-2 py-1 text-sm font-bold normal-case sm:text-base" bind:value={club}>
               <option value={null}>Tutti</option>
               {#each Object.entries(CLUB) as [k, v] (k)}<option value={k}>{v}</option>{/each}
             </select>
@@ -393,23 +403,23 @@
         </div>
       </div>
 
-      <div class="mb-4 flex flex-wrap gap-2 text-xs font-black">
-        {#each [['lavorato', 'Lavorato da calendario'], ['extra', 'Ore extra / sostituzioni fatte'], ['assente', 'Assente'], ['verifica', 'Da verificare']] as [chiave, etichetta] (chiave)}
-          <span class="inline-flex items-center gap-1 border-2 border-black bg-white px-2 py-1">
+      <div class="mb-3 flex flex-wrap gap-1 text-[10px] font-black sm:mb-4 sm:gap-2 sm:text-xs">
+        {#each [['lavorato', 'Lavorato'], ['extra', 'Extra / sostituzioni fatte'], ['assente', 'Assente'], ['verifica', 'Da verificare']] as [chiave, etichetta] (chiave)}
+          <span class="inline-flex items-center gap-1 border-2 border-black bg-white px-1.5 py-0.5 sm:px-2 sm:py-1">
             <span class="h-3 w-3 border border-black" style={`background:${COLORI[chiave as keyof typeof COLORI]}`}></span>
             {etichetta}
           </span>
         {/each}
         {#if conColleghi && vista === 'settimana'}
-          <span class="inline-flex items-center gap-1 border-2 border-dashed border-black bg-white px-2 py-1">
+          <span class="inline-flex items-center gap-1 border-2 border-dashed border-black bg-white px-1.5 py-0.5 sm:px-2 sm:py-1">
             <span class="h-3 w-3 border border-dashed border-black" style={`background:${COLORI.collega}`}></span>
-            Turni dei colleghi
+            Colleghi
           </span>
         {/if}
       </div>
 
       {#if vista === 'mese'}
-        <p class="mb-3 text-sm font-medium text-slate-600">Clic su un giorno per aprirne la settimana.</p>
+        <p class="mb-3 text-sm font-medium text-slate-600">Tocca un giorno per aprirne la settimana.</p>
         <MonthGrid
           {mese}
           giorni={correnti?.giorni ?? []}
@@ -419,11 +429,26 @@
           }}
         />
       {:else}
-      <p class="mb-3 text-sm font-medium text-slate-600">
+      <p class="mb-3 hidden text-sm font-medium text-slate-600 md:block">
         Clic su un turno: assenza o sostituzione per tutto il turno; trascina dentro il turno per una parte sola.
         Le maniglie sopra e sotto accorciano o allungano. Clic o trascinamento su celle vuote: ore extra.
       </p>
+      <p class="mb-3 text-sm font-medium text-slate-600 md:hidden">
+        Tocca un turno per segnare un'assenza o una sostituzione (anche solo di una parte), "+" per aggiungere ore.
+      </p>
 
+      <div class="md:hidden">
+        <WeekAgenda
+          {colonne}
+          {blocchi}
+          secondario={(b) => b.segmento.tipo.startsWith('collega')}
+          sottotitolo={(b) => b.sottotitolo}
+          onBlocco={(b) => apriDaBlocco(b)}
+          onAggiungi={aggiungiNelGiorno}
+        />
+      </div>
+
+      <div class="hidden md:block">
       <WeekGrid
         {colonne}
         {blocchi}
@@ -441,11 +466,16 @@
           {#if b.sottotitolo}<p class="ol-nota">{b.sottotitolo}</p>{/if}
         {/snippet}
       </WeekGrid>
+      </div>
+      {/if}
+
+      {#if linkExport}
+        <a href={linkExport} class="club-btn mt-4 block py-2 text-center text-sm md:hidden" download>Esporta CSV del periodo</a>
       {/if}
     </section>
 
     <div class="space-y-5">
-      <section class="club-card bg-white p-5">
+      <section class="club-card bg-white p-4 sm:p-5">
         <h2 class="mb-1 text-2xl font-black">{vista === 'mese' ? 'Mese' : 'Settimana'}</h2>
         <p class="mb-4 text-sm font-bold text-slate-600">
           {selezionato?.nome ?? ''}{club ? ` · ${CLUB[club]}` : ''}
