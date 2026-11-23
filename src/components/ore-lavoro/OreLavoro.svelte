@@ -5,9 +5,12 @@
   import WeekGrid, { type BloccoGriglia } from '../shared/WeekGrid.svelte';
   import StaffPanel from './StaffPanel.svelte';
   import OrarioPanel from './OrarioPanel.svelte';
+  import MonthGrid from './MonthGrid.svelte';
+  import Riepilogo from './Riepilogo.svelte';
   import EccezioneModal, { type ProspettoEccezione } from './EccezioneModal.svelte';
   import {
-    GIORNI_BREVI, addGiorni, fmtDurata, fmtFascia, fmtGiornoMese, fmtSettimana, giorniSettimana, lunediDi, minutiToTime, oggiRoma,
+    GIORNI_BREVI, addGiorni, addMesi, fmtDurata, fmtFascia, fmtGiornoMese, fmtMese, fmtSettimana, giorniSettimana, lunediDi,
+    minutiToTime, oggiRoma, primoDelMese, ultimoDelMese,
   } from '../../lib/time-grid';
   import { segmentiPeriodo, type Segmento } from '../../lib/ore-lavoro/segmenti';
   import { ATTIVITA, CLUB, COLORI, type Club, type DatiPeriodo, type Eccezione, type Staff } from '../../lib/ore-lavoro/types';
@@ -17,16 +20,26 @@
     staffSelezionatoIniziale: string | null;
     settimanaIniziale: string;
     clubIniziale?: Club | null;
+    vistaIniziale?: 'settimana' | 'mese';
     datiIniziali: DatiPeriodo | null;
     erroreIniziale?: string;
   }
 
-  let { staffIniziale, staffSelezionatoIniziale, settimanaIniziale, clubIniziale = null, datiIniziali, erroreIniziale = '' }: Props =
-    $props();
+  let {
+    staffIniziale,
+    staffSelezionatoIniziale,
+    settimanaIniziale,
+    clubIniziale = null,
+    vistaIniziale = 'settimana',
+    datiIniziali,
+    erroreIniziale = '',
+  }: Props = $props();
 
   let staff = $state(staffIniziale);
   let staffId = $state(staffSelezionatoIniziale);
   let lunedi = $state(lunediDi(settimanaIniziale));
+  let vista: 'settimana' | 'mese' = $state(vistaIniziale);
+  let mese = $state(primoDelMese(settimanaIniziale));
   let club: Club | null = $state(clubIniziale);
   let conColleghi = $state(true);
   let dati: DatiPeriodo | null = $state(datiIniziali);
@@ -48,7 +61,12 @@
   const selezionato = $derived(staff.find((s) => s.id === staffId) ?? null);
   // Dati validi solo se sono proprio della settimana, del maestro e del club
   // mostrati (durante un caricamento o dopo un errore non si mostrano quelli vecchi).
-  const correnti = $derived(dati && dati.staff_id === staffId && dati.dal === lunedi && dati.club === club ? dati : null);
+  const periodo = $derived(
+    vista === 'mese' ? { dal: mese, al: ultimoDelMese(mese) } : { dal: lunedi, al: addGiorni(lunedi, 6) },
+  );
+  const correnti = $derived(
+    dati && dati.staff_id === staffId && dati.dal === periodo.dal && dati.al === periodo.al && dati.club === club ? dati : null,
+  );
   const giornoOre = $derived(new Map((correnti?.giorni ?? []).map((g) => [g.data, g])));
   const totale = $derived(correnti?.riepiloghi[0] ?? null);
 
@@ -65,7 +83,8 @@
   async function carica() {
     if (!staffId) return;
     const id = ++richiesta;
-    const params = new URLSearchParams({ staff: staffId, dal: lunedi, al: addGiorni(lunedi, 6) });
+    const params = new URLSearchParams({ staff: staffId, dal: periodo.dal, al: periodo.al });
+    if (vista === 'mese') params.set('raggruppa', 'month');
     if (club) params.set('club', club);
     caricamento = true;
     try {
@@ -81,12 +100,14 @@
   }
 
   $effect(() => {
-    // Ricarica quando cambiano maestro, settimana o club (non al primo giro,
+    // Ricarica quando cambiano maestro, periodo o club (non al primo giro,
     // se il server ha già fornito quei dati) e aggiorna l'URL.
-    const chiave = `${staffId}|${lunedi}|${club}`;
-    if (!(dati && `${dati.staff_id}|${dati.dal}|${dati.club}` === chiave)) carica();
+    const chiave = `${staffId}|${periodo.dal}|${periodo.al}|${club}`;
+    if (!(dati && `${dati.staff_id}|${dati.dal}|${dati.al}|${dati.club}` === chiave)) carica();
     const url = new URL(window.location.href);
-    url.searchParams.set('settimana', lunedi);
+    url.searchParams.set('settimana', vista === 'mese' ? mese : lunedi);
+    if (vista === 'mese') url.searchParams.set('vista', 'mese');
+    else url.searchParams.delete('vista');
     if (staffId) url.searchParams.set('staff', staffId);
     if (club) url.searchParams.set('club', club);
     else url.searchParams.delete('club');
@@ -103,7 +124,7 @@
   }
 
   const blocchi: Blocco[] = $derived.by(() => {
-    if (!correnti || !staffId) return [];
+    if (!correnti || !staffId || vista !== 'settimana') return [];
     return segmentiPeriodo(staffId, correnti.previsti, correnti.eccezioni, conColleghi).map((s) => {
       const e = s.eccezione;
       const daVerificare = giornoOre.get(s.data)?.da_verificare ?? false;
@@ -271,6 +292,36 @@
   }
 
   const ridimensionabile = (b: Blocco) => ['lavorato', 'assente', 'extra'].includes(b.segmento.tipo);
+
+  // --- Navigazione -----------------------------------------------------------
+
+  function sposta(passi: number) {
+    if (vista === 'mese') mese = addMesi(mese, passi);
+    else lunedi = addGiorni(lunedi, 7 * passi);
+  }
+
+  function vaiAOggi() {
+    lunedi = lunediDi(oggiRoma());
+    mese = primoDelMese(oggiRoma());
+  }
+
+  function mostra(v: 'settimana' | 'mese') {
+    // Passando da una vista all'altra si resta sullo stesso periodo: la
+    // settimana mostrata resta quella se cade nel mese, se no la prima del mese.
+    if (v === 'mese') mese = primoDelMese(lunedi);
+    else if (vista === 'mese' && primoDelMese(lunedi) !== mese && primoDelMese(addGiorni(lunedi, 6)) !== mese) {
+      lunedi = lunediDi(mese);
+    }
+    vista = v;
+  }
+
+  /** Etichetta di una settimana dentro il mese: "1–6/9", "28/9–4/10" tagliata al mese. */
+  function etichettaSettimana(inizio: string) {
+    const a = inizio < periodo.dal ? periodo.dal : inizio;
+    const fine = addGiorni(inizio, 6);
+    const b = fine > periodo.al ? periodo.al : fine;
+    return `${fmtGiornoMese(a)}–${fmtGiornoMese(b)}`;
+  }
 </script>
 
 {#if errore}
@@ -290,12 +341,18 @@
   <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
     <section class="club-card bg-white p-5">
       <div class="mb-4 flex flex-wrap items-center gap-3">
-        <div class="flex gap-2">
-          <button type="button" class="club-btn px-3 py-2" aria-label="Settimana precedente" onclick={() => (lunedi = addGiorni(lunedi, -7))}>‹</button>
-          <button type="button" class="club-btn px-3 py-2" onclick={() => (lunedi = lunediDi(oggiRoma()))}>Oggi</button>
-          <button type="button" class="club-btn px-3 py-2" aria-label="Settimana successiva" onclick={() => (lunedi = addGiorni(lunedi, 7))}>›</button>
+        <div class="flex border-2 border-black text-xs font-black uppercase">
+          <button type="button" class="px-3 py-2" class:bg-black={vista === 'settimana'} class:text-white={vista === 'settimana'}
+            onclick={() => mostra('settimana')}>Settimana</button>
+          <button type="button" class="border-l-2 border-black px-3 py-2" class:bg-black={vista === 'mese'} class:text-white={vista === 'mese'}
+            onclick={() => mostra('mese')}>Mese</button>
         </div>
-        <h2 class="text-2xl font-black">{fmtSettimana(lunedi)}</h2>
+        <div class="flex gap-2">
+          <button type="button" class="club-btn px-3 py-2" aria-label={vista === 'mese' ? 'Mese precedente' : 'Settimana precedente'} onclick={() => sposta(-1)}>‹</button>
+          <button type="button" class="club-btn px-3 py-2" onclick={vaiAOggi}>Oggi</button>
+          <button type="button" class="club-btn px-3 py-2" aria-label={vista === 'mese' ? 'Mese successivo' : 'Settimana successiva'} onclick={() => sposta(1)}>›</button>
+        </div>
+        <h2 class="text-2xl font-black first-letter:uppercase">{vista === 'mese' ? fmtMese(mese) : fmtSettimana(lunedi)}</h2>
         {#if caricamento}<span class="text-sm font-bold text-slate-500">caricamento…</span>{/if}
 
         <div class="ml-auto flex flex-wrap items-center gap-3">
@@ -314,10 +371,12 @@
               {#each Object.entries(CLUB) as [k, v] (k)}<option value={k}>{v}</option>{/each}
             </select>
           </label>
-          <label class="flex items-center gap-1 text-sm font-bold">
-            <input type="checkbox" bind:checked={conColleghi} />
-            colleghi
-          </label>
+          {#if vista === 'settimana'}
+            <label class="flex items-center gap-1 text-sm font-bold">
+              <input type="checkbox" bind:checked={conColleghi} />
+              colleghi
+            </label>
+          {/if}
         </div>
       </div>
 
@@ -328,7 +387,7 @@
             {etichetta}
           </span>
         {/each}
-        {#if conColleghi}
+        {#if conColleghi && vista === 'settimana'}
           <span class="inline-flex items-center gap-1 border-2 border-dashed border-black bg-white px-2 py-1">
             <span class="h-3 w-3 border border-dashed border-black" style={`background:${COLORI.collega}`}></span>
             Turni dei colleghi
@@ -336,6 +395,17 @@
         {/if}
       </div>
 
+      {#if vista === 'mese'}
+        <p class="mb-3 text-sm font-medium text-slate-600">Clic su un giorno per aprirne la settimana.</p>
+        <MonthGrid
+          {mese}
+          giorni={correnti?.giorni ?? []}
+          onGiorno={(data) => {
+            lunedi = lunediDi(data);
+            vista = 'settimana';
+          }}
+        />
+      {:else}
       <p class="mb-3 text-sm font-medium text-slate-600">
         Clic su un turno: assenza o sostituzione per tutto il turno; trascina dentro il turno per una parte sola.
         Le maniglie sopra e sotto accorciano o allungano. Clic o trascinamento su celle vuote: ore extra.
@@ -358,36 +428,56 @@
           {#if b.sottotitolo}<p class="ol-nota">{b.sottotitolo}</p>{/if}
         {/snippet}
       </WeekGrid>
+      {/if}
     </section>
 
     <div class="space-y-5">
       <section class="club-card bg-white p-5">
-        <h2 class="mb-1 text-2xl font-black">Settimana</h2>
-        <p class="mb-4 text-sm font-bold text-slate-600">{selezionato?.nome ?? ''}</p>
+        <h2 class="mb-1 text-2xl font-black">{vista === 'mese' ? 'Mese' : 'Settimana'}</h2>
+        <p class="mb-4 text-sm font-bold text-slate-600">
+          {selezionato?.nome ?? ''}{club ? ` · ${CLUB[club]}` : ''}
+        </p>
 
         {#if totale}
-          <dl class="space-y-1 font-bold">
-            <div class="ol-riga"><dt>Previste</dt><span class="ol-dots"></span><dd>{fmtDurata(totale.minuti_previsti)}</dd></div>
-            <div class="ol-riga text-lg font-black"><dt>Lavorate</dt><span class="ol-dots"></span><dd>{fmtDurata(totale.minuti_lavorati)}</dd></div>
-            <div class="ol-riga"><dt>Sostituzioni ed extra fatte</dt><span class="ol-dots"></span><dd>{fmtDurata(totale.minuti_sostituzioni)}</dd></div>
-            <div class="ol-riga"><dt>Sostituito</dt><span class="ol-dots"></span><dd>{fmtDurata(totale.minuti_sostituito)}</dd></div>
-            {#each totale.sostituito_da as s (s.sostituto_id)}
-              <div class="ol-riga pl-4 text-sm text-slate-600"><dt>da {s.sostituto}</dt><span class="ol-dots"></span><dd>{fmtDurata(s.minuti)}</dd></div>
-            {/each}
-            <div class="ol-riga"><dt>Assente senza sostituto</dt><span class="ol-dots"></span><dd>{fmtDurata(totale.minuti_assente_senza_sostituto)}</dd></div>
-            <div class="ol-riga border-t-2 border-black pt-1 font-black">
-              <dt>Differenza</dt><span class="ol-dots"></span><dd>{fmtDurata(totale.minuti_differenza, true)}</dd>
-            </div>
-            {#if totale.giorni_da_verificare}
-              <p class="pt-2 text-sm font-black" style={`color:#0369a1`}>
-                {totale.giorni_da_verificare} {totale.giorni_da_verificare === 1 ? 'giorno' : 'giorni'} da verificare
-              </p>
-            {/if}
-          </dl>
+          <Riepilogo {totale} />
         {:else}
           <p class="font-bold text-slate-500">{caricamento ? 'Caricamento…' : 'Dati non disponibili.'}</p>
         {/if}
       </section>
+
+      {#if vista === 'mese' && correnti?.settimane?.length}
+        <section class="club-card bg-white p-5">
+          <h2 class="mb-3 text-2xl font-black">Settimane</h2>
+          <table class="w-full text-sm font-bold">
+            <thead>
+              <tr class="border-b-2 border-black text-left text-xs uppercase text-slate-600">
+                <th class="py-1">Settimana</th>
+                <th class="py-1 text-right" title="Previste">Prev.</th>
+                <th class="py-1 text-right" title="Lavorate">Lav.</th>
+                <th class="py-1 text-right" title="Sostituzioni ed extra fatte">Sost.</th>
+                <th class="py-1 text-right" title="Sostituito o assente">Ass.</th>
+                <th class="py-1 text-right" title="Differenza">Diff.</th>
+              </tr>
+            </thead>
+            <tbody>
+              {#each correnti.settimane as s (s.periodo_inizio)}
+                <tr class="border-b border-black/20">
+                  <td class="py-1">
+                    <button type="button" class="underline" onclick={() => { lunedi = s.periodo_inizio; vista = 'settimana'; }}>
+                      {etichettaSettimana(s.periodo_inizio)}
+                    </button>
+                  </td>
+                  <td class="py-1 text-right">{fmtDurata(s.minuti_previsti)}</td>
+                  <td class="py-1 text-right font-black">{fmtDurata(s.minuti_lavorati)}</td>
+                  <td class="py-1 text-right">{fmtDurata(s.minuti_sostituzioni)}</td>
+                  <td class="py-1 text-right">{fmtDurata(s.minuti_assenza)}</td>
+                  <td class="py-1 text-right">{fmtDurata(s.minuti_differenza, true)}</td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </section>
+      {/if}
 
       {#if selezionato}
         <OrarioPanel staffId={selezionato.id} nome={selezionato.nome} {versione} onChanged={aggiorna} onErrore={flashErrore} />
@@ -420,21 +510,5 @@
     font-weight: 600;
     line-height: 1.2;
     opacity: 0.85;
-  }
-
-  .ol-riga {
-    display: flex;
-    align-items: baseline;
-    gap: 0.35rem;
-  }
-
-  .ol-dots {
-    flex: 1;
-    min-width: 0.5rem;
-    border-bottom: 2px dotted rgba(0, 0, 0, 0.35);
-  }
-
-  dd {
-    white-space: nowrap;
   }
 </style>

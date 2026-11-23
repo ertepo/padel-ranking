@@ -82,6 +82,10 @@ export interface GiornoOre {
   minuti_differenza: number;
   da_verificare: boolean;
   nota_giorno: string | null;
+  /** Chi l'ha sostituito quel giorno e per quanti minuti (dentro i suoi turni). */
+  sostituito_da: { sostituto_id: string | null; sostituto: string | null; minuti: number }[];
+  /** Chi ha sostituito lui (assente null = ore extra), minuti della fascia. */
+  sostituzioni: { assente_id: string | null; assente: string | null; minuti: number }[];
 }
 
 export interface RiepilogoOre {
@@ -111,6 +115,8 @@ export interface DatiPeriodo {
   giorni: GiornoOre[];
   /** Totali per settimana o per mese, calcolati in SQL (work_hours_summary). */
   riepiloghi: RiepilogoOre[];
+  /** Solo raggruppando per mese: anche i totali delle settimane del periodo. */
+  settimane?: RiepilogoOre[];
 }
 
 export const COLORI = {

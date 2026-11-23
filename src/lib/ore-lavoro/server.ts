@@ -69,14 +69,17 @@ export async function caricaPeriodo(
     .order('ora_inizio');
   if (club) queryEccezioni = queryEccezioni.eq('club', club);
 
-  const [previsti, eccezioni, giorni, riepiloghi] = await Promise.all([
+  const [previsti, eccezioni, giorni, riepiloghi, settimane] = await Promise.all([
     supabase.rpc('work_planned_intervals', { p_staff: null, p_dal: dal, p_al: al, p_club: club }),
     queryEccezioni,
     supabase.rpc('work_hours_daily', { p_staff: staffId, p_dal: dal, p_al: al, p_club: club }),
     supabase.rpc('work_hours_summary', { p_staff: staffId, p_dal: dal, p_al: al, p_periodo: raggruppa, p_club: club }),
+    raggruppa === 'month'
+      ? supabase.rpc('work_hours_summary', { p_staff: staffId, p_dal: dal, p_al: al, p_periodo: 'week', p_club: club })
+      : Promise.resolve({ data: null, error: null }),
   ]);
 
-  for (const r of [previsti, eccezioni, giorni, riepiloghi]) {
+  for (const r of [previsti, eccezioni, giorni, riepiloghi, settimane]) {
     if (r.error) throw new Error(r.error.message);
   }
 
@@ -100,8 +103,15 @@ export async function caricaPeriodo(
       minuti_differenza: g.minuti_differenza,
       da_verificare: g.da_verificare,
       nota_giorno: g.nota_giorno,
+      sostituito_da: ((g.sostituito_da ?? []) as GiornoOre['sostituito_da']).map(({ sostituto_id, sostituto, minuti }) => ({
+        sostituto_id, sostituto, minuti,
+      })),
+      sostituzioni: ((g.sostituzioni ?? []) as GiornoOre['sostituzioni']).map(({ assente_id, assente, minuti }) => ({
+        assente_id, assente, minuti,
+      })),
     })),
     riepiloghi: (riepiloghi.data ?? []) as RiepilogoOre[],
+    settimane: raggruppa === 'month' ? ((settimane.data ?? []) as RiepilogoOre[]) : undefined,
   };
 }
 
