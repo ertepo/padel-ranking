@@ -7,6 +7,7 @@
   import OrarioPanel from './OrarioPanel.svelte';
   import MonthGrid from './MonthGrid.svelte';
   import Riepilogo from './Riepilogo.svelte';
+  import ImportPanel from './ImportPanel.svelte';
   import EccezioneModal, { type ProspettoEccezione } from './EccezioneModal.svelte';
   import {
     GIORNI_BREVI, addGiorni, addMesi, fmtDurata, fmtFascia, fmtGiornoMese, fmtMese, fmtSettimana, giorniSettimana, lunediDi,
@@ -291,6 +292,13 @@
     else if (fine > b.fine) prospetto = { ...nuovaExtra(s.data, b.fine, fine), club: s.club, attivita: s.attivita, ricorrente };
   }
 
+  const linkExport = $derived.by(() => {
+    if (!staffId) return '';
+    const params = new URLSearchParams({ staff: staffId, dal: periodo.dal, al: periodo.al });
+    if (club) params.set('club', club);
+    return `/api/ore-lavoro/export?${params}`;
+  });
+
   const ridimensionabile = (b: Blocco) => ['lavorato', 'assente', 'extra'].includes(b.segmento.tipo);
 
   // --- Navigazione -----------------------------------------------------------
@@ -354,6 +362,11 @@
         </div>
         <h2 class="text-2xl font-black first-letter:uppercase">{vista === 'mese' ? fmtMese(mese) : fmtSettimana(lunedi)}</h2>
         {#if caricamento}<span class="text-sm font-bold text-slate-500">caricamento…</span>{/if}
+        {#if linkExport}
+          <a href={linkExport} class="club-btn px-3 py-2 text-sm" download title="Riepilogo giorno per giorno del periodo mostrato">
+            Esporta CSV
+          </a>
+        {/if}
 
         <div class="ml-auto flex flex-wrap items-center gap-3">
           <label class="flex items-center gap-2 text-sm font-black uppercase">
@@ -481,6 +494,10 @@
 
       {#if selezionato}
         <OrarioPanel staffId={selezionato.id} nome={selezionato.nome} {versione} onChanged={aggiorna} onErrore={flashErrore} />
+      {/if}
+
+      {#if selezionato}
+        <ImportPanel {staff} persona={selezionato} onImported={aggiorna} onErrore={flashErrore} />
       {/if}
 
       <StaffPanel {staff} onChange={(s) => (staff = s)} onErrore={flashErrore} />
