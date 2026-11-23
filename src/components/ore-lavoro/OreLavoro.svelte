@@ -49,6 +49,34 @@
   let errore = $state(erroreIniziale);
   let erroreTimer: ReturnType<typeof setTimeout> | undefined;
   let prospetto: ProspettoEccezione | null = $state(null);
+  // Su telefono la settimana si può vedere come agenda o come griglia: la
+  // scelta resta nel browser (solo una comodità, se manca si parte dall'agenda).
+  const CHIAVE_VISTA_MOBILE = 'ore-lavoro:vista-mobile';
+  let vistaMobile: 'agenda' | 'griglia' = $state('agenda');
+  let stretto = $state(false);
+
+  $effect(() => {
+    try {
+      if (localStorage.getItem(CHIAVE_VISTA_MOBILE) === 'griglia') vistaMobile = 'griglia';
+    } catch {
+      /* archiviazione non disponibile */
+    }
+    const mq = window.matchMedia('(max-width: 767px)');
+    const aggiorna = () => (stretto = mq.matches);
+    aggiorna();
+    mq.addEventListener('change', aggiorna);
+    return () => mq.removeEventListener('change', aggiorna);
+  });
+
+  function scegliVistaMobile(v: 'agenda' | 'griglia') {
+    vistaMobile = v;
+    try {
+      localStorage.setItem(CHIAVE_VISTA_MOBILE, v);
+    } catch {
+      /* archiviazione non disponibile */
+    }
+  }
+
   /** Cresce a ogni salvataggio, per far ricaricare il riquadro dell'orario. */
   let versione = $state(0);
 
@@ -355,8 +383,8 @@
   </section>
 {:else}
   <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-    <section class="club-card bg-white p-3 sm:p-5">
-      <div class="mb-3 flex flex-wrap items-center gap-2 sm:mb-4 sm:gap-3">
+    <section class="ol-cal club-card bg-white px-2 py-3 sm:p-5">
+      <div class="mb-3 flex flex-wrap items-center gap-2 px-1 sm:mb-4 sm:gap-3 sm:px-0">
         <div class="flex border-2 border-black text-xs font-black uppercase">
           <button type="button" class="px-3 py-2" class:bg-black={vista === 'settimana'} class:text-white={vista === 'settimana'}
             onclick={() => mostra('settimana')}>Settimana</button>
@@ -433,11 +461,19 @@
         Clic su un turno: assenza o sostituzione per tutto il turno; trascina dentro il turno per una parte sola.
         Le maniglie sopra e sotto accorciano o allungano. Clic o trascinamento su celle vuote: ore extra.
       </p>
-      <p class="mb-3 text-sm font-medium text-slate-600 md:hidden">
-        Tocca un turno per segnare un'assenza o una sostituzione (anche solo di una parte), "+" per aggiungere ore.
-      </p>
+      <div class="mb-3 flex items-center gap-3 px-1 md:hidden">
+        <div class="flex border-2 border-black text-xs font-black uppercase">
+          <button type="button" class="px-3 py-1.5" class:bg-black={vistaMobile === 'agenda'} class:text-white={vistaMobile === 'agenda'}
+            onclick={() => scegliVistaMobile('agenda')}>Agenda</button>
+          <button type="button" class="border-l-2 border-black px-3 py-1.5" class:bg-black={vistaMobile === 'griglia'}
+            class:text-white={vistaMobile === 'griglia'} onclick={() => scegliVistaMobile('griglia')}>Griglia</button>
+        </div>
+        <p class="text-xs font-medium leading-snug text-slate-600">
+          {vistaMobile === 'agenda' ? 'Tocca un turno, o "+" per aggiungere ore.' : 'Tocca un turno o una cella vuota.'}
+        </p>
+      </div>
 
-      <div class="md:hidden">
+      <div class={vistaMobile === 'agenda' ? 'md:hidden' : 'hidden'}>
         <WeekAgenda
           {colonne}
           {blocchi}
@@ -448,10 +484,13 @@
         />
       </div>
 
-      <div class="hidden md:block">
+      <div class={vistaMobile === 'griglia' ? '' : 'hidden md:block'}>
       <WeekGrid
         {colonne}
         {blocchi}
+        nascondiGiorniVuoti
+        stretta={stretto}
+        timeColPx={stretto ? 34 : 52}
         slotPx={32}
         limiteInizio={8 * 60}
         minimoVisibile={{ inizio: 15 * 60, fine: 22 * 60 }}
@@ -551,6 +590,18 @@
 {/if}
 
 <style>
+  /* Su telefono il calendario va da bordo a bordo: niente ombra né bordi
+     laterali, e recupera il margine della pagina. */
+  @media (max-width: 767px) {
+    .ol-cal {
+      box-shadow: none;
+      border-left-width: 0;
+      border-right-width: 0;
+      margin-left: -1rem;
+      margin-right: -1rem;
+    }
+  }
+
   .ol-nota {
     margin-top: 0.1rem;
     font-size: 0.6rem;

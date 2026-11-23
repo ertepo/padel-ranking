@@ -51,6 +51,10 @@
     onSelezione?: (colonna: number, inizio: number, fine: number, blocco: T | null) => void;
     onResize?: (blocco: T, inizio: number, fine: number) => void;
     ridimensionabile?: (blocco: T) => boolean;
+    /** Nasconde i giorni senza blocchi (come le ore esterne), con un link per mostrarli. */
+    nascondiGiorniVuoti?: boolean;
+    /** Versione compatta per schermi stretti: testi più piccoli. */
+    stretta?: boolean;
     blocco?: Snippet<[T]>;
     gridEl?: HTMLDivElement;
   }
@@ -71,11 +75,24 @@
     onSelezione,
     onResize,
     ridimensionabile,
+    nascondiGiorniVuoti = false,
+    stretta = false,
     blocco,
     gridEl = $bindable(),
   }: Props = $props();
 
   let mostraTutto = $state(false);
+  let mostraTuttiGiorni = $state(false);
+
+  // Colonne mostrate (con il loro indice originale) e posizione nella griglia.
+  const tutte = $derived(colonne.map((c, i) => ({ c, i })));
+  const usate = $derived(new Set(blocchi.map((b) => b.colonna)));
+  const giorniNascosti = $derived(nascondiGiorniVuoti ? tutte.filter(({ i }) => !usate.has(i)).length : 0);
+  const colonneMostrate = $derived(
+    !nascondiGiorniVuoti || mostraTuttiGiorni || giorniNascosti === tutte.length ? tutte : tutte.filter(({ i }) => usate.has(i)),
+  );
+  const posizione = $derived(new Map(colonneMostrate.map(({ i }, pos) => [i, pos])));
+  const gc = (colonna: number) => (posizione.get(colonna) ?? 0) + 2;
 
   const fascia = $derived(
     mostraTutto ? { inizio: limiteInizio, fine: limiteFine } : fasciaVisibile(blocchi, limiteInizio, limiteFine, minimoVisibile),
@@ -83,7 +100,9 @@
   const nSlot = $derived(Math.round((fascia.fine - fascia.inizio) / slotMin));
   const slots = $derived(Array.from({ length: nSlot }, (_, i) => fascia.inizio + i * slotMin));
   const ore = $derived(slots.filter((m) => m % 60 === 0));
-  const visibili = $derived(blocchi.filter((b) => b.fine > fascia.inizio && b.inizio < fascia.fine));
+  const visibili = $derived(
+    blocchi.filter((b) => b.fine > fascia.inizio && b.inizio < fascia.fine && posizione.has(b.colonna)),
+  );
   const corsie = $derived(assegnaCorsie(visibili));
   const cliccabile = $derived(Boolean(onSelezione || onCellClick));
 
@@ -195,7 +214,7 @@
     const colore = b.colore || '#94a3b8';
     const larghezza = `calc((100% - 4px) / ${n})`;
     return [
-      `grid-column:${b.colonna + 2}`,
+      `grid-column:${gc(b.colonna)}`,
       `grid-row:${inizio} / span ${Math.max(1, fine - inizio)}`,
       `background:${colore}`,
       n > 1 ? `width:${larghezza}; margin-left:calc(2px + ${larghezza} * ${corsia}); margin-right:0; justify-self:start` : '',
@@ -216,12 +235,13 @@
     bind:this={gridEl}
     class="wg-grid"
     class:wg-trascinando={interazione?.tipo === 'resize'}
-    style={`--time-col:${timeColPx}px; grid-template-columns: var(--time-col) repeat(${colonne.length}, minmax(0, 1fr)); grid-template-rows: auto repeat(${nSlot}, ${slotPx}px);`}
+    class:wg-stretta={stretta}
+    style={`--time-col:${timeColPx}px; grid-template-columns: var(--time-col) repeat(${colonneMostrate.length}, minmax(0, 1fr)); grid-template-rows: auto repeat(${nSlot}, ${slotPx}px);`}
   >
     <div class="wg-corner"></div>
 
-    {#each colonne as c, i (c.key)}
-      <div class="wg-day-header" class:wg-day-oggi={c.evidenziata} style={`grid-column:${i + 2}`}>
+    {#each colonneMostrate as { c, i } (c.key)}
+      <div class="wg-day-header" class:wg-day-oggi={c.evidenziata} style={`grid-column:${gc(i)}`}>
         <span>{c.label}</span>
         {#if c.sublabel}<span class="wg-day-sub">{c.sublabel}</span>{/if}
       </div>
@@ -231,7 +251,7 @@
       <div class="wg-time-label" style={`grid-row:${riga(m)} / span ${60 / slotMin}`}>{m / 60}:00</div>
     {/each}
 
-    {#each colonne as c, i (c.key)}
+    {#each colonneMostrate as { c, i } (c.key)}
       {#each slots as m (m)}
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div
@@ -239,7 +259,7 @@
           class:wg-cell-hour={m % 60 === 0}
           class:wg-cell-oggi={c.evidenziata}
           class:wg-cell-cliccabile={cliccabile}
-          style={`grid-column:${i + 2}; grid-row:${riga(m)}`}
+          style={`grid-column:${gc(i)}; grid-row:${riga(m)}`}
           onpointerdown={(e) => giuSuCella(e, i, m)}
         ></div>
       {/each}
@@ -272,13 +292,13 @@
 
     {#if interazione?.tipo === 'resize'}
       {@const r = interazione}
-      <div class="wg-resize-label" style={`grid-column:${r.blocco.colonna + 2}; grid-row:${riga(r.inizio)}`}>
+      <div class="wg-resize-label" style={`grid-column:${gc(r.blocco.colonna)}; grid-row:${riga(r.inizio)}`}>
         {fmtFascia(r.inizio, r.fine)}
       </div>
     {/if}
 
     {#if selezione}
-      <div class="wg-selezione" style={`grid-column:${selezione.colonna + 2}; grid-row:${riga(selezione.inizio)} / ${riga(selezione.fine)}`}>
+      <div class="wg-selezione" style={`grid-column:${gc(selezione.colonna)}; grid-row:${riga(selezione.inizio)} / ${riga(selezione.fine)}`}>
         <span>{fmtFascia(selezione.inizio, selezione.fine)}</span>
       </div>
     {/if}
@@ -286,10 +306,15 @@
 </div>
 
 {#if mostraToggle}
-  <div class="mt-2 text-center">
+  <div class="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-1">
     <button type="button" class="wg-toggle" onclick={() => (mostraTutto = !mostraTutto)}>
       {mostraTutto ? '− nascondi ore esterne' : '+ mostra tutte le ore'}
     </button>
+    {#if giorniNascosti && giorniNascosti < tutte.length}
+      <button type="button" class="wg-toggle" onclick={() => (mostraTuttiGiorni = !mostraTuttiGiorni)}>
+        {mostraTuttiGiorni ? '− nascondi giorni vuoti' : `+ mostra tutti i giorni (${giorniNascosti} vuot${giorniNascosti === 1 ? 'o' : 'i'})`}
+      </button>
+    {/if}
   </div>
 {/if}
 
@@ -501,6 +526,36 @@
     padding: 0.1rem 0.35rem;
     pointer-events: none;
     white-space: nowrap;
+  }
+
+  /* Schermi stretti: colonna delle ore e testi più piccoli. */
+  .wg-stretta .wg-time-label {
+    padding: 0.1rem 0.2rem;
+    font-size: 0.6rem;
+  }
+
+  .wg-stretta .wg-day-header {
+    padding: 0.3rem 0.1rem;
+    font-size: 0.65rem;
+  }
+
+  .wg-stretta .wg-day-sub {
+    font-size: 0.55rem;
+  }
+
+  .wg-stretta .wg-block {
+    padding: 0.15rem 0.2rem;
+    margin: 1px;
+    box-shadow: -2px 2px 0 rgba(0, 0, 0, 0.9);
+  }
+
+  .wg-stretta :global(.wg-block-title) {
+    font-size: 0.62rem;
+    line-height: 1.1;
+  }
+
+  .wg-stretta :global(.wg-block-time) {
+    font-size: 0.58rem;
   }
 
   .wg-toggle {
