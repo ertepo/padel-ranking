@@ -21,10 +21,15 @@
       staff_id: string;
       /** Turno esistente dell'orario (per modificarlo o toglierlo); assente = turno nuovo. */
       slot_id?: string;
+      /** Proposta di nuovi orari del turno (se non c'è una fascia da togliere). */
       inizio: number;
       fine: number;
       club: Club;
       attivita: Attivita;
+      /** Orari attuali del turno nell'orario (per mostrare prima e dopo). */
+      attuale?: { inizio: number; fine: number };
+      /** Fascia selezionata dentro il turno: da togliere dall'orario. */
+      togliere?: { inizio: number; fine: number };
     };
     /** Con quale scheda aprire il modale. */
     ambito?: 'giorno' | 'ricorrente';
@@ -37,6 +42,7 @@
   import Modal from '../shared/Modal.svelte';
   import { fmtData, fmtFascia, GIORNI, isoDow, minutiToTime, timeToMinuti } from '../../lib/time-grid';
   import { ATTIVITA, CLUB, type Staff } from '../../lib/ore-lavoro/types';
+  import { sottraiFasce } from '../../lib/ore-lavoro/segmenti';
 
   interface Props {
     staff: Staff[];
@@ -77,8 +83,14 @@
   const ric = p.ricorrente;
   let ambito: 'giorno' | 'ricorrente' = $state(ric && p.ambito === 'ricorrente' ? 'ricorrente' : 'giorno');
   let ricDal = $state(p.data);
-  let ricInizio = $state(minutiToTime(ric?.inizio ?? p.inizio));
-  let ricFine = $state(minutiToTime(ric?.fine ?? p.fine));
+  // Con una fascia selezionata dentro un turno esistente, "da qui in poi"
+  // toglie solo quella fascia: il turno si accorcia o si divide in due.
+  // (pezzi null = nessuna fascia da togliere; [] = la fascia copre tutto il turno.)
+  const pezzi = ric?.slot_id && ric.attuale && ric.togliere ? sottraiFasce([ric.attuale], [ric.togliere]) : null;
+  const proposta = pezzi?.length ? pezzi[0] : ric;
+  const secondoPezzo = pezzi?.length === 2 ? pezzi[1] : null;
+  let ricInizio = $state(minutiToTime(proposta?.inizio ?? p.inizio));
+  let ricFine = $state(minutiToTime(proposta?.fine ?? p.fine));
   let ricClub: Club = $state(ric?.club ?? p.club);
   let ricAttivita: Attivita = $state(ric?.attivita ?? p.attivita);
   const giornoRic = isoDow(p.data);
@@ -168,16 +180,30 @@
     if (!togli && (Number.isNaN(inizio) || Number.isNaN(fine) || fine <= inizio)) {
       return onErrore("L'ora di fine deve venire dopo quella di inizio.");
     }
-    if (togli && !confirm(`Togliere questo turno dall'orario di ${nomeDi(ric.staff_id)} dal ${fmtData(ricDal)} in poi?`)) return;
+    if (togli) {
+      const quale = ric.attuale ? ` ${fmtFascia(ric.attuale.inizio, ric.attuale.fine)}` : '';
+      const domanda = `Togliere TUTTO il turno del ${GIORNI[giornoRic - 1].toLowerCase()}${quale} dall'orario di ${nomeDi(ric.staff_id)}, dal ${fmtData(ricDal)} in poi?`;
+      if (!confirm(domanda)) return;
+    }
     const orari = { ora_inizio: minutiToTime(inizio), ora_fine: minutiToTime(fine), club: ricClub, attivita: ricAttivita };
-    const op = togli
-      ? { op: 'delete', slot_id: ric.slot_id }
+    const ops: Record<string, unknown>[] = togli
+      ? [{ op: 'delete', slot_id: ric.slot_id }]
       : ric.slot_id
-        ? { op: 'update', slot_id: ric.slot_id, ...orari }
-        : { op: 'add', giorno_settimana: giornoRic, ...orari };
+        ? [{ op: 'update', slot_id: ric.slot_id, ...orari }]
+        : [{ op: 'add', giorno_settimana: giornoRic, ...orari }];
+    if (!togli && ric.slot_id && secondoPezzo) {
+      ops.push({
+        op: 'add',
+        giorno_settimana: giornoRic,
+        ora_inizio: minutiToTime(secondoPezzo.inizio),
+        ora_fine: minutiToTime(secondoPezzo.fine),
+        club: ricClub,
+        attivita: ricAttivita,
+      });
+    }
     salvando = true;
     try {
-      await chiama('/api/ore-lavoro/orario', 'POST', { staff_id: ric.staff_id, dal: ricDal, ops: [op] });
+      await chiama('/api/ore-lavoro/orario', 'POST', { staff_id: ric.staff_id, dal: ricDal, ops });
       onSaved();
     } catch (err) {
       onErrore(err instanceof Error ? err.message : 'Errore nel salvataggio.');
@@ -224,10 +250,32 @@
   {/if}
 
   {#if ambito === 'ricorrente' && ric}
-    <p class="border-l-4 border-black pl-2 font-bold">
-      {ric.slot_id ? 'Cambia' : 'Aggiunge'} il turno del {GIORNI[giornoRic - 1].toLowerCase()} nell'orario di {nomeDi(ric.staff_id)},
-      dal {fmtData(ricDal)} in poi. I giorni precedenti restano come sono.
-    </p>
+    <div class="space-y-1 border-l-4 border-black pl-2 font-bold">
+      {#if ric.slot_id && ric.attuale}
+        <p>
+          Turno attuale del {GIORNI[giornoRic - 1].toLowerCase()} di {nomeDi(ric.staff_id)}:
+          <span class="whitespace-nowrap">{fmtFascia(ric.attuale.inizio, ric.attuale.fine)}</span>.
+        </p>
+        {#if ric.togliere && pezzi?.length}
+          <p>
+            Tolgo <span class="whitespace-nowrap bg-[var(--giallo-club)] px-1">{fmtFascia(ric.togliere.inizio, ric.togliere.fine)}</span>:
+            dal {fmtData(ricDal)} il turno diventa
+            {#if secondoPezzo}
+              quello qui sotto e <span class="whitespace-nowrap">{fmtFascia(secondoPezzo.inizio, secondoPezzo.fine)}</span>.
+            {:else}
+              quello qui sotto.
+            {/if}
+          </p>
+        {:else if ric.togliere}
+          <p>La fascia selezionata copre tutto il turno: per toglierlo usa "Togli tutto il turno".</p>
+        {:else}
+          <p>Dal {fmtData(ricDal)} il turno diventa quello qui sotto.</p>
+        {/if}
+      {:else}
+        <p>Aggiunge un turno del {GIORNI[giornoRic - 1].toLowerCase()} nell'orario di {nomeDi(ric.staff_id)}, dal {fmtData(ricDal)} in poi.</p>
+      {/if}
+      <p class="text-sm font-medium text-slate-600">I giorni precedenti restano come sono.</p>
+    </div>
 
     <div class="grid grid-cols-3 gap-3">
       <div>
@@ -362,7 +410,7 @@
     <button type="button" class="club-btn flex-1 py-3" onclick={onClose}>Annulla</button>
     {#if ambito === 'ricorrente' && ric}
       {#if ric.slot_id}
-        <button type="button" class="club-btn-red flex-1 py-3" disabled={salvando} onclick={() => salvaOrario(true)}>Togli</button>
+        <button type="button" class="club-btn-red flex-1 py-3" disabled={salvando} onclick={() => salvaOrario(true)}>Togli tutto il turno</button>
       {/if}
       <button type="button" class="club-btn-yellow flex-1 py-3" disabled={salvando} onclick={() => salvaOrario()}>
         {salvando ? 'Salvataggio…' : 'Salva orario'}

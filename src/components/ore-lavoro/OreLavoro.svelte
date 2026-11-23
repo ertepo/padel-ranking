@@ -188,7 +188,16 @@
       turno: s.turno ? { ...s.turno, staff_id: s.staff_id } : undefined,
       daTurno: mio,
       ricorrente: s.slot_id
-        ? { staff_id: s.staff_id, slot_id: s.slot_id, ...(turnoNuovo ?? turno), club: s.club, attivita: s.attivita }
+        ? {
+            staff_id: s.staff_id,
+            slot_id: s.slot_id,
+            ...(turnoNuovo ?? turno),
+            club: s.club,
+            attivita: s.attivita,
+            attuale: { inizio: turno.inizio, fine: turno.fine },
+            // Una fascia scelta dentro il turno (non tutto il turno) va tolta dall'orario.
+            togliere: !turnoNuovo && (inizio !== turno.inizio || fine !== turno.fine) ? { inizio, fine } : undefined,
+          }
         : undefined,
     };
   }
@@ -246,7 +255,14 @@
       fine: b.fine === turno.fine ? fine : turno.fine,
     };
     const ricorrente = s.slot_id
-      ? { staff_id: s.staff_id, slot_id: s.slot_id, ...turnoNuovo, club: s.club, attivita: s.attivita }
+      ? {
+          staff_id: s.staff_id,
+          slot_id: s.slot_id,
+          ...turnoNuovo,
+          club: s.club,
+          attivita: s.attivita,
+          attuale: { inizio: turno.inizio, fine: turno.fine },
+        }
       : undefined;
     if (inizio > b.inizio) prospetto = daTurno(s, b.inizio, inizio, turnoNuovo);
     else if (fine < b.fine) prospetto = daTurno(s, fine, b.fine, turnoNuovo);
