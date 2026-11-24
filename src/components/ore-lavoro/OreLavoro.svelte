@@ -11,7 +11,7 @@
   import WeekAgenda from './WeekAgenda.svelte';
   import EccezioneModal, { type ProspettoEccezione } from './EccezioneModal.svelte';
   import {
-    GIORNI_BREVI, addGiorni, addMesi, fmtDurata, fmtFascia, fmtGiornoMese, fmtMese, fmtSettimana, giorniSettimana, lunediDi,
+    GIORNI_BREVI, addGiorni, addMesi, fmtDurata, fmtFascia, fmtGiornoMese, fmtMese, fmtSettimana, fmtSettimanaBreve, giorniSettimana, lunediDi,
     minutiToTime, oggiRoma, primoDelMese, ultimoDelMese,
   } from '../../lib/time-grid';
   import { segmentiPeriodo, type Segmento } from '../../lib/ore-lavoro/segmenti';
@@ -439,7 +439,7 @@
 {:else}
   <div class={kiosk ? '' : 'grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]'}>
     <section class={kiosk ? 'bg-white' : 'ol-cal club-card bg-white px-2 py-3 sm:p-5'}>
-      <div class="mb-3 flex flex-wrap items-center gap-2 px-1 sm:mb-4 sm:gap-3 sm:px-0">
+      <div class="mb-3 flex flex-wrap items-center gap-2 px-1 sm:mb-4 sm:gap-3 sm:px-0" class:ol-kiosk-barra={kiosk}>
         {#if kiosk}
           <a href="/admin/ore-lavoro" class="club-btn px-3 py-2 text-sm" title="Pagina completa delle ore di lavoro">← Ore</a>
         {/if}
@@ -455,7 +455,7 @@
           <button type="button" class="club-btn px-3 py-1.5 sm:py-2" aria-label={vista === 'mese' ? 'Mese successivo' : 'Settimana successiva'} onclick={() => sposta(1)}>›</button>
         </div>
         <h2 class="w-full text-xl font-black first-letter:uppercase sm:w-auto sm:text-2xl">
-          {vista === 'mese' ? fmtMese(mese) : fmtSettimana(lunedi)}
+          {vista === 'mese' ? fmtMese(mese) : kiosk ? fmtSettimanaBreve(lunedi) : fmtSettimana(lunedi)}
           {#if caricamento}<span class="ml-1 text-sm font-bold text-slate-500">caricamento…</span>{/if}
         </h2>
         {#if linkExport && !kiosk}
@@ -464,9 +464,9 @@
           </a>
         {/if}
 
-        <div class="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto sm:gap-3">
+        <div class="flex w-full flex-wrap items-center gap-2 sm:ml-auto sm:w-auto sm:gap-3" class:ol-kiosk-destra={kiosk}>
           <label class="flex items-center gap-1.5 text-xs font-black uppercase sm:gap-2 sm:text-sm">
-            Maestro
+            <span class:sr-only={kiosk}>Maestro</span>
             <select class="border-2 border-black px-2 py-1 text-sm font-bold normal-case sm:text-base" bind:value={staffId}>
               {#each attivi as s (s.id)}
                 <option value={s.id}>{s.nome}{s.sono_io ? ' (io)' : ''}</option>
@@ -474,9 +474,9 @@
             </select>
           </label>
           <label class="flex items-center gap-1.5 text-xs font-black uppercase sm:gap-2 sm:text-sm">
-            Club
+            <span class:sr-only={kiosk}>Club</span>
             <select class="border-2 border-black px-2 py-1 text-sm font-bold normal-case sm:text-base" bind:value={club}>
-              <option value={null}>Tutti</option>
+              <option value={null}>{kiosk ? 'Tutti i club' : 'Tutti'}</option>
               {#each Object.entries(CLUB) as [k, v] (k)}<option value={k}>{v}</option>{/each}
             </select>
           </label>
@@ -488,13 +488,13 @@
           {/if}
           {#if kiosk}
             <button type="button" class="club-btn px-3 py-2 text-sm" onclick={alternaSchermoIntero}>
-              {schermoIntero ? 'Esci da schermo intero' : 'Schermo intero'}
+              {schermoIntero ? 'Esci' : 'Schermo intero'}
             </button>
           {/if}
         </div>
       </div>
 
-      <div class="mb-3 flex flex-wrap gap-1 text-[10px] font-black sm:mb-4 sm:gap-2 sm:text-xs">
+      <div class="mb-3 flex flex-wrap gap-1 text-[10px] font-black sm:mb-4 sm:gap-2 sm:text-xs" class:hidden={kiosk}>
         {#each [['lavorato', 'Lavorato'], ['extra', 'Extra / sostituzioni fatte'], ['assente', 'Assente'], ['verifica', 'Da verificare']] as [chiave, etichetta] (chiave)}
           <span class="inline-flex items-center gap-1 border-2 border-black bg-white px-1.5 py-0.5 sm:px-2 sm:py-1">
             <span class="h-3 w-3 border border-black" style={`background:${COLORI[chiave as keyof typeof COLORI]}`}></span>
@@ -665,6 +665,31 @@
       margin-left: -1rem;
       margin-right: -1rem;
     }
+  }
+
+  /* Kiosk (tablet in orizzontale): tutta la barra su una riga. */
+  .ol-kiosk-barra,
+  .ol-kiosk-destra {
+    flex-wrap: nowrap;
+    white-space: nowrap;
+  }
+
+  .ol-kiosk-barra {
+    gap: 0.6rem;
+  }
+
+  .ol-kiosk-barra h2 {
+    font-size: 1.35rem;
+    width: auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ol-kiosk-destra {
+    width: auto;
+    margin-left: auto;
+    gap: 0.6rem;
   }
 
   .ol-nota {

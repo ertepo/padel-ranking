@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   minutiToTime, timeToMinuti, snapToSlot, fmtFascia, fmtDurata, fmtOreDecimali,
   isIsoDate, oggiRoma, addGiorni, isoDow, lunediDi, giorniSettimana,
-  primoDelMese, ultimoDelMese, addMesi, fmtSettimana, fmtMese, fasciaVisibile, assegnaCorsie,
+  primoDelMese, ultimoDelMese, addMesi, fmtSettimana, fmtSettimanaBreve, fmtMese, fasciaVisibile, assegnaCorsie,
 } from '../src/lib/time-grid.ts';
 
 test('orari', () => {
@@ -47,6 +47,9 @@ test('date', () => {
   assert.equal(fmtMese('2026-11-23'), 'novembre 2026');
   assert.equal(fmtSettimana('2026-11-25'), '23–29 novembre 2026');
   assert.equal(fmtSettimana('2026-12-02'), '30 novembre – 6 dicembre 2026');
+  assert.equal(fmtSettimanaBreve('2026-11-25'), '23–29 novembre');
+  assert.equal(fmtSettimanaBreve('2026-09-30'), '28 set – 4 ott');
+  assert.equal(fmtSettimanaBreve('2026-12-30'), '28 dic – 3 gen');
   assert.equal(fmtSettimana('2026-12-30'), '28 dicembre 2026 – 3 gennaio 2027');
 });
 

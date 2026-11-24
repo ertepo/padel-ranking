@@ -131,6 +131,16 @@ export function fmtMese(iso: string): string {
 }
 
 /** "23–29 novembre 2026", "30 novembre – 6 dicembre 2026", "28 dicembre 2026 – 3 gennaio 2027" */
+/** Settimana senza anno, per spazi stretti: "23–29 novembre", "28 set – 4 ott". */
+export function fmtSettimanaBreve(iso: string): string {
+  const giorni = giorniSettimana(iso);
+  const [a, b] = [giorni[0], giorni[6]];
+  const g = (x: string) => Number(x.slice(8, 10));
+  const mese = (x: string) => MESI[Number(x.slice(5, 7)) - 1];
+  if (mese(a) === mese(b)) return `${g(a)}–${g(b)} ${mese(b)}`;
+  return `${g(a)} ${mese(a).slice(0, 3)} – ${g(b)} ${mese(b).slice(0, 3)}`;
+}
+
 export function fmtSettimana(iso: string): string {
   const giorni = giorniSettimana(iso);
   const [a, b] = [giorni[0], giorni[6]];
