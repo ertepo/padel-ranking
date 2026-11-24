@@ -25,6 +25,8 @@
     vistaIniziale?: 'settimana' | 'mese';
     datiIniziali: DatiPeriodo | null;
     erroreIniziale?: string;
+    /** Schermo da parete: solo la griglia della settimana, senza pannelli. */
+    kiosk?: boolean;
   }
 
   let {
@@ -35,6 +37,7 @@
     vistaIniziale = 'settimana',
     datiIniziali,
     erroreIniziale = '',
+    kiosk = false,
   }: Props = $props();
 
   let staff = $state(staffIniziale);
@@ -76,6 +79,58 @@
       /* archiviazione non disponibile */
     }
   }
+
+  // --- Kiosk: schermo intero, schermo sempre acceso, aggiornamento automatico ---
+
+  let schermoIntero = $state(false);
+
+  function alternaSchermoIntero() {
+    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
+    else document.documentElement.requestFullscreen?.().catch(() => flashErrore('Schermo intero non disponibile.'));
+  }
+
+  $effect(() => {
+    if (!kiosk) return;
+    const aggiornaSchermo = () => (schermoIntero = Boolean(document.fullscreenElement) || matchMedia('(display-mode: fullscreen)').matches);
+    aggiornaSchermo();
+    document.addEventListener('fullscreenchange', aggiornaSchermo);
+
+    // Lo schermo resta acceso finché la pagina è visibile (dove il browser lo permette).
+    let wakeLock: { release: () => Promise<void> } | null = null;
+    const tieniAcceso = async () => {
+      if (document.visibilityState !== 'visible') return;
+      try {
+        wakeLock = await (navigator as any).wakeLock?.request('screen');
+      } catch {
+        /* non disponibile */
+      }
+    };
+    tieniAcceso();
+
+    // Ogni 5 minuti ricarica i dati; a cambio giorno torna alla settimana di oggi.
+    let giorno = oggiRoma();
+    const controlla = () => {
+      const adesso = oggiRoma();
+      if (adesso !== giorno) {
+        giorno = adesso;
+        window.location.reload();
+      } else if (!prospetto) carica();
+    };
+    const timer = setInterval(controlla, 5 * 60 * 1000);
+    const alRitorno = () => {
+      if (document.visibilityState !== 'visible') return;
+      tieniAcceso();
+      controlla();
+    };
+    document.addEventListener('visibilitychange', alRitorno);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', aggiornaSchermo);
+      document.removeEventListener('visibilitychange', alRitorno);
+      clearInterval(timer);
+      wakeLock?.release().catch(() => {});
+    };
+  });
 
   /** Cresce a ogni salvataggio, per far ricaricare il riquadro dell'orario. */
   let versione = $state(0);
@@ -382,10 +437,13 @@
     </p>
   </section>
 {:else}
-  <div class="grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]">
-    <section class="ol-cal club-card bg-white px-2 py-3 sm:p-5">
+  <div class={kiosk ? '' : 'grid gap-5 xl:grid-cols-[minmax(0,1fr)_22rem]'}>
+    <section class={kiosk ? 'bg-white' : 'ol-cal club-card bg-white px-2 py-3 sm:p-5'}>
       <div class="mb-3 flex flex-wrap items-center gap-2 px-1 sm:mb-4 sm:gap-3 sm:px-0">
-        <div class="flex border-2 border-black text-xs font-black uppercase">
+        {#if kiosk}
+          <a href="/admin/ore-lavoro" class="club-btn px-3 py-2 text-sm" title="Pagina completa delle ore di lavoro">← Ore</a>
+        {/if}
+        <div class="flex border-2 border-black text-xs font-black uppercase" class:hidden={kiosk}>
           <button type="button" class="px-3 py-2" class:bg-black={vista === 'settimana'} class:text-white={vista === 'settimana'}
             onclick={() => mostra('settimana')}>Settimana</button>
           <button type="button" class="border-l-2 border-black px-3 py-2" class:bg-black={vista === 'mese'} class:text-white={vista === 'mese'}
@@ -400,7 +458,7 @@
           {vista === 'mese' ? fmtMese(mese) : fmtSettimana(lunedi)}
           {#if caricamento}<span class="ml-1 text-sm font-bold text-slate-500">caricamento…</span>{/if}
         </h2>
-        {#if linkExport}
+        {#if linkExport && !kiosk}
           <a href={linkExport} class="club-btn hidden px-3 py-2 text-sm md:inline-block" download title="Riepilogo giorno per giorno del periodo mostrato">
             Esporta CSV
           </a>
@@ -427,6 +485,11 @@
               <input type="checkbox" bind:checked={conColleghi} />
               colleghi
             </label>
+          {/if}
+          {#if kiosk}
+            <button type="button" class="club-btn px-3 py-2 text-sm" onclick={alternaSchermoIntero}>
+              {schermoIntero ? 'Esci da schermo intero' : 'Schermo intero'}
+            </button>
           {/if}
         </div>
       </div>
@@ -457,11 +520,11 @@
           }}
         />
       {:else}
-      <p class="mb-3 hidden text-sm font-medium text-slate-600 md:block">
+      <p class={`mb-3 hidden text-sm font-medium text-slate-600 ${kiosk ? '' : 'md:block'}`}>
         Clic su un turno: assenza o sostituzione per tutto il turno; trascina dentro il turno per una parte sola.
         Le maniglie sopra e sotto accorciano o allungano. Clic o trascinamento su celle vuote: ore extra.
       </p>
-      <div class="mb-3 flex items-center gap-3 px-1 md:hidden">
+      <div class="mb-3 flex items-center gap-3 px-1 md:hidden" class:hidden={kiosk}>
         <div class="flex border-2 border-black text-xs font-black uppercase">
           <button type="button" class="px-3 py-1.5" class:bg-black={vistaMobile === 'agenda'} class:text-white={vistaMobile === 'agenda'}
             onclick={() => scegliVistaMobile('agenda')}>Agenda</button>
@@ -473,7 +536,7 @@
         </p>
       </div>
 
-      <div class={vistaMobile === 'agenda' ? 'md:hidden' : 'hidden'}>
+      <div class={vistaMobile === 'agenda' && !kiosk ? 'md:hidden' : 'hidden'}>
         <WeekAgenda
           {colonne}
           {blocchi}
@@ -484,7 +547,7 @@
         />
       </div>
 
-      <div class={vistaMobile === 'griglia' ? '' : 'hidden md:block'}>
+      <div class={vistaMobile === 'griglia' || kiosk ? '' : 'hidden md:block'}>
       <WeekGrid
         {colonne}
         {blocchi}
@@ -508,11 +571,12 @@
       </div>
       {/if}
 
-      {#if linkExport}
+      {#if linkExport && !kiosk}
         <a href={linkExport} class="club-btn mt-4 block py-2 text-center text-sm md:hidden" download>Esporta CSV del periodo</a>
       {/if}
     </section>
 
+    {#if !kiosk}
     <div class="space-y-5">
       <section class="club-card bg-white p-4 sm:p-5">
         <h2 class="mb-1 text-2xl font-black">{vista === 'mese' ? 'Mese' : 'Settimana'}</h2>
@@ -571,6 +635,7 @@
 
       <StaffPanel {staff} onChange={(s) => (staff = s)} onErrore={flashErrore} />
     </div>
+    {/if}
   </div>
 {/if}
 

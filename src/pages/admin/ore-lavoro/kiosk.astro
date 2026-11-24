@@ -1,0 +1,85 @@
+---
+// Ore di lavoro come schermo da parete (tablet in orizzontale): solo la
+// settimana, senza intestazione, menu e pannelli del sito. Installabile dalla
+// schermata Home come app a schermo intero (manifest dedicato).
+import { getSupabaseAdmin } from "../../../lib/supabaseAdmin";
+import { isAdmin } from "../../../lib/adminAuth";
+import { caricaPeriodo, caricaStaff, isClub, isUuid } from "../../../lib/ore-lavoro/server";
+import { addGiorni, isIsoDate, lunediDi, oggiRoma } from "../../../lib/time-grid";
+import type { DatiPeriodo, Staff } from "../../../lib/ore-lavoro/types";
+import "../../../styles/global.css";
+import OreLavoro from "../../../components/ore-lavoro/OreLavoro.svelte";
+
+if (!isAdmin(Astro.cookies)) {
+    const redirectTo = encodeURIComponent(Astro.url.pathname + Astro.url.search);
+    return Astro.redirect(`/login?redirect=${redirectTo}`);
+}
+
+const paramSettimana = Astro.url.searchParams.get("settimana");
+const paramStaff = Astro.url.searchParams.get("staff");
+const paramClub = Astro.url.searchParams.get("club");
+const club = isClub(paramClub) ? paramClub : null;
+const lunedi = lunediDi(paramSettimana && isIsoDate(paramSettimana) ? paramSettimana : oggiRoma());
+
+let staff: Staff[] = [];
+let dati: DatiPeriodo | null = null;
+let errore = "";
+
+try {
+    const supabase = getSupabaseAdmin();
+    staff = await caricaStaff(supabase);
+    const selezionato =
+        staff.find((s) => isUuid(paramStaff) && s.id === paramStaff) ?? staff.find((s) => s.sono_io) ?? staff[0];
+    if (selezionato) {
+        dati = await caricaPeriodo(supabase, selezionato.id, lunedi, addGiorni(lunedi, 6), { club, raggruppa: "week" });
+    }
+} catch (err) {
+    errore = err instanceof Error ? err.message : "Errore nel caricamento.";
+}
+
+const staffSelezionato = dati?.staff_id ?? staff[0]?.id ?? null;
+---
+
+<html lang="it">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+        <meta name="robots" content="noindex, nofollow" />
+        <meta name="theme-color" content="#ffcc00" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <title>Ore di lavoro</title>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/ore-lavoro-kiosk.webmanifest" />
+    </head>
+    <body class="ol-kiosk-body">
+        <main class="p-2 sm:p-3">
+            <OreLavoro
+                kiosk
+                staffIniziale={staff}
+                staffSelezionatoIniziale={staffSelezionato}
+                settimanaIniziale={lunedi}
+                clubIniziale={club}
+                datiIniziali={dati}
+                erroreIniziale={errore}
+                client:load
+            />
+        </main>
+        <script>
+            if ("serviceWorker" in navigator) {
+                navigator.serviceWorker
+                    .register("/ore-lavoro-kiosk-sw.js", { scope: "/admin/ore-lavoro/kiosk" })
+                    .catch(() => {});
+            }
+        </script>
+    </body>
+</html>
+
+<style is:global>
+    /* Niente intestazione del sito: le intestazioni dei giorni restano in cima. */
+    .ol-kiosk-body {
+        --header-offset: 0px;
+        background: white;
+    }
+</style>
