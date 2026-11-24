@@ -12,6 +12,8 @@
     club: Club;
     attivita: Attivita;
     note: string | null;
+    /** Ora privata (pagata dal cliente, non conta nelle ore). */
+    privata?: boolean;
     /** Il turno dell'assente, per il pulsante "tutto il turno". */
     turno?: { inizio: number; fine: number; staff_id: string };
     /** Se true il modale propone anche "nessuna eccezione" (solo il segno del giorno). */
@@ -62,9 +64,10 @@
 
   let { staff, persona, prospetto, daVerificare, onClose, onSaved, onErrore, largo = false, onImpegno }: Props = $props();
 
-  type Tipo = 'nessuna' | 'assente' | 'sostituisco' | 'extra' | 'altro';
+  type Tipo = 'nessuna' | 'assente' | 'sostituisco' | 'extra' | 'privata' | 'altro';
 
-  function tipoDi(assente: string | null, sostituto: string | null): Tipo {
+  function tipoDi(assente: string | null, sostituto: string | null, privata = false): Tipo {
+    if (privata && !assente && sostituto === persona.id) return 'privata';
     if (assente === persona.id) return 'assente';
     if (sostituto === persona.id) return assente ? 'sostituisco' : 'extra';
     return 'altro';
@@ -72,7 +75,7 @@
 
   // Valori iniziali presi una volta dal prospetto (il modale si ricrea a ogni apertura).
   const p = $state.snapshot(prospetto);
-  let tipo: Tipo = $state(p.daTurno && !p.id ? 'assente' : tipoDi(p.assente_id, p.sostituto_id));
+  let tipo: Tipo = $state(p.daTurno && !p.id ? 'assente' : tipoDi(p.assente_id, p.sostituto_id, p.privata));
   let assenteId: string | null = $state(p.assente_id);
   let sostitutoId: string | null = $state(p.sostituto_id);
   let data = $state(p.data);
@@ -113,7 +116,7 @@
     } else if (t === 'sostituisco') {
       sostitutoId = persona.id;
       if (assenteId === persona.id || !assenteId) assenteId = p.turno && p.turno.staff_id !== persona.id ? p.turno.staff_id : (altri[0]?.id ?? null);
-    } else if (t === 'extra') {
+    } else if (t === 'extra' || t === 'privata') {
       sostitutoId = persona.id;
       assenteId = null;
     }
@@ -121,6 +124,9 @@
 
   const descrizione = $derived.by(() => {
     if (tipo === 'nessuna') return io ? 'Ho lavorato come da calendario (segna solo il giorno).' : `${nome} ha lavorato come da calendario.`;
+    if (tipo === 'privata') {
+      return `${io ? 'Ora privata' : `Ora privata di ${nome}`}: la paga il cliente, non conta nelle ore da farsi pagare.`;
+    }
     // In prima persona quando il maestro mostrato sono io.
     const a = nomeDi(assenteId);
     const s = nomeDi(sostitutoId);
@@ -164,6 +170,8 @@
           club,
           attivita,
           note,
+          // Mandato solo se serve: prima della migrazione 20261129 la colonna non c'è.
+          ...(tipo === 'privata' || p.privata ? { privata: tipo === 'privata' } : {}),
         };
         await chiama('/api/ore-lavoro/eccezioni', p.id ? 'PATCH' : 'POST', riga);
       }
@@ -236,6 +244,7 @@
     ['assente', io ? 'Sono assente' : `${nome} assente`],
     ['sostituisco', io ? 'Sostituisco un collega' : `${nome} sostituisce`],
     ['extra', 'Ore extra'],
+    ['privata', 'Ora privata'],
     ['altro', 'Tra colleghi'],
   ];
 </script>
@@ -340,7 +349,7 @@
       <div>
         <label for="ecc-assente" class="mb-1 block text-xs font-black uppercase text-slate-600">Assente</label>
         <select id="ecc-assente" class="w-full border-2 border-black p-2 font-bold" bind:value={assenteId}
-          onchange={() => (tipo = tipoDi(assenteId, sostitutoId))}>
+          onchange={() => (tipo = tipoDi(assenteId, sostitutoId, tipo === 'privata'))}>
           <option value={null}>— nessuno —</option>
           <option value={persona.id}>{nome}</option>
           {#each altri as s (s.id)}<option value={s.id}>{s.nome}</option>{/each}
@@ -349,7 +358,7 @@
       <div>
         <label for="ecc-sostituto" class="mb-1 block text-xs font-black uppercase text-slate-600">Lavora al suo posto</label>
         <select id="ecc-sostituto" class="w-full border-2 border-black p-2 font-bold" bind:value={sostitutoId}
-          onchange={() => (tipo = tipoDi(assenteId, sostitutoId))}>
+          onchange={() => (tipo = tipoDi(assenteId, sostitutoId, tipo === 'privata'))}>
           <option value={null}>— nessuno —</option>
           <option value={persona.id}>{nome}</option>
           {#each altri as s (s.id)}<option value={s.id}>{s.nome}</option>{/each}

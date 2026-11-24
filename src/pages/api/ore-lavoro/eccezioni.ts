@@ -6,7 +6,8 @@ import { isIsoDate } from '../../../lib/time-grid';
 
 export const prerender = false;
 
-const COLONNE = 'id, data, ora_inizio, ora_fine, assente_id, sostituto_id, club, attivita, note';
+// '*': la colonna privata c'è solo dopo la migrazione 20261129.
+const COLONNE = '*';
 
 type Body = Record<string, unknown>;
 
@@ -42,7 +43,14 @@ function riga(body: Body): string | Record<string, unknown> {
   if (body.note !== undefined && body.note !== null && typeof body.note !== 'string') return 'Note non valide.';
   const note = typeof body.note === 'string' && body.note.trim() ? body.note.trim().slice(0, 500) : null;
 
+  // Ora privata (pagata dal cliente): solo chi la fa, nessun assente. Il campo
+  // si manda solo se c'è, così prima della migrazione 20261129 il resto funziona.
+  if (body.privata !== undefined && typeof body.privata !== 'boolean') return 'Valore non valido.';
+  if (body.privata === true && (assente !== null || sostituto === null)) return "Un'ora privata ha solo chi la fa, senza assente.";
+  const privata = body.privata === undefined ? {} : { privata: body.privata };
+
   return {
+    ...privata,
     data: body.data,
     ora_inizio: body.ora_inizio,
     ora_fine: body.ora_fine,

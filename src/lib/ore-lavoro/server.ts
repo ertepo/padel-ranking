@@ -1,8 +1,8 @@
 // Lettura dei dati delle ore di lavoro, lato server (service role). Le ore
 // vengono sempre dalle funzioni SQL della migrazione 20261123_ore_lavoro.sql.
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { isIsoDate } from '../time-grid.ts';
-import type { Club, DatiPeriodo, PeriodoOrario, Eccezione, GiornoOre, Impegno, RiepilogoOre, Staff, TurnoPrevisto } from './types';
+import { isIsoDate, oggiRoma } from '../time-grid.ts';
+import type { Club, DaPagare, DatiPeriodo, PeriodoOrario, Eccezione, GiornoOre, Impegno, Pagamento, RiepilogoOre, Staff, TurnoPrevisto } from './types';
 
 export const MAX_GIORNI_PERIODO = 400;
 
@@ -70,9 +70,10 @@ export async function caricaPeriodo(
   const raggruppa = opzioni.raggruppa ?? 'week';
   const club = opzioni.club ?? null;
 
+  // '*': la colonna privata c'è solo dopo la migrazione 20261129.
   let queryEccezioni = supabase
     .from('work_exceptions')
-    .select('id, data, ora_inizio, ora_fine, assente_id, sostituto_id, club, attivita, note')
+    .select('*')
     .gte('data', dal)
     .lte('data', al)
     .order('data')
@@ -113,7 +114,9 @@ export async function caricaPeriodo(
     previsti: ((previsti.data ?? []) as TurnoPrevisto[]).map(({ data, ora_inizio, ora_fine, staff_id, club, attivita, slot_id }) => ({
       data, ora_inizio, ora_fine, staff_id, club, attivita, slot_id,
     })),
-    eccezioni: (eccezioni.data ?? []) as Eccezione[],
+    eccezioni: ((eccezioni.data ?? []) as Eccezione[]).map(({ id, data, ora_inizio, ora_fine, assente_id, sostituto_id, club, attivita, note, privata }) => ({
+      id, data, ora_inizio, ora_fine, assente_id, sostituto_id, club, attivita, note, privata: Boolean(privata),
+    })),
     giorni: ((giorni.data ?? []) as (GiornoOre & Record<string, unknown>)[]).map((g) => ({
       data: g.data,
       minuti_previsti: g.minuti_previsti,
@@ -135,6 +138,43 @@ export async function caricaPeriodo(
     riepiloghi: (riepiloghi.data ?? []) as RiepilogoOre[],
     settimane: raggruppa === 'month' ? ((settimane.data ?? []) as RiepilogoOre[]) : undefined,
     impegni: impegniMancanti ? [] : ((impegni.data ?? []) as Impegno[]),
+    ...(await caricaPagamenti(supabase, staffId, club)),
+  };
+}
+
+/** Ultimi pagamenti e ore da farsi pagare dall'ultimo a oggi (senza la migrazione 20261129: niente). */
+async function caricaPagamenti(
+  supabase: SupabaseClient,
+  staffId: string,
+  club: Club | null,
+): Promise<{ pagamenti: Pagamento[]; daPagare: DaPagare | null }> {
+  const { data, error } = await supabase
+    .from('work_payments')
+    .select('id, data, note')
+    .eq('staff_id', staffId)
+    .order('data', { ascending: false })
+    .limit(6);
+  if (error) {
+    if (/work_payments/.test(error.message)) return { pagamenti: [], daPagare: null };
+    throw new Error(error.message);
+  }
+  const pagamenti = (data ?? []) as Pagamento[];
+  const oggi = oggiRoma();
+  const dal = pagamenti[0]?.data;
+  if (!dal || dal > oggi) return { pagamenti, daPagare: dal ? { dal, al: oggi, minuti_previsti: 0, minuti_lavorati: 0, minuti_sostituzioni: 0, minuti_assenza: 0 } : null };
+  const giorni = await supabase.rpc('work_hours_daily', { p_staff: staffId, p_dal: dal, p_al: oggi, p_club: club });
+  if (giorni.error) throw new Error(giorni.error.message);
+  const somma = (k: keyof GiornoOre) => ((giorni.data ?? []) as GiornoOre[]).reduce((t, g) => t + Number(g[k] ?? 0), 0);
+  return {
+    pagamenti,
+    daPagare: {
+      dal,
+      al: oggi,
+      minuti_previsti: somma('minuti_previsti'),
+      minuti_lavorati: somma('minuti_lavorati'),
+      minuti_sostituzioni: somma('minuti_sostituzioni'),
+      minuti_assenza: somma('minuti_assenza'),
+    },
   };
 }
 

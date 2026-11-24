@@ -79,6 +79,25 @@ export interface Eccezione {
   club: Club;
   attivita: Attivita;
   note: string | null;
+  /** Ora privata: pagata dal cliente, non conta nelle ore (assente null). Manca prima della migrazione 20261129. */
+  privata?: boolean;
+}
+
+/** Un pagamento ricevuto dal datore di lavoro: le ore si contano da quel giorno. */
+export interface Pagamento {
+  id: string;
+  data: string;
+  note: string | null;
+}
+
+/** Ore dall'ultimo pagamento a oggi, da farsi pagare. */
+export interface DaPagare {
+  dal: string;
+  al: string;
+  minuti_previsti: number;
+  minuti_lavorati: number;
+  minuti_sostituzioni: number;
+  minuti_assenza: number;
 }
 
 /** Un turno dell'orario ricorrente. giorno_settimana: 1=lunedì ... 7=domenica. */
@@ -159,6 +178,9 @@ export interface DatiPeriodo {
   settimane?: RiepilogoOre[];
   /** Impegni personali del periodo (di tutti). */
   impegni?: Impegno[];
+  /** Ultimi pagamenti ricevuti (dal più recente) e ore da farsi pagare da allora. */
+  pagamenti?: Pagamento[];
+  daPagare?: DaPagare | null;
 }
 
 export const COLORI = {
@@ -168,4 +190,5 @@ export const COLORI = {
   verifica: '#7dd3fc',
   collega: '#e2e8f0',
   affiancato: '#c7d2fe',
+  privata: '#fdba74',
 } as const;

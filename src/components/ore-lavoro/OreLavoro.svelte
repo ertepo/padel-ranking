@@ -12,8 +12,8 @@
   import EccezioneModal, { type ProspettoEccezione } from './EccezioneModal.svelte';
   import ImpegnoModal, { type ProspettoImpegno } from './ImpegnoModal.svelte';
   import {
-    GIORNI_BREVI, addGiorni, addMesi, fmtDurata, fmtFascia, fmtGiornoMese, fmtMese, fmtSettimana, fmtSettimanaBreve, giorniSettimana, lunediDi,
-    minutiToTime, oggiRoma, primoDelMese, ultimoDelMese,
+    GIORNI_BREVI, addGiorni, addMesi, fmtData, fmtDurata, fmtFascia, fmtGiornoMese, fmtMese, fmtSettimana, fmtSettimanaBreve, giorniSettimana, lunediDi,
+    minutiToTime, oggiRoma, primoDelMese, timeToMinuti, ultimoDelMese,
   } from '../../lib/time-grid';
   import { affiancatoDi, segmentiPeriodo, type Segmento } from '../../lib/ore-lavoro/segmenti';
   import {
@@ -217,6 +217,46 @@
   );
   const giornoOre = $derived(new Map((correnti?.giorni ?? []).map((g) => [g.data, g])));
   const totale = $derived(correnti?.riepiloghi[0] ?? null);
+  /** Ore private del periodo mostrato (non contano: le paga il cliente). */
+  const minutiPrivate = $derived(
+    (correnti?.eccezioni ?? [])
+      .filter((e) => e.privata && e.sostituto_id === staffId)
+      .reduce((t, e) => t + timeToMinuti(e.ora_fine) - timeToMinuti(e.ora_inizio), 0),
+  );
+
+  // --- Pagamenti del datore di lavoro ------------------------------------------
+
+  let dataPagamento = $state(oggiRoma());
+  let salvandoPagamento = $state(false);
+
+  async function chiamaPagamenti(method: 'POST' | 'DELETE', body: Record<string, unknown>) {
+    salvandoPagamento = true;
+    try {
+      const res = await fetch('/api/ore-lavoro/pagamenti', {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(result.error || 'Errore nel salvataggio.');
+      carica();
+    } catch (err) {
+      flashErrore(err instanceof Error ? err.message : 'Errore nel salvataggio.');
+    } finally {
+      salvandoPagamento = false;
+    }
+  }
+
+  function segnaPagamento() {
+    if (!staffId || !dataPagamento) return;
+    if (!confirm(`Segnare il pagamento ricevuto il ${fmtData(dataPagamento)}? Le ore da farsi pagare ripartono da quel giorno.`)) return;
+    chiamaPagamenti('POST', { staff_id: staffId, data: dataPagamento });
+  }
+
+  function togliPagamento(id: string, data: string) {
+    if (!confirm(`Togliere il pagamento del ${fmtData(data)}?`)) return;
+    chiamaPagamenti('DELETE', { id });
+  }
 
   function flashErrore(msg: string) {
     errore = msg;
@@ -299,8 +339,8 @@
         titolo = e?.sostituto_id ? `Sostituito da ${nomeDi.get(e.sostituto_id) ?? '?'}` : 'Assente';
         colore = COLORI.assente;
       } else if (s.tipo === 'extra') {
-        titolo = e?.assente_id ? `Sostituisco ${nomeDi.get(e.assente_id) ?? '?'}` : 'Ore extra';
-        colore = COLORI.extra;
+        titolo = e?.privata ? 'Ora privata' : e?.assente_id ? `Sostituisco ${nomeDi.get(e.assente_id) ?? '?'}` : 'Ore extra';
+        colore = e?.privata ? COLORI.privata : COLORI.extra;
       } else if (s.tipo === 'collega') {
         titolo = `${nomeDi.get(s.staff_id) ?? '?'} · ${etichettaAttivita(s)}`;
         colore = diAffiancato ? coloreDi(affiancato) : COLORI.collega;
@@ -351,6 +391,7 @@
       club: e.club,
       attivita: e.attivita,
       note: e.note,
+      privata: e.privata,
     };
   }
 
@@ -640,7 +681,7 @@
 
       <div class="mb-3 flex flex-wrap gap-1 text-[10px] font-black sm:mb-4 sm:gap-2 sm:text-xs" class:hidden={kiosk}>
 {#if tennista}
-        {#each [['lavorato', 'Lavorato'], ['extra', 'Extra / sostituzioni fatte'], ['assente', 'Assente'], ['verifica', 'Da verificare']] as [chiave, etichetta] (chiave)}
+        {#each [['lavorato', 'Lavorato'], ['extra', 'Extra / sostituzioni fatte'], ['privata', 'Ore private'], ['assente', 'Assente'], ['verifica', 'Da verificare']] as [chiave, etichetta] (chiave)}
           <span class="inline-flex items-center gap-1 border-2 border-black bg-white px-1.5 py-0.5 sm:px-2 sm:py-1">
             <span class="h-3 w-3 border border-black" style={`background:${COLORI[chiave as keyof typeof COLORI]}`}></span>
             {etichetta}
@@ -740,11 +781,49 @@
         </p>
 
         {#if totale}
-          <Riepilogo {totale} />
+          <Riepilogo {totale} {minutiPrivate} />
         {:else}
           <p class="font-bold text-slate-500">{caricamento ? 'Caricamento…' : 'Dati non disponibili.'}</p>
         {/if}
       </section>
+      {/if}
+
+      {#if tennista && correnti?.daPagare}
+        {@const dp = correnti.daPagare}
+        <section class="club-card bg-white p-4 sm:p-5">
+          <h2 class="mb-1 text-2xl font-black">Da farsi pagare</h2>
+          <p class="mb-3 text-sm font-bold text-slate-600">
+            Dall'ultimo pagamento, {fmtData(dp.dal)}, a oggi{club ? ` · ${CLUB[club]}` : ''}
+          </p>
+          <dl class="space-y-1 font-bold">
+            <div class="ol-riga text-lg font-black"><dt>Lavorate</dt><span class="ol-dots"></span><dd>{fmtDurata(dp.minuti_lavorati)}</dd></div>
+            <div class="ol-riga text-sm"><dt>di cui sostituzioni ed extra</dt><span class="ol-dots"></span><dd>{fmtDurata(dp.minuti_sostituzioni)}</dd></div>
+            <div class="ol-riga text-sm text-slate-600"><dt>Previste</dt><span class="ol-dots"></span><dd>{fmtDurata(dp.minuti_previsti)}</dd></div>
+            <div class="ol-riga text-sm text-slate-600"><dt>Assenze</dt><span class="ol-dots"></span><dd>{fmtDurata(dp.minuti_assenza)}</dd></div>
+          </dl>
+
+          <div class="mt-4 flex flex-wrap items-end gap-2 border-t-2 border-black pt-3">
+            <div class="min-w-0 flex-1">
+              <label for="ol-pagamento" class="mb-1 block text-xs font-black uppercase text-slate-600">Pagamento ricevuto il</label>
+              <input id="ol-pagamento" type="date" class="w-full border-2 border-black p-2 font-bold" bind:value={dataPagamento} />
+            </div>
+            <button type="button" class="club-btn-yellow px-4 py-2" disabled={salvandoPagamento || !dataPagamento} onclick={segnaPagamento}>
+              Segna pagamento
+            </button>
+          </div>
+
+          {#if correnti.pagamenti?.length}
+            <ul class="mt-3 space-y-1 text-sm font-bold">
+              {#each correnti.pagamenti as pg (pg.id)}
+                <li class="flex items-center justify-between gap-2">
+                  <span>Pagato il {fmtData(pg.data)}{pg.note ? ` · ${pg.note}` : ''}</span>
+                  <button type="button" class="px-2 text-slate-500 underline" disabled={salvandoPagamento}
+                    aria-label={`Togli il pagamento del ${fmtData(pg.data)}`} onclick={() => togliPagamento(pg.id, pg.data)}>togli</button>
+                </li>
+              {/each}
+            </ul>
+          {/if}
+        </section>
       {/if}
 
       {#if tennista && vista === 'mese' && correnti?.settimane?.length}
@@ -875,6 +954,18 @@
     width: auto;
     margin-left: auto;
     gap: 0.6rem;
+  }
+
+  .ol-riga {
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+
+  .ol-dots {
+    flex: 1;
+    min-width: 0.5rem;
+    border-bottom: 2px dotted rgba(0, 0, 0, 0.35);
   }
 
   .ol-nota {

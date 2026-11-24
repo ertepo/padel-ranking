@@ -7,9 +7,11 @@
 
   interface Props {
     totale: RiepilogoOre;
+    /** Ore private del periodo: pagate dal cliente, fuori dal conteggio. */
+    minutiPrivate?: number;
   }
 
-  let { totale }: Props = $props();
+  let { totale, minutiPrivate = 0 }: Props = $props();
 </script>
 
 <dl class="space-y-1 font-bold">
@@ -24,6 +26,11 @@
   <div class="ol-riga border-t-2 border-black pt-1 font-black">
     <dt>Differenza</dt><span class="ol-dots"></span><dd>{fmtDurata(totale.minuti_differenza, true)}</dd>
   </div>
+  {#if minutiPrivate}
+    <div class="ol-riga pt-2 text-sm text-slate-600">
+      <dt>Ore private (le paga il cliente)</dt><span class="ol-dots"></span><dd>{fmtDurata(minutiPrivate)}</dd>
+    </div>
+  {/if}
   {#if totale.giorni_da_verificare}
     <p class="pt-2 text-sm font-black" style="color:#0369a1">
       {totale.giorni_da_verificare} {totale.giorni_da_verificare === 1 ? 'giorno' : 'giorni'} da verificare
