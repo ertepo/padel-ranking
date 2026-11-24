@@ -57,6 +57,8 @@
     nascondiGiorniVuoti?: boolean;
     /** Versione compatta per schermi stretti: testi più piccoli. */
     stretta?: boolean;
+    /** Al tocco si seleziona subito trascinando, senza pressione lunga (pagine che non scorrono, come il kiosk). */
+    toccoDiretto?: boolean;
     blocco?: Snippet<[T]>;
     gridEl?: HTMLDivElement;
   }
@@ -79,6 +81,7 @@
     ridimensionabile,
     nascondiGiorniVuoti = false,
     stretta = false,
+    toccoDiretto = false,
     blocco,
     gridEl = $bindable(),
   }: Props = $props();
@@ -160,7 +163,7 @@
     window.addEventListener('pointermove', muovi);
     window.addEventListener('pointerup', termina);
     window.addEventListener('pointercancel', annulla);
-    if (e.pointerType === 'touch' && nuova.tipo === 'seleziona') {
+    if (e.pointerType === 'touch' && nuova.tipo === 'seleziona' && !toccoDiretto) {
       // Niente preventDefault: se il dito si sposta subito, la pagina scorre.
       attesa = { nuova, x0: e.clientX, y0: e.clientY, timer: setTimeout(attivaPressioneLunga, PRESSIONE_LUNGA_MS) };
       return;
@@ -294,6 +297,7 @@
     class="wg-grid"
     class:wg-trascinando={interazione?.tipo === 'resize'}
     class:wg-stretta={stretta}
+    class:wg-tocco-diretto={toccoDiretto}
     oncontextmenu={(e) => e.preventDefault()}
     style={`--time-col:${timeColPx}px; grid-template-columns: var(--time-col) repeat(${colonneMostrate.length}, minmax(0, 1fr)); grid-template-rows: auto repeat(${nSlot}, ${slotPx}px);`}
   >
@@ -589,6 +593,12 @@
     padding: 0.1rem 0.35rem;
     pointer-events: none;
     white-space: nowrap;
+  }
+
+  /* Tocco diretto: il dito trascina la selezione, il browser non scorre né zooma. */
+  .wg-tocco-diretto .wg-cell,
+  .wg-tocco-diretto .wg-block {
+    touch-action: none;
   }
 
   /* Schermi stretti: colonna delle ore e testi più piccoli. */

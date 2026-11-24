@@ -552,6 +552,7 @@
         {colonne}
         {blocchi}
         nascondiGiorniVuoti
+        toccoDiretto={kiosk}
         stretta={stretto}
         timeColPx={stretto ? 34 : 52}
         slotPx={32}
