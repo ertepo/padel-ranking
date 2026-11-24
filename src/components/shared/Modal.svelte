@@ -56,16 +56,29 @@
     aria-modal="true"
     aria-labelledby={titoloId}
   >
-    <h3 id={titoloId} class={`${compatta ? 'mb-2' : 'mb-4'} text-xl font-black`}>{titolo}</h3>
+    <h3 id={titoloId} class={`${compatta ? 'mb-3' : 'mb-4'} text-xl font-black leading-tight`}>{titolo}</h3>
 
-    <div class="min-h-0 space-y-3 overflow-y-auto pr-1" class:flex-1={altezzaFissa}>
+    <!-- Un po' di margine dentro l'area che scorre: bordi, contorni di selezione
+         e ombre dei campi non vengono tagliati né toccano la barra di scorrimento. -->
+    <div class="modal-corpo -mx-1 min-h-0 space-y-4 overflow-y-auto px-1 pb-1 pr-2 pt-0.5" class:flex-1={altezzaFissa}>
       {@render children()}
     </div>
 
     {#if azioni}
-      <div class={`${compatta ? 'mt-3' : 'mt-5'} flex gap-3`}>
+      <div class={`${compatta ? 'mt-3' : 'mt-4'} flex gap-3 border-t-2 border-black pt-3`}>
         {@render azioni()}
       </div>
     {/if}
   </div>
 </div>
+
+<style>
+  /* I campi non escono mai dalla loro colonna (su Android data e ora hanno
+     una larghezza minima propria e finirebbero sopra il campo accanto). */
+  .modal-corpo :global(input),
+  .modal-corpo :global(select),
+  .modal-corpo :global(textarea) {
+    min-width: 0;
+    max-width: 100%;
+  }
+</style>

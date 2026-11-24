@@ -111,7 +111,7 @@
 
 {#snippet colonne(sinistra: Snippet, destra: Snippet)}
   {#if largo}
-    <div class="grid grid-cols-2 items-start gap-5">
+    <div class="grid grid-cols-2 items-start gap-x-8">
       <div class="space-y-3">{@render sinistra()}</div>
       <div class="space-y-3">{@render destra()}</div>
     </div>
@@ -123,16 +123,16 @@
 
 {#snippet sinistra()}
   <div>
-    <span id="lbl-imp-titolo" class="mb-1 block text-xs font-black uppercase text-slate-600">Titolo</span>
+    <span id="lbl-imp-titolo" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Titolo</span>
     <input id="imp-titolo" aria-labelledby="lbl-imp-titolo" class="w-full border-2 border-black p-2 font-bold" maxlength="80" placeholder="Es. dentista, cena, palestra" bind:value={titolo} />
   </div>
 
   {#if persone.length > 1}
     <div>
-      <p class="mb-1 text-xs font-black uppercase text-slate-600">Di chi è</p>
-      <div class="flex flex-wrap gap-1">
+      <p class="mb-1.5 text-xs font-black uppercase leading-tight text-slate-600">Di chi è</p>
+      <div class="flex flex-wrap gap-1.5">
         {#each persone as s (s.id)}
-          <button type="button" class="border-2 border-black px-3 py-1 text-sm font-black" class:bg-black={staffId === s.id}
+          <button type="button" class="border-2 border-black px-3 py-1.5 text-sm font-black" class:bg-black={staffId === s.id}
             class:text-white={staffId === s.id} class:bg-white={staffId !== s.id} onclick={() => (staffId = s.id)}>{s.nome}</button>
         {/each}
       </div>
@@ -140,8 +140,8 @@
   {/if}
 
   <div>
-    <p class="mb-1 text-xs font-black uppercase text-slate-600">Colore</p>
-    <div class="flex flex-wrap gap-2">
+    <p class="mb-1.5 text-xs font-black uppercase leading-tight text-slate-600">Colore</p>
+    <div class="flex flex-wrap gap-2.5 p-1">
       {#each Object.entries(COLORI_IMPEGNO) as [k, hex] (k)}
         <button
           type="button"
@@ -158,27 +158,27 @@
   </div>
 
   <div>
-    <span id="lbl-imp-note" class="mb-1 block text-xs font-black uppercase text-slate-600">Note (facoltative)</span>
+    <span id="lbl-imp-note" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Note (facoltative)</span>
     <textarea id="imp-note" aria-labelledby="lbl-imp-note" rows="2" class="w-full border-2 border-black p-2 font-medium" bind:value={note}></textarea>
   </div>
 {/snippet}
 
 {#snippet destra()}
-  <div class="grid grid-cols-2 gap-3">
+  <div class="grid grid-cols-2 items-end gap-3">
     <div>
-      <span id="lbl-imp-dalle" class="mb-1 block text-xs font-black uppercase text-slate-600">Dalle</span>
+      <span id="lbl-imp-dalle" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Dalle</span>
       <input id="imp-dalle" aria-labelledby="lbl-imp-dalle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={oraInizio} required />
     </div>
     <div>
-      <span id="lbl-imp-alle" class="mb-1 block text-xs font-black uppercase text-slate-600">Alle</span>
+      <span id="lbl-imp-alle" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Alle</span>
       <input id="imp-alle" aria-labelledby="lbl-imp-alle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={oraFine} required />
     </div>
   </div>
 
-  <div class="space-y-2">
+  <div class="space-y-3">
     {#each date as d, i (i)}
       <div>
-        <span id={`lbl-imp-data-${i}`} class="mb-1 block text-xs font-black uppercase text-slate-600">
+        <span id={`lbl-imp-data-${i}`} class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">
           {i === 0 ? 'Data' : `Ripetizione ${i}`}{d ? ` · ${giornoDi(d)}` : ''}
         </span>
         <div class="flex gap-2">

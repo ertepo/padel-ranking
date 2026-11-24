@@ -251,7 +251,7 @@
 
 {#snippet colonne(sinistra: Snippet, destra: Snippet)}
   {#if largo}
-    <div class="grid grid-cols-2 items-start gap-5">
+    <div class="grid grid-cols-2 items-start gap-x-8">
       <div class="space-y-3">{@render sinistra()}</div>
       <div class="space-y-3">{@render destra()}</div>
     </div>
@@ -291,30 +291,30 @@
 {/snippet}
 
 {#snippet ricDestra()}
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <div class="grid grid-cols-2 items-end gap-3 sm:grid-cols-3">
       <div class="col-span-2 sm:col-span-1">
-        <span id="lbl-ric-dal" class="mb-1 block text-xs font-black uppercase text-slate-600">Dal</span>
+        <span id="lbl-ric-dal" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Dal</span>
         <input id="ric-dal" aria-labelledby="lbl-ric-dal" type="date" class="w-full border-2 border-black p-2 font-bold" bind:value={ricDal} required />
       </div>
       <div>
-        <span id="lbl-ric-dalle" class="mb-1 block text-xs font-black uppercase text-slate-600">Dalle</span>
+        <span id="lbl-ric-dalle" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Dalle</span>
         <input id="ric-dalle" aria-labelledby="lbl-ric-dalle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={ricInizio} required />
       </div>
       <div>
-        <span id="lbl-ric-alle" class="mb-1 block text-xs font-black uppercase text-slate-600">Alle</span>
+        <span id="lbl-ric-alle" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Alle</span>
         <input id="ric-alle" aria-labelledby="lbl-ric-alle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={ricFine} required />
       </div>
     </div>
 
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-2 items-end gap-3">
       <div>
-        <span id="lbl-ric-club" class="mb-1 block text-xs font-black uppercase text-slate-600">Club</span>
+        <span id="lbl-ric-club" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Club</span>
         <select id="ric-club" aria-labelledby="lbl-ric-club" class="w-full border-2 border-black p-2 font-bold" bind:value={ricClub}>
           {#each Object.entries(CLUB) as [k, v] (k)}<option value={k}>{v}</option>{/each}
         </select>
       </div>
       <div>
-        <span id="lbl-ric-attivita" class="mb-1 block text-xs font-black uppercase text-slate-600">Attività</span>
+        <span id="lbl-ric-attivita" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Attività</span>
         <select id="ric-attivita" aria-labelledby="lbl-ric-attivita" class="w-full border-2 border-black p-2 font-bold" bind:value={ricAttivita}>
           {#each Object.entries(ATTIVITA) as [k, v] (k)}<option value={k}>{v}</option>{/each}
         </select>
@@ -327,11 +327,11 @@
     {GIORNI[isoDow(data) - 1]} {fmtData(data)}
   </p>
 
-  <div class="flex flex-wrap gap-1">
+  <div class="flex flex-wrap gap-1.5">
     {#each opzioniTipo as [t, etichetta] (t)}
       <button
         type="button"
-        class="border-2 border-black px-2 py-1 text-xs font-black uppercase"
+        class="border-2 border-black px-2.5 py-1.5 text-xs font-black uppercase"
         class:bg-black={tipo === t}
         class:text-white={tipo === t}
         class:bg-white={tipo !== t}
@@ -342,12 +342,12 @@
     {/each}
   </div>
 
-  <p class="border-l-4 border-black pl-2 font-bold">{descrizione}</p>
+  <p class="border-l-4 border-black pl-2 font-bold leading-snug">{descrizione}</p>
 
   {#if tipo !== 'nessuna'}
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-2 items-end gap-3">
       <div>
-        <span id="lbl-ecc-assente" class="mb-1 block text-xs font-black uppercase text-slate-600">Assente</span>
+        <span id="lbl-ecc-assente" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Assente</span>
         <select id="ecc-assente" aria-labelledby="lbl-ecc-assente" class="w-full border-2 border-black p-2 font-bold" bind:value={assenteId}
           onchange={() => (tipo = tipoDi(assenteId, sostitutoId, tipo === 'privata'))}>
           <option value={null}>— nessuno —</option>
@@ -356,7 +356,7 @@
         </select>
       </div>
       <div>
-        <span id="lbl-ecc-sostituto" class="mb-1 block text-xs font-black uppercase text-slate-600">Lavora al suo posto</span>
+        <span id="lbl-ecc-sostituto" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Lavora al suo posto</span>
         <select id="ecc-sostituto" aria-labelledby="lbl-ecc-sostituto" class="w-full border-2 border-black p-2 font-bold" bind:value={sostitutoId}
           onchange={() => (tipo = tipoDi(assenteId, sostitutoId, tipo === 'privata'))}>
           <option value={null}>— nessuno —</option>
@@ -370,17 +370,17 @@
 
 {#snippet giornoDestra()}
   {#if tipo !== 'nessuna'}
-    <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <div class="grid grid-cols-2 items-end gap-3 sm:grid-cols-3">
       <div class="col-span-2 sm:col-span-1">
-        <span id="lbl-ecc-data" class="mb-1 block text-xs font-black uppercase text-slate-600">Data</span>
+        <span id="lbl-ecc-data" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Data</span>
         <input id="ecc-data" aria-labelledby="lbl-ecc-data" type="date" class="w-full border-2 border-black p-2 font-bold" bind:value={data} required />
       </div>
       <div>
-        <span id="lbl-ecc-dalle" class="mb-1 block text-xs font-black uppercase text-slate-600">Dalle</span>
+        <span id="lbl-ecc-dalle" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Dalle</span>
         <input id="ecc-dalle" aria-labelledby="lbl-ecc-dalle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={oraInizio} required />
       </div>
       <div>
-        <span id="lbl-ecc-alle" class="mb-1 block text-xs font-black uppercase text-slate-600">Alle</span>
+        <span id="lbl-ecc-alle" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Alle</span>
         <input id="ecc-alle" aria-labelledby="lbl-ecc-alle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={oraFine} required />
       </div>
     </div>
@@ -389,7 +389,7 @@
       {@const turno = p.turno}
       <button
         type="button"
-        class="text-xs font-black uppercase underline"
+        class="block text-left text-xs font-black uppercase leading-snug underline"
         onclick={() => {
           oraInizio = minutiToTime(turno.inizio);
           oraFine = minutiToTime(turno.fine);
@@ -399,15 +399,15 @@
       </button>
     {/if}
 
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-2 items-end gap-3">
       <div>
-        <span id="lbl-ecc-club" class="mb-1 block text-xs font-black uppercase text-slate-600">Club</span>
+        <span id="lbl-ecc-club" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Club</span>
         <select id="ecc-club" aria-labelledby="lbl-ecc-club" class="w-full border-2 border-black p-2 font-bold" bind:value={club}>
           {#each Object.entries(CLUB) as [k, v] (k)}<option value={k}>{v}</option>{/each}
         </select>
       </div>
       <div>
-        <span id="lbl-ecc-attivita" class="mb-1 block text-xs font-black uppercase text-slate-600">Attività</span>
+        <span id="lbl-ecc-attivita" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Attività</span>
         <select id="ecc-attivita" aria-labelledby="lbl-ecc-attivita" class="w-full border-2 border-black p-2 font-bold" bind:value={attivita}>
           {#each Object.entries(ATTIVITA) as [k, v] (k)}<option value={k}>{v}</option>{/each}
         </select>
@@ -415,12 +415,12 @@
     </div>
 
     <div>
-      <span id="lbl-ecc-note" class="mb-1 block text-xs font-black uppercase text-slate-600">Note (facoltative)</span>
+      <span id="lbl-ecc-note" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Note (facoltative)</span>
       <textarea id="ecc-note" aria-labelledby="lbl-ecc-note" rows="2" class="w-full border-2 border-black p-2 font-medium" bind:value={note}></textarea>
     </div>
   {/if}
 
-  <label class="flex items-center gap-2 border-t-2 border-black pt-3 font-bold">
+  <label class="flex items-center gap-2 border-t-2 border-black/20 pt-3 font-bold">
     <input type="checkbox" bind:checked={verifica} />
     Giorno da verificare{io ? '' : ` (${nome})`}
   </label>
