@@ -83,17 +83,43 @@
   // --- Kiosk: schermo intero, schermo sempre acceso, aggiornamento automatico ---
 
   let schermoIntero = $state(false);
+  /** Aperta dall'icona della schermata Home come app a schermo intero: il pulsante non serve. */
+  let comeApp = $state(false);
+  /** Uscito dallo schermo intero col pulsante: il tocco successivo non ci rientra. */
+  let uscitaVoluta = false;
+
+  function entraSchermoIntero() {
+    return document.documentElement.requestFullscreen?.() ?? Promise.reject();
+  }
 
   function alternaSchermoIntero() {
-    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-    else document.documentElement.requestFullscreen?.().catch(() => flashErrore('Schermo intero non disponibile.'));
+    if (document.fullscreenElement) {
+      uscitaVoluta = true;
+      document.exitFullscreen?.().catch(() => {});
+    } else {
+      uscitaVoluta = false;
+      entraSchermoIntero().catch(() => flashErrore('Schermo intero non disponibile.'));
+    }
   }
 
   $effect(() => {
     if (!kiosk) return;
-    const aggiornaSchermo = () => (schermoIntero = Boolean(document.fullscreenElement) || matchMedia('(display-mode: fullscreen)').matches);
+    const aggiornaSchermo = () => {
+      comeApp = matchMedia('(display-mode: fullscreen)').matches;
+      schermoIntero = Boolean(document.fullscreenElement) || comeApp;
+    };
     aggiornaSchermo();
     document.addEventListener('fullscreenchange', aggiornaSchermo);
+
+    // Il browser non lascia entrare nello schermo intero senza un gesto: lo si
+    // fa al primo tocco sulla pagina (e di nuovo se si è usciti senza volerlo,
+    // per esempio dopo lo spegnimento dello schermo).
+    const alTocco = (ev: Event) => {
+      if (comeApp || document.fullscreenElement || uscitaVoluta) return;
+      if ((ev.target as Element | null)?.closest?.('[data-schermo-intero]')) return;
+      entraSchermoIntero().catch(() => {});
+    };
+    document.addEventListener('pointerup', alTocco, true);
 
     // Lo schermo resta acceso finché la pagina è visibile (dove il browser lo permette).
     let wakeLock: { release: () => Promise<void> } | null = null;
@@ -126,6 +152,7 @@
 
     return () => {
       document.removeEventListener('fullscreenchange', aggiornaSchermo);
+      document.removeEventListener('pointerup', alTocco, true);
       document.removeEventListener('visibilitychange', alRitorno);
       clearInterval(timer);
       wakeLock?.release().catch(() => {});
@@ -486,8 +513,8 @@
               colleghi
             </label>
           {/if}
-          {#if kiosk}
-            <button type="button" class="club-btn px-3 py-2 text-sm" onclick={alternaSchermoIntero}>
+          {#if kiosk && !comeApp}
+            <button type="button" class="club-btn px-3 py-2 text-sm" data-schermo-intero onclick={alternaSchermoIntero}>
               {schermoIntero ? 'Esci' : 'Schermo intero'}
             </button>
           {/if}
