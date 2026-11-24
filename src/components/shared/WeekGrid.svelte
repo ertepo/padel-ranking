@@ -205,7 +205,24 @@
     }
   }
 
-  function termina() {
+  // Col dito il browser manda mousedown/click qualche istante dopo aver
+  // sollevato il dito, nello stesso punto: se intanto si è aperto un modale, il
+  // clic finirebbe su un suo campo (aprendo il selettore dell'ora o della
+  // data). Per un attimo dopo il tocco quei clic si ignorano.
+  const EVENTI_FANTASMA = ['mousedown', 'mouseup', 'click'] as const;
+
+  function ignoraClicFantasma() {
+    const blocca = (ev: Event) => {
+      ev.preventDefault();
+      ev.stopImmediatePropagation();
+    };
+    for (const t of EVENTI_FANTASMA) window.addEventListener(t, blocca, true);
+    setTimeout(() => {
+      for (const t of EVENTI_FANTASMA) window.removeEventListener(t, blocca, true);
+    }, 450);
+  }
+
+  function termina(e?: PointerEvent) {
     let i = interazione;
     if (attesa) {
       // Tocco breve: vale come un clic.
@@ -217,6 +234,7 @@
     rimuoviListener();
     togliSelezioneTesto();
     if (!i) return;
+    if (e?.pointerType === 'touch') ignoraClicFantasma();
     if (i.tipo === 'seleziona') {
       if (!i.mosso) {
         if (i.blocco) onBlockClick?.(i.blocco);
