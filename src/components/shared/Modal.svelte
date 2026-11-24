@@ -60,7 +60,7 @@
 
     <!-- Un po' di margine dentro l'area che scorre: bordi, contorni di selezione
          e ombre dei campi non vengono tagliati né toccano la barra di scorrimento. -->
-    <div class="modal-corpo -mx-1 min-h-0 space-y-4 overflow-y-auto px-1 pb-1 pr-2 pt-0.5" class:flex-1={altezzaFissa}>
+    <div class="modal-corpo -mx-1 flex min-h-0 flex-col gap-4 overflow-y-auto px-1 pb-1 pr-2 pt-0.5" class:flex-1={altezzaFissa}>
       {@render children()}
     </div>
 
@@ -75,6 +75,12 @@
 <style>
   /* I campi non escono mai dalla loro colonna (su Android data e ora hanno
      una larghezza minima propria e finirebbero sopra il campo accanto). */
+  /* Spazi con gap e non con space-y: in sviluppo Tailwind scrive space-y con
+     il CSS annidato, che Chrome capisce solo dalla 112 (il tablet ha la 106). */
+  .modal-corpo > :global(*) {
+    flex-shrink: 0;
+  }
+
   .modal-corpo :global(input),
   .modal-corpo :global(select),
   .modal-corpo :global(textarea) {

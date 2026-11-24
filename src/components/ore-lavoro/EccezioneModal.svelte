@@ -252,8 +252,8 @@
 {#snippet colonne(sinistra: Snippet, destra: Snippet)}
   {#if largo}
     <div class="grid grid-cols-2 items-start gap-x-8">
-      <div class="space-y-3">{@render sinistra()}</div>
-      <div class="space-y-3">{@render destra()}</div>
+      <div class="flex flex-col gap-3">{@render sinistra()}</div>
+      <div class="flex flex-col gap-3">{@render destra()}</div>
     </div>
   {:else}
     {@render sinistra()}
@@ -262,7 +262,7 @@
 {/snippet}
 
 {#snippet ricSinistra()}
-    <div class="space-y-1 border-l-4 border-black pl-2 font-bold">
+    <div class="flex flex-col gap-1 border-l-4 border-black pl-2 font-bold">
       {#if ric.slot_id && ric.attuale}
         <p>
           Turno attuale del {GIORNI[giornoRic - 1].toLowerCase()} di {nomeDi(ric.staff_id)}:
@@ -389,7 +389,7 @@
       {@const turno = p.turno}
       <button
         type="button"
-        class="block text-left text-xs font-black uppercase leading-snug underline"
+        class="self-start text-left text-xs font-black uppercase leading-snug underline"
         onclick={() => {
           oraInizio = minutiToTime(turno.inizio);
           oraFine = minutiToTime(turno.fine);

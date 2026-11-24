@@ -112,8 +112,8 @@
 {#snippet colonne(sinistra: Snippet, destra: Snippet)}
   {#if largo}
     <div class="grid grid-cols-2 items-start gap-x-8">
-      <div class="space-y-3">{@render sinistra()}</div>
-      <div class="space-y-3">{@render destra()}</div>
+      <div class="flex flex-col gap-3">{@render sinistra()}</div>
+      <div class="flex flex-col gap-3">{@render destra()}</div>
     </div>
   {:else}
     {@render sinistra()}
@@ -175,7 +175,7 @@
     </div>
   </div>
 
-  <div class="space-y-3">
+  <div class="flex flex-col gap-3">
     {#each date as d, i (i)}
       <div>
         <span id={`lbl-imp-data-${i}`} class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">
@@ -189,7 +189,7 @@
         </div>
       </div>
     {/each}
-    <button type="button" class="text-sm font-black uppercase underline" onclick={ripeti}>+ ripeti impegno</button>
+    <button type="button" class="self-start text-sm font-black uppercase underline" onclick={ripeti}>+ ripeti impegno</button>
   </div>
 {/snippet}
 
