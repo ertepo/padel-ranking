@@ -111,6 +111,9 @@ export function segmentiPeriodo(
     if (!conColleghi) continue;
     const colleghi = new Set(previsti.filter((p) => p.data === data && p.staff_id !== staffId).map((p) => p.staff_id));
     for (const e of delGiorno) if (e.assente_id && e.assente_id !== staffId) colleghi.add(e.assente_id);
+    // Ore extra dei colleghi (senza un assente): sono impegni loro anche se non nell'orario.
+    const extraColleghi = delGiorno.filter((e) => !e.assente_id && e.sostituto_id && e.sostituto_id !== staffId);
+    for (const e of extraColleghi) colleghi.add(e.sostituto_id!);
     if (typeof conColleghi === 'function') for (const c of colleghi) if (!conColleghi(c)) colleghi.delete(c);
 
     for (const c of colleghi) {
@@ -118,6 +121,9 @@ export function segmentiPeriodo(
       out.push(...turniMenoAssenze(data, c, previsti, assenzeCollega, 'collega'));
       for (const e of assenzeCollega.filter((x) => x.sostituto_id !== staffId)) {
         out.push({ id: e.id, data, tipo: 'collega-assente', staff_id: c, club: e.club, attivita: e.attivita, eccezione: e, ...fasciaDi(e) });
+      }
+      for (const e of extraColleghi.filter((x) => x.sostituto_id === c)) {
+        out.push({ id: e.id, data, tipo: 'collega', staff_id: c, club: e.club, attivita: e.attivita, eccezione: e, ...fasciaDi(e) });
       }
     }
   }

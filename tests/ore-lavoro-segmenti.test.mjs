@@ -71,3 +71,18 @@ test('persona affiancata nei due sensi', () => {
   assert.equal(affiancatoDi(staff, ALDO), null);
   assert.equal(affiancatoDi(staff, null), null);
 });
+
+test('le ore extra di un collega compaiono tra i suoi turni', () => {
+  const conExtra = [...eccezioni, e('x', '2026-11-04', '09:00:00', '11:00:00', null, BRUNO, 'impegno')];
+  const s = segmentiPeriodo(IO, previsti, conExtra, (id) => id === BRUNO).filter((x) => x.tipo.startsWith('collega'));
+  assert.deepEqual(s.map(riga), [
+    ['2026-11-02', 'collega', BRUNO, 'atletica', 1020, 1080],
+    ['2026-11-04', 'collega', BRUNO, 'tennis', 540, 660],
+  ]);
+  assert.equal(s[1].eccezione?.id, 'x');
+  // Dalla parte di Bruno restano le sue ore extra.
+  assert.deepEqual(segmentiPeriodo(BRUNO, previsti, conExtra, false).map(riga), [
+    ['2026-11-02', 'lavorato', BRUNO, 'atletica', 1020, 1080],
+    ['2026-11-04', 'extra', BRUNO, 'tennis', 540, 660],
+  ]);
+});
