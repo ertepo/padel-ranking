@@ -59,6 +59,8 @@
     stretta?: boolean;
     /** Al tocco si seleziona subito trascinando, senza pressione lunga (pagine che non scorrono, come il kiosk). */
     toccoDiretto?: boolean;
+    /** Righe più basse (fino a un minimo) perché la griglia stia nell'altezza dello schermo. */
+    adattaAltezza?: boolean;
     blocco?: Snippet<[T]>;
     gridEl?: HTMLDivElement;
   }
@@ -67,7 +69,7 @@
     colonne,
     blocchi,
     slotMin = 30,
-    slotPx = 40,
+    slotPx: slotPxMax = 40,
     timeColPx = 52,
     limiteInizio = 12 * 60,
     limiteFine = 24 * 60,
@@ -82,6 +84,7 @@
     nascondiGiorniVuoti = false,
     stretta = false,
     toccoDiretto = false,
+    adattaAltezza = false,
     blocco,
     gridEl = $bindable(),
   }: Props = $props();
@@ -104,6 +107,37 @@
   );
   const nSlot = $derived(Math.round((fascia.fine - fascia.inizio) / slotMin));
   const slots = $derived(Array.from({ length: nSlot }, (_, i) => fascia.inizio + i * slotMin));
+
+  // Altezza adattata allo schermo: lo spazio dalla griglia al fondo della
+  // finestra, tolti l'intestazione dei giorni e la riga dei link sotto.
+  const SLOT_MIN_PX = 12;
+  let wrapEl: HTMLDivElement | undefined = $state();
+  let sottoEl: HTMLDivElement | undefined = $state();
+  let altezzaTesta = $state(0);
+  let altezzaLibera = $state(0);
+
+  $effect(() => {
+    if (!adattaAltezza || !wrapEl) return;
+    const misura = () => {
+      const alto = wrapEl!.getBoundingClientRect().top + window.scrollY;
+      const sotto = sottoEl ? sottoEl.offsetHeight + 8 : 0;
+      altezzaLibera = window.innerHeight - alto - sotto - 12;
+    };
+    misura();
+    window.addEventListener('resize', misura);
+    const ro = new ResizeObserver(misura);
+    ro.observe(document.body);
+    return () => {
+      window.removeEventListener('resize', misura);
+      ro.disconnect();
+    };
+  });
+
+  const slotPx = $derived(
+    adattaAltezza && altezzaLibera > 0
+      ? clamp(Math.floor((altezzaLibera - altezzaTesta - 4) / nSlot), SLOT_MIN_PX, slotPxMax)
+      : slotPxMax,
+  );
   const ore = $derived(slots.filter((m) => m % 60 === 0));
   const visibili = $derived(
     blocchi.filter((b) => b.fine > fascia.inizio && b.inizio < fascia.fine && posizione.has(b.colonna)),
@@ -309,17 +343,18 @@
   });
 </script>
 
-<div class="wg-wrap border-2 border-black">
+<div class="wg-wrap border-2 border-black" bind:this={wrapEl}>
   <div
     bind:this={gridEl}
     class="wg-grid"
     class:wg-trascinando={interazione?.tipo === 'resize'}
     class:wg-stretta={stretta}
     class:wg-tocco-diretto={toccoDiretto}
+    class:wg-bassa={slotPx < 22}
     oncontextmenu={(e) => e.preventDefault()}
     style={`--time-col:${timeColPx}px; grid-template-columns: var(--time-col) repeat(${colonneMostrate.length}, minmax(0, 1fr)); grid-template-rows: auto repeat(${nSlot}, ${slotPx}px);`}
   >
-    <div class="wg-corner"></div>
+    <div class="wg-corner" bind:offsetHeight={altezzaTesta}></div>
 
     {#each colonneMostrate as { c, i } (c.key)}
       <div class="wg-day-header" class:wg-day-oggi={c.evidenziata} style={`grid-column:${gc(i)}`}>
@@ -387,7 +422,7 @@
 </div>
 
 {#if mostraToggle}
-  <div class="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-1">
+  <div class="mt-2 flex flex-wrap justify-center gap-x-5 gap-y-1" bind:this={sottoEl}>
     <button type="button" class="wg-toggle" onclick={() => (mostraTutto = !mostraTutto)}>
       {mostraTutto ? '− nascondi ore esterne' : '+ mostra tutte le ore'}
     </button>
@@ -611,6 +646,26 @@
     padding: 0.1rem 0.35rem;
     pointer-events: none;
     white-space: nowrap;
+  }
+
+  /* Righe basse (griglia adattata allo schermo): blocchi e testi compatti. */
+  .wg-bassa .wg-block {
+    padding: 0.05rem 0.3rem;
+  }
+
+  .wg-bassa :global(.wg-block-title) {
+    font-size: 0.68rem;
+    line-height: 1.1;
+  }
+
+  .wg-bassa :global(.wg-block-time) {
+    font-size: 0.6rem;
+    line-height: 1.1;
+  }
+
+  .wg-bassa .wg-time-label {
+    font-size: 0.65rem;
+    padding-top: 0;
   }
 
   /* Tocco diretto: il dito trascina la selezione, il browser non scorre né zooma. */
