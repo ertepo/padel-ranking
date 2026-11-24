@@ -56,9 +56,11 @@
     onErrore: (msg: string) => void;
     /** Modale largo a due colonne (kiosk, tablet in orizzontale). */
     largo?: boolean;
+    /** Se c'è, in alto compare la scelta "Impegno | Tennis" e questo passa all'impegno. */
+    onImpegno?: (p: { data: string; inizio: number; fine: number }) => void;
   }
 
-  let { staff, persona, prospetto, daVerificare, onClose, onSaved, onErrore, largo = false }: Props = $props();
+  let { staff, persona, prospetto, daVerificare, onClose, onSaved, onErrore, largo = false, onImpegno }: Props = $props();
 
   type Tipo = 'nessuna' | 'assente' | 'sostituisco' | 'extra' | 'altro';
 
@@ -100,7 +102,7 @@
 
   const io = persona.sono_io;
   const nome = persona.nome;
-  const altri = $derived(staff.filter((s) => s.id !== persona.id && (s.attivo || s.id === assenteId || s.id === sostitutoId)));
+  const altri = $derived(staff.filter((s) => s.id !== persona.id && (s.tennis !== false || s.id === assenteId || s.id === sostitutoId) && (s.attivo || s.id === assenteId || s.id === sostitutoId)));
   const nomeDi = (id: string | null) => staff.find((s) => s.id === id)?.nome ?? '';
 
   function scegliTipo(t: Tipo) {
@@ -416,6 +418,13 @@
 {/snippet}
 
 <Modal titolo={ambito === 'ricorrente' ? 'Orario ricorrente' : titolo} {onClose} larghezza={largo ? 'max-w-4xl' : 'max-w-md'} compatta={largo}>
+  {#if onImpegno}
+    <div class="grid grid-cols-2 border-2 border-black text-xs font-black uppercase">
+      <button type="button" class="px-2 py-2"
+        onclick={() => onImpegno?.({ data, inizio: timeToMinuti(oraInizio), fine: timeToMinuti(oraFine) })}>Impegno</button>
+      <button type="button" class="border-l-2 border-black bg-black px-2 py-2 text-white">Tennis</button>
+    </div>
+  {/if}
   {#if ric}
     <div class="grid grid-cols-2 border-2 border-black text-xs font-black uppercase">
       <button type="button" class="px-2 py-2" class:bg-black={ambito === 'giorno'} class:text-white={ambito === 'giorno'}

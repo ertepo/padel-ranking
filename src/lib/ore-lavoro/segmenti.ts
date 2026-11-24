@@ -6,10 +6,12 @@
 //   collega         turno previsto di un collega, tolte le sue assenze
 //   collega-assente assenza di un collega non coperta da lui (scoperta o
 //                   coperta da un terzo)
+//   impegno         suo impegno personale (non conta nelle ore)
+//   impegno-altrui  impegno personale di un collega mostrato (es. il partner)
 import { timeToMinuti, type Fascia } from '../time-grid.ts';
-import type { Attivita, Club, Eccezione, Staff, TurnoPrevisto } from './types';
+import type { Attivita, Club, Eccezione, Impegno, Staff, TurnoPrevisto } from './types';
 
-export type TipoSegmento = 'lavorato' | 'assente' | 'extra' | 'collega' | 'collega-assente';
+export type TipoSegmento = 'lavorato' | 'assente' | 'extra' | 'collega' | 'collega-assente' | 'impegno' | 'impegno-altrui';
 
 export interface Segmento extends Fascia {
   id: string;
@@ -24,6 +26,8 @@ export interface Segmento extends Fascia {
   slot_id?: string;
   /** L'eccezione da cui nasce (assente, extra, collega-assente). */
   eccezione?: Eccezione;
+  /** L'impegno personale da cui nasce (impegno, impegno-altrui). */
+  impegno?: Impegno;
 }
 
 /** Sottrae da ogni fascia di base tutte le fasce da togliere. */
@@ -92,9 +96,24 @@ export function segmentiPeriodo(
   eccezioni: Eccezione[],
   /** true: tutti i colleghi; false: nessuno; funzione: solo quelli per cui dà true. */
   conColleghi: boolean | ((id: string) => boolean) = true,
+  impegni: Impegno[] = [],
 ): Segmento[] {
   const out: Segmento[] = [];
   const date = new Set([...previsti.map((p) => p.data), ...eccezioni.map((e) => e.data)]);
+  const mostraAltrui = (id: string) => (typeof conColleghi === 'function' ? conColleghi(id) : conColleghi);
+  for (const i of impegni) {
+    if (i.staff_id !== staffId && !mostraAltrui(i.staff_id)) continue;
+    out.push({
+      id: `impegno-${i.id}`,
+      data: i.data,
+      tipo: i.staff_id === staffId ? 'impegno' : 'impegno-altrui',
+      staff_id: i.staff_id,
+      club: 'cingoli',
+      attivita: 'tennis',
+      impegno: i,
+      ...fasciaDi(i),
+    });
+  }
 
   for (const data of [...date].sort()) {
     const delGiorno = eccezioni.filter((e) => e.data === data);

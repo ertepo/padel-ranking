@@ -2,7 +2,7 @@
 // vengono sempre dalle funzioni SQL della migrazione 20261123_ore_lavoro.sql.
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { isIsoDate } from '../time-grid.ts';
-import type { Club, DatiPeriodo, PeriodoOrario, Eccezione, GiornoOre, RiepilogoOre, Staff, TurnoPrevisto } from './types';
+import type { Club, DatiPeriodo, PeriodoOrario, Eccezione, GiornoOre, Impegno, RiepilogoOre, Staff, TurnoPrevisto } from './types';
 
 export const MAX_GIORNI_PERIODO = 400;
 
@@ -30,8 +30,9 @@ export function isOrario(value: unknown): value is string {
   return (h < 24 && min < 60 && min % 5 === 0) || (h === 24 && min === 0);
 }
 
-export const COLONNE_STAFF = 'id, nome, ruolo, colore, sono_io, attivo, note, affiancato_id';
-const COLONNE_STAFF_BASE = 'id, nome, ruolo, colore, sono_io, attivo, note';
+export const COLONNE_STAFF = 'id, nome, ruolo, colore, sono_io, attivo, note, affiancato_id, tennis';
+// Senza le migrazioni 20261128 e 20261127 queste colonne non ci sono ancora.
+const COLONNE_STAFF_RIDOTTE = ['id, nome, ruolo, colore, sono_io, attivo, note, affiancato_id', 'id, nome, ruolo, colore, sono_io, attivo, note'];
 
 export async function caricaStaff(supabase: SupabaseClient): Promise<Staff[]> {
   const leggi = (colonne: string) =>
@@ -42,8 +43,10 @@ export async function caricaStaff(supabase: SupabaseClient): Promise<Staff[]> {
       .order('ruolo', { ascending: true })
       .order('nome', { ascending: true });
   let { data, error } = await leggi(COLONNE_STAFF);
-  // Senza la migrazione 20261127 la colonna affiancato_id non c'è ancora.
-  if (error && /affiancato_id/.test(error.message)) ({ data, error } = await leggi(COLONNE_STAFF_BASE));
+  for (const colonne of COLONNE_STAFF_RIDOTTE) {
+    if (!error || !/affiancato_id|tennis/.test(error.message)) break;
+    ({ data, error } = await leggi(colonne));
+  }
   if (error) throw new Error(error.message);
   return (data ?? []) as unknown as Staff[];
 }
@@ -76,7 +79,15 @@ export async function caricaPeriodo(
     .order('ora_inizio');
   if (club) queryEccezioni = queryEccezioni.eq('club', club);
 
-  const [previsti, eccezioni, giorni, riepiloghi, settimane] = await Promise.all([
+  const queryImpegni = supabase
+    .from('impegni')
+    .select('id, staff_id, data, ora_inizio, ora_fine, titolo, colore, note, gruppo_id')
+    .gte('data', dal)
+    .lte('data', al)
+    .order('data')
+    .order('ora_inizio');
+
+  const [previsti, eccezioni, giorni, riepiloghi, settimane, impegni] = await Promise.all([
     supabase.rpc('work_planned_intervals', { p_staff: null, p_dal: dal, p_al: al, p_club: club }),
     queryEccezioni,
     supabase.rpc('work_hours_daily', { p_staff: staffId, p_dal: dal, p_al: al, p_club: club }),
@@ -84,7 +95,11 @@ export async function caricaPeriodo(
     raggruppa === 'month'
       ? supabase.rpc('work_hours_summary', { p_staff: staffId, p_dal: dal, p_al: al, p_periodo: 'week', p_club: club })
       : Promise.resolve({ data: null, error: null }),
+    queryImpegni,
   ]);
+  // Senza la migrazione 20261128 la tabella degli impegni non c'è ancora: si va avanti senza.
+  const impegniMancanti = Boolean(impegni.error && /impegni/.test(impegni.error.message));
+  if (impegni.error && !impegniMancanti) throw new Error(impegni.error.message);
 
   for (const r of [previsti, eccezioni, giorni, riepiloghi, settimane]) {
     if (r.error) throw new Error(r.error.message);
@@ -119,6 +134,7 @@ export async function caricaPeriodo(
     })),
     riepiloghi: (riepiloghi.data ?? []) as RiepilogoOre[],
     settimane: raggruppa === 'month' ? ((settimane.data ?? []) as RiepilogoOre[]) : undefined,
+    impegni: impegniMancanti ? [] : ((impegni.data ?? []) as Impegno[]),
   };
 }
 

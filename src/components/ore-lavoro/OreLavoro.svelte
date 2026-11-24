@@ -10,12 +10,15 @@
   import ImportPanel from './ImportPanel.svelte';
   import WeekAgenda from './WeekAgenda.svelte';
   import EccezioneModal, { type ProspettoEccezione } from './EccezioneModal.svelte';
+  import ImpegnoModal, { type ProspettoImpegno } from './ImpegnoModal.svelte';
   import {
     GIORNI_BREVI, addGiorni, addMesi, fmtDurata, fmtFascia, fmtGiornoMese, fmtMese, fmtSettimana, fmtSettimanaBreve, giorniSettimana, lunediDi,
     minutiToTime, oggiRoma, primoDelMese, ultimoDelMese,
   } from '../../lib/time-grid';
   import { affiancatoDi, segmentiPeriodo, type Segmento } from '../../lib/ore-lavoro/segmenti';
-  import { ATTIVITA, CLUB, COLORI, type Club, type DatiPeriodo, type Eccezione, type Staff } from '../../lib/ore-lavoro/types';
+  import {
+    ATTIVITA, CLUB, COLORI, COLORI_IMPEGNO, coloreDi, type Club, type DatiPeriodo, type Eccezione, type Impegno, type Staff,
+  } from '../../lib/ore-lavoro/types';
 
   interface Props {
     staffIniziale: Staff[];
@@ -54,6 +57,7 @@
   let errore = $state(erroreIniziale);
   let erroreTimer: ReturnType<typeof setTimeout> | undefined;
   let prospetto: ProspettoEccezione | null = $state(null);
+  let impegno: ProspettoImpegno | null = $state(null);
   // Su telefono la settimana si può vedere come agenda o come griglia: la
   // scelta resta nel browser (solo una comodità, se manca si parte dall'agenda).
   const CHIAVE_VISTA_MOBILE = 'ore-lavoro:vista-mobile';
@@ -161,7 +165,7 @@
       if (adesso !== giorno) {
         giorno = adesso;
         window.location.reload();
-      } else if (!prospetto) carica(true);
+      } else if (!prospetto && !impegno) carica(true);
     };
     const timer = setInterval(controlla, 5 * 60 * 1000);
     const alRitorno = () => {
@@ -193,6 +197,10 @@
   const nomeDi = $derived(new Map(staff.map((s) => [s.id, s.nome])));
   const selezionato = $derived(staff.find((s) => s.id === staffId) ?? null);
   const affiancato = $derived(affiancatoDi(staff, staffId));
+  /** Chi si guarda lavora al tennis (se no ha solo impegni personali). */
+  const tennista = $derived(selezionato?.tennis !== false);
+  /** A chi può appartenere un impegno creato da qui. */
+  const personeImpegno = $derived([selezionato, affiancato].filter((x): x is Staff => Boolean(x)));
   // Quali colleghi mostrare: tutti, nessuno o solo la persona affiancata.
   const filtroColleghi = $derived.by((): boolean | ((id: string) => boolean) => {
     if (conColleghi) return true;
@@ -265,12 +273,25 @@
 
   const blocchi: Blocco[] = $derived.by(() => {
     if (!correnti || !staffId || vista !== 'settimana') return [];
-    return segmentiPeriodo(staffId, correnti.previsti, correnti.eccezioni, filtroColleghi).map((s) => {
+    return segmentiPeriodo(staffId, correnti.previsti, correnti.eccezioni, filtroColleghi, correnti.impegni ?? []).map((s) => {
       const e = s.eccezione;
       const daVerificare = giornoOre.get(s.data)?.da_verificare ?? false;
       let titolo = etichettaAttivita(s);
       let colore: string = COLORI.lavorato;
       let classe = '';
+      // La persona affiancata si vede come i propri blocchi (non tratteggiata), nel suo colore fisso.
+      const diAffiancato = s.staff_id === affiancato?.id;
+      if (s.impegno) {
+        const imp = s.impegno;
+        const chi = nomeDi.get(s.staff_id) ?? '?';
+        titolo = s.tipo === 'impegno' ? imp.titolo : `${chi} · ${imp.titolo}`;
+        colore = s.tipo === 'impegno' ? COLORI_IMPEGNO[imp.colore] : coloreDi(staff.find((x) => x.id === s.staff_id));
+        if (s.tipo === 'impegno-altrui' && !diAffiancato) classe = 'wg-block-tratteggiato';
+        return {
+          id: s.id, colonna: giorni.indexOf(s.data), inizio: s.inizio, fine: s.fine, colore, classe, titolo,
+          sottotitolo: imp.note ?? undefined, segmento: s,
+        };
+      }
       if (s.tipo === 'lavorato' && daVerificare) {
         titolo = `${titolo} · da verificare`;
         colore = COLORI.verifica;
@@ -282,8 +303,8 @@
         colore = COLORI.extra;
       } else if (s.tipo === 'collega') {
         titolo = `${nomeDi.get(s.staff_id) ?? '?'} · ${etichettaAttivita(s)}`;
-        colore = s.staff_id === affiancato?.id ? COLORI.affiancato : COLORI.collega;
-        classe = 'wg-block-tratteggiato';
+        colore = diAffiancato ? coloreDi(affiancato) : COLORI.collega;
+        classe = diAffiancato ? '' : 'wg-block-tratteggiato';
       } else if (s.tipo === 'collega-assente') {
         const chi = nomeDi.get(s.staff_id) ?? '?';
         titolo = e?.sostituto_id ? `${chi} → ${nomeDi.get(e.sostituto_id) ?? '?'}` : `${chi} assente, scoperto`;
@@ -307,7 +328,7 @@
   const colonne = $derived(
     giorni.map((g, i) => {
       const ore = giornoOre.get(g);
-      const lavorate = ore && (ore.minuti_previsti || ore.minuti_lavorati) ? ` · ${fmtDurata(ore.minuti_lavorati)}` : '';
+      const lavorate = tennista && ore && (ore.minuti_previsti || ore.minuti_lavorati) ? ` · ${fmtDurata(ore.minuti_lavorati)}` : '';
       const verifica = ore?.da_verificare ? ' · ?' : '';
       return { key: g, label: GIORNI_BREVI[i], sublabel: `${fmtGiornoMese(g)}${lavorate}${verifica}`, evidenziata: g === oggi };
     }),
@@ -378,19 +399,67 @@
     };
   }
 
+  // --- Impegni personali ---------------------------------------------------------
+
+  function nuovoImpegno(data: string, inizio: number, fine: number): ProspettoImpegno | null {
+    if (!staffId) return null;
+    return { staff_id: staffId, data, inizio, fine, titolo: '', colore: 'azzurro', note: null };
+  }
+
+  function daImpegno(i: Impegno): ProspettoImpegno {
+    const [hi, mi] = i.ora_inizio.split(':').map(Number);
+    const [hf, mf] = i.ora_fine.split(':').map(Number);
+    return {
+      id: i.id, staff_id: i.staff_id, data: i.data, inizio: hi * 60 + mi, fine: hf * 60 + mf,
+      titolo: i.titolo, colore: i.colore, note: i.note, gruppo_id: i.gruppo_id,
+    };
+  }
+
+  /** Spazio libero (o blocco della persona affiancata): nuovo impegno, con la scheda Tennis per chi ci lavora. */
+  function apriVuoto(data: string, inizio: number, fine: number) {
+    impegno = nuovoImpegno(data, inizio, fine);
+  }
+
+  /** Blocchi su cui toccare vale come spazio libero: quelli della persona affiancata, o tutto il tennis per chi non ci lavora. */
+  function comeVuoto(b: Blocco) {
+    const s = b.segmento;
+    if (s.tipo === 'impegno-altrui' || s.tipo === 'impegno') return false;
+    return !tennista || s.staff_id === affiancato?.id;
+  }
+
   function apriDaBlocco(b: Blocco, inizio = b.inizio, fine = b.fine) {
     const s = b.segmento;
-    if (s.eccezione) prospetto = daEccezione(s.eccezione);
+    if (s.impegno) impegno = daImpegno(s.impegno);
+    else if (comeVuoto(b)) apriVuoto(s.data, inizio, fine);
+    else if (s.eccezione) prospetto = daEccezione(s.eccezione);
     else prospetto = daTurno(s, inizio, fine);
   }
 
   function onSelezione(colonna: number, inizio: number, fine: number, b: Blocco | null) {
-    if (b) apriDaBlocco(b, inizio, fine);
-    else prospetto = nuovaExtra(giorni[colonna], inizio, fine);
+    // Trascinando sopra un impegno se ne crea uno nuovo in quella fascia.
+    if (b && !b.segmento.impegno && !comeVuoto(b)) apriDaBlocco(b, inizio, fine);
+    else apriVuoto(giorni[colonna], inizio, fine);
   }
 
   async function onResize(b: Blocco, inizio: number, fine: number) {
     const s = b.segmento;
+    if (s.impegno) {
+      // Impegni: si salvano subito i nuovi orari.
+      const i = s.impegno;
+      try {
+        const res = await fetch('/api/ore-lavoro/impegni', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...i, ora_inizio: minutiToTime(inizio), ora_fine: minutiToTime(fine) }),
+        });
+        const result = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(result.error || 'Errore nel salvataggio.');
+      } catch (err) {
+        flashErrore(err instanceof Error ? err.message : 'Errore nel salvataggio.');
+      }
+      carica();
+      return;
+    }
     if (s.eccezione) {
       // Assenze e sostituzioni: si salvano subito i nuovi orari.
       const e = s.eccezione;
@@ -438,7 +507,8 @@
     return `/api/ore-lavoro/export?${params}`;
   });
 
-  const ridimensionabile = (b: Blocco) => ['lavorato', 'assente', 'extra'].includes(b.segmento.tipo);
+  const ridimensionabile = (b: Blocco) =>
+    ['impegno', 'impegno-altrui'].includes(b.segmento.tipo) || (tennista && ['lavorato', 'assente', 'extra'].includes(b.segmento.tipo));
 
   // --- Navigazione -----------------------------------------------------------
 
@@ -466,7 +536,7 @@
   function aggiungiNelGiorno(colonna: number) {
     const miei = blocchi.filter((b) => b.colonna === colonna && !b.segmento.tipo.startsWith('collega'));
     const inizio = miei.length ? Math.min(Math.max(...miei.map((b) => b.fine)), 23 * 60) : 16 * 60;
-    prospetto = nuovaExtra(giorni[colonna], inizio, inizio + 60);
+    apriVuoto(giorni[colonna], inizio, inizio + 60);
   }
 
   /** Etichetta di una settimana dentro il mese: "1–6/9", "28/9–4/10" tagliata al mese. */
@@ -513,7 +583,7 @@
           {vista === 'mese' ? fmtMese(mese) : kiosk ? fmtSettimanaBreve(lunedi) : fmtSettimana(lunedi)}
           {#if caricamento}<span class="ml-1 text-sm font-bold text-slate-500">caricamento…</span>{/if}
         </h2>
-        {#if linkExport && !kiosk}
+        {#if linkExport && tennista && !kiosk}
           <a href={linkExport} class="club-btn hidden px-3 py-2 text-sm md:inline-block" download title="Riepilogo giorno per giorno del periodo mostrato">
             Esporta CSV
           </a>
@@ -569,12 +639,14 @@
       </div>
 
       <div class="mb-3 flex flex-wrap gap-1 text-[10px] font-black sm:mb-4 sm:gap-2 sm:text-xs" class:hidden={kiosk}>
+{#if tennista}
         {#each [['lavorato', 'Lavorato'], ['extra', 'Extra / sostituzioni fatte'], ['assente', 'Assente'], ['verifica', 'Da verificare']] as [chiave, etichetta] (chiave)}
           <span class="inline-flex items-center gap-1 border-2 border-black bg-white px-1.5 py-0.5 sm:px-2 sm:py-1">
             <span class="h-3 w-3 border border-black" style={`background:${COLORI[chiave as keyof typeof COLORI]}`}></span>
             {etichetta}
           </span>
         {/each}
+        {/if}
         {#if conColleghi && vista === 'settimana'}
           <span class="inline-flex items-center gap-1 border-2 border-dashed border-black bg-white px-1.5 py-0.5 sm:px-2 sm:py-1">
             <span class="h-3 w-3 border border-dashed border-black" style={`background:${COLORI.collega}`}></span>
@@ -582,8 +654,8 @@
           </span>
         {/if}
         {#if affiancato && vista === 'settimana' && (conColleghi || conAffiancato)}
-          <span class="inline-flex items-center gap-1 border-2 border-dashed border-black bg-white px-1.5 py-0.5 sm:px-2 sm:py-1">
-            <span class="h-3 w-3 border border-dashed border-black" style={`background:${COLORI.affiancato}`}></span>
+          <span class="inline-flex items-center gap-1 border-2 border-black bg-white px-1.5 py-0.5 sm:px-2 sm:py-1">
+            <span class="h-3 w-3 border border-black" style={`background:${coloreDi(affiancato)}`}></span>
             {affiancato.nome}
           </span>
         {/if}
@@ -653,13 +725,14 @@
       </div>
       {/if}
 
-      {#if linkExport && !kiosk}
+      {#if linkExport && tennista && !kiosk}
         <a href={linkExport} class="club-btn mt-4 block py-2 text-center text-sm md:hidden" download>Esporta CSV del periodo</a>
       {/if}
     </section>
 
     {#if !kiosk}
     <div class="space-y-5">
+      {#if tennista}
       <section class="club-card bg-white p-4 sm:p-5">
         <h2 class="mb-1 text-2xl font-black">{vista === 'mese' ? 'Mese' : 'Settimana'}</h2>
         <p class="mb-4 text-sm font-bold text-slate-600">
@@ -672,8 +745,9 @@
           <p class="font-bold text-slate-500">{caricamento ? 'Caricamento…' : 'Dati non disponibili.'}</p>
         {/if}
       </section>
+      {/if}
 
-      {#if vista === 'mese' && correnti?.settimane?.length}
+      {#if tennista && vista === 'mese' && correnti?.settimane?.length}
         <section class="club-card bg-white p-5">
           <h2 class="mb-3 text-2xl font-black">Settimane</h2>
           <table class="w-full text-sm font-bold">
@@ -707,11 +781,11 @@
         </section>
       {/if}
 
-      {#if selezionato}
+      {#if selezionato && tennista}
         <OrarioPanel staffId={selezionato.id} nome={selezionato.nome} {versione} onChanged={aggiorna} onErrore={flashErrore} />
       {/if}
 
-      {#if selezionato}
+      {#if selezionato && tennista}
         <ImportPanel {staff} persona={selezionato} onImported={aggiorna} onErrore={flashErrore} />
       {/if}
 
@@ -734,6 +808,34 @@
     }}
     onErrore={flashErrore}
     largo={kiosk}
+    onImpegno={!prospetto.id && !prospetto.assente_id && !prospetto.daTurno
+      ? (x) => {
+          prospetto = null;
+          apriVuoto(x.data, x.inizio, x.fine);
+        }
+      : undefined}
+  />
+{/if}
+
+{#if impegno}
+  <ImpegnoModal
+    prospetto={impegno}
+    persone={personeImpegno.some((x) => x.id === impegno?.staff_id)
+      ? personeImpegno
+      : [...staff.filter((x) => x.id === impegno?.staff_id), ...personeImpegno]}
+    largo={kiosk}
+    onTennis={tennista && !impegno.id
+      ? (x) => {
+          impegno = null;
+          prospetto = nuovaExtra(x.data, x.inizio, x.fine);
+        }
+      : undefined}
+    onClose={() => (impegno = null)}
+    onSaved={() => {
+      impegno = null;
+      aggiorna();
+    }}
+    onErrore={flashErrore}
   />
 {/if}
 

@@ -45,7 +45,7 @@ export const POST: APIRoute = async ({ request, cookies }) => {
   return Response.json({ ok: true, staff: data });
 };
 
-// Modifica di nome, ruolo, colore, attivo, note, persona affiancata. "sono_io" non si cambia da qui.
+// Modifica di nome, ruolo, colore, attivo, note, persona affiancata, tennis. "sono_io" non si cambia da qui.
 export const PATCH: APIRoute = async ({ request, cookies }) => {
   if (!isAdminRequest(request, cookies)) return nonAutorizzato();
 
@@ -81,6 +81,10 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
     update.note = typeof body.note === 'string' && body.note.trim() ? body.note.trim() : null;
   }
 
+  if (body.tennis !== undefined) {
+    if (typeof body.tennis !== 'boolean') return Response.json({ error: 'Valore non valido.' }, { status: 400 });
+    update.tennis = body.tennis;
+  }
   if (body.affiancato_id !== undefined) {
     if (body.affiancato_id !== null && (!isUuid(body.affiancato_id) || body.affiancato_id === body.id)) {
       return Response.json({ error: 'Persona affiancata non valida.' }, { status: 400 });

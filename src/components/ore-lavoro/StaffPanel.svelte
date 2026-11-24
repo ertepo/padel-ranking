@@ -1,7 +1,7 @@
 <script lang="ts">
   // Elenco di maestri e collaboratori: rinomina, ruolo, attivo/inattivo e
   // aggiunta. Non si eliminano (le eccezioni passate li citano): si disattivano.
-  import type { Ruolo, Staff } from '../../lib/ore-lavoro/types';
+  import { COLORI_IMPEGNO, type Ruolo, type Staff } from '../../lib/ore-lavoro/types';
 
   interface Props {
     staff: Staff[];
@@ -80,6 +80,23 @@
           <option value="maestro">Maestro</option>
           <option value="collaboratore">Collaboratore</option>
         </select>
+        {#if s.tennis !== undefined}
+          <select
+            class="border-2 border-black px-2 py-1 text-sm font-bold"
+            style={`background:${Object.values(COLORI_IMPEGNO).includes(s.colore as never) ? s.colore : 'white'}`}
+            value={s.colore}
+            aria-label={`Colore fisso di ${s.nome}`}
+            title="Colore con cui si vedono i suoi blocchi nella vista della persona affiancata"
+            onchange={(e) => aggiorna(s, { colore: (e.currentTarget as HTMLSelectElement).value })}
+          >
+            {#if !Object.values(COLORI_IMPEGNO).includes(s.colore as never)}<option value={s.colore}>colore: —</option>{/if}
+            {#each Object.entries(COLORI_IMPEGNO) as [nome, hex] (nome)}<option value={hex}>colore: {nome}</option>{/each}
+          </select>
+          <label class="flex items-center gap-1 text-sm font-bold" title="Lavora al tennis (se no ha solo impegni personali)">
+            <input type="checkbox" checked={s.tennis} onchange={(e) => aggiorna(s, { tennis: (e.currentTarget as HTMLInputElement).checked })} />
+            tennis
+          </label>
+        {/if}
         {#if s.affiancato_id !== undefined}
           <select
             class="border-2 border-black px-2 py-1 text-sm font-bold"

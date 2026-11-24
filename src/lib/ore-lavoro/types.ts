@@ -18,6 +18,44 @@ export interface Staff {
   note: string | null;
   /** Persona affiancata (es. il partner): i suoi turni si possono mostrare sempre. */
   affiancato_id?: string | null;
+  /** Lavora al tennis (false: ha solo impegni personali). Assente prima della migrazione 20261128. */
+  tennis?: boolean;
+}
+
+/** Colori degli impegni personali (chiave salvata nel database → colore). */
+export const COLORI_IMPEGNO = {
+  rosso: '#fca5a5',
+  arancio: '#fdba74',
+  giallo: '#fef08a',
+  verde: '#d9f99d',
+  acqua: '#99f6e4',
+  azzurro: '#bfdbfe',
+  viola: '#ddd6fe',
+  rosa: '#fbcfe8',
+} as const;
+
+export type ColoreImpegno = keyof typeof COLORI_IMPEGNO;
+
+export function isColoreImpegno(value: unknown): value is ColoreImpegno {
+  return typeof value === 'string' && Object.hasOwn(COLORI_IMPEGNO, value);
+}
+
+/** Impegno personale (non di lavoro, non conta nelle ore). */
+export interface Impegno {
+  id: string;
+  staff_id: string;
+  data: string;
+  ora_inizio: string;
+  ora_fine: string;
+  titolo: string;
+  colore: ColoreImpegno;
+  note: string | null;
+  gruppo_id: string | null;
+}
+
+/** Colore fisso di una persona (per i suoi blocchi nella vista dell'altra). */
+export function coloreDi(s: Staff | null | undefined): string {
+  return s && /^#[0-9a-f]{6}$/i.test(s.colore) && s.colore.toLowerCase() !== '#000000' ? s.colore : COLORI.affiancato;
 }
 
 export interface TurnoPrevisto {
@@ -119,6 +157,8 @@ export interface DatiPeriodo {
   riepiloghi: RiepilogoOre[];
   /** Solo raggruppando per mese: anche i totali delle settimane del periodo. */
   settimane?: RiepilogoOre[];
+  /** Impegni personali del periodo (di tutti). */
+  impegni?: Impegno[];
 }
 
 export const COLORI = {

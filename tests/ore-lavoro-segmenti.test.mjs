@@ -86,3 +86,15 @@ test('le ore extra di un collega compaiono tra i suoi turni', () => {
     ['2026-11-04', 'extra', BRUNO, 'tennis', 540, 660],
   ]);
 });
+
+test('impegni: i propri sempre, quelli altrui solo se la persona è mostrata', () => {
+  const imp = (id, staff_id, data) => ({ id, staff_id, data, ora_inizio: '09:00:00', ora_fine: '10:30:00', titolo: 'visita', colore: 'rosa', note: null, gruppo_id: null });
+  const impegni = [imp('i1', IO, '2026-11-04'), imp('i2', BRUNO, '2026-11-04'), imp('i3', ALDO, '2026-11-04')];
+  const soloImpegni = (s) => s.filter((x) => x.impegno).map((x) => [x.impegno.id, x.tipo, x.inizio, x.fine]);
+  assert.deepEqual(soloImpegni(segmentiPeriodo(IO, previsti, eccezioni, false, impegni)), [['i1', 'impegno', 540, 630]]);
+  assert.deepEqual(soloImpegni(segmentiPeriodo(IO, previsti, eccezioni, (id) => id === BRUNO, impegni)), [
+    ['i1', 'impegno', 540, 630],
+    ['i2', 'impegno-altrui', 540, 630],
+  ]);
+  assert.equal(soloImpegni(segmentiPeriodo(IO, previsti, eccezioni, true, impegni)).length, 3);
+});
