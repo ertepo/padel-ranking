@@ -39,6 +39,7 @@
 <script lang="ts">
   // Modale per una singola eccezione (assenza, sostituzione, ore extra) e per
   // il segno "da verificare" del giorno del maestro mostrato.
+  import type { Snippet } from 'svelte';
   import Modal from '../shared/Modal.svelte';
   import { fmtData, fmtFascia, GIORNI, isoDow, minutiToTime, timeToMinuti } from '../../lib/time-grid';
   import { ATTIVITA, CLUB, type Staff } from '../../lib/ore-lavoro/types';
@@ -53,9 +54,11 @@
     onClose: () => void;
     onSaved: () => void;
     onErrore: (msg: string) => void;
+    /** Modale largo a due colonne (kiosk, tablet in orizzontale). */
+    largo?: boolean;
   }
 
-  let { staff, persona, prospetto, daVerificare, onClose, onSaved, onErrore }: Props = $props();
+  let { staff, persona, prospetto, daVerificare, onClose, onSaved, onErrore, largo = false }: Props = $props();
 
   type Tipo = 'nessuna' | 'assente' | 'sostituisco' | 'extra' | 'altro';
 
@@ -235,21 +238,19 @@
   ];
 </script>
 
-<Modal titolo={ambito === 'ricorrente' ? 'Orario ricorrente' : titolo} {onClose} larghezza="max-w-md">
-  {#if ric}
-    <div class="grid grid-cols-2 border-2 border-black text-xs font-black uppercase">
-      <button type="button" class="px-2 py-2" class:bg-black={ambito === 'giorno'} class:text-white={ambito === 'giorno'}
-        onclick={() => (ambito = 'giorno')}>
-        Solo {GIORNI[isoDow(p.data) - 1].toLowerCase()} {fmtData(p.data).slice(0, 5)}
-      </button>
-      <button type="button" class="border-l-2 border-black px-2 py-2" class:bg-black={ambito === 'ricorrente'}
-        class:text-white={ambito === 'ricorrente'} onclick={() => (ambito = 'ricorrente')}>
-        Ogni {GIORNI[giornoRic - 1].toLowerCase()} da qui in poi
-      </button>
+{#snippet colonne(sinistra: Snippet, destra: Snippet)}
+  {#if largo}
+    <div class="grid grid-cols-2 items-start gap-5">
+      <div class="space-y-3">{@render sinistra()}</div>
+      <div class="space-y-3">{@render destra()}</div>
     </div>
+  {:else}
+    {@render sinistra()}
+    {@render destra()}
   {/if}
+{/snippet}
 
-  {#if ambito === 'ricorrente' && ric}
+{#snippet ricSinistra()}
     <div class="space-y-1 border-l-4 border-black pl-2 font-bold">
       {#if ric.slot_id && ric.attuale}
         <p>
@@ -276,7 +277,9 @@
       {/if}
       <p class="text-sm font-medium text-slate-600">I giorni precedenti restano come sono.</p>
     </div>
+{/snippet}
 
+{#snippet ricDestra()}
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <div class="col-span-2 sm:col-span-1">
         <label for="ric-dal" class="mb-1 block text-xs font-black uppercase text-slate-600">Dal</label>
@@ -306,7 +309,9 @@
         </select>
       </div>
     </div>
-  {:else}
+{/snippet}
+
+{#snippet giornoSinistra()}
   <p class="text-sm font-black uppercase text-slate-600">
     {GIORNI[isoDow(data) - 1]} {fmtData(data)}
   </p>
@@ -349,7 +354,11 @@
         </select>
       </div>
     </div>
+  {/if}
+{/snippet}
 
+{#snippet giornoDestra()}
+  {#if tipo !== 'nessuna'}
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <div class="col-span-2 sm:col-span-1">
         <label for="ecc-data" class="mb-1 block text-xs font-black uppercase text-slate-600">Data</label>
@@ -404,6 +413,26 @@
     <input type="checkbox" bind:checked={verifica} />
     Giorno da verificare{io ? '' : ` (${nome})`}
   </label>
+{/snippet}
+
+<Modal titolo={ambito === 'ricorrente' ? 'Orario ricorrente' : titolo} {onClose} larghezza={largo ? 'max-w-4xl' : 'max-w-md'} compatta={largo}>
+  {#if ric}
+    <div class="grid grid-cols-2 border-2 border-black text-xs font-black uppercase">
+      <button type="button" class="px-2 py-2" class:bg-black={ambito === 'giorno'} class:text-white={ambito === 'giorno'}
+        onclick={() => (ambito = 'giorno')}>
+        Solo {GIORNI[isoDow(p.data) - 1].toLowerCase()} {fmtData(p.data).slice(0, 5)}
+      </button>
+      <button type="button" class="border-l-2 border-black px-2 py-2" class:bg-black={ambito === 'ricorrente'}
+        class:text-white={ambito === 'ricorrente'} onclick={() => (ambito = 'ricorrente')}>
+        Ogni {GIORNI[giornoRic - 1].toLowerCase()} da qui in poi
+      </button>
+    </div>
+  {/if}
+
+  {#if ambito === 'ricorrente' && ric}
+    {@render colonne(ricSinistra, ricDestra)}
+  {:else}
+    {@render colonne(giornoSinistra, giornoDestra)}
   {/if}
 
   {#snippet azioni()}

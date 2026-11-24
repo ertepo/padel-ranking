@@ -652,6 +652,7 @@
       aggiorna();
     }}
     onErrore={flashErrore}
+    largo={kiosk}
   />
 {/if}
 
