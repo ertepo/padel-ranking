@@ -426,7 +426,7 @@
   </label>
 {/snippet}
 
-<Modal titolo={ambito === 'ricorrente' ? 'Orario ricorrente' : titolo} {onClose} larghezza={largo ? 'max-w-4xl' : 'max-w-md'} compatta={largo}>
+<Modal titolo={ambito === 'ricorrente' ? 'Orario ricorrente' : titolo} {onClose} larghezza={largo ? 'max-w-4xl' : 'max-w-md'} compatta={largo} altezzaFissa>
   {#if onImpegno}
     <div class="grid grid-cols-2 border-2 border-black text-xs font-black uppercase">
       <button type="button" class="px-2 py-2"

@@ -193,7 +193,7 @@
   </div>
 {/snippet}
 
-<Modal titolo={p.id ? 'Impegno' : 'Nuovo impegno'} {onClose} larghezza={largo ? 'max-w-4xl' : 'max-w-md'} compatta={largo}>
+<Modal titolo={p.id ? 'Impegno' : 'Nuovo impegno'} {onClose} larghezza={largo ? 'max-w-4xl' : 'max-w-md'} compatta={largo} altezzaFissa>
   {#if onTennis}
     <div class="grid grid-cols-2 border-2 border-black text-xs font-black uppercase">
       <button type="button" class="bg-black px-2 py-2 text-white">Impegno</button>

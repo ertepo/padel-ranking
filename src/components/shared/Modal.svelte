@@ -12,11 +12,13 @@
     larghezza?: string;
     /** Margini ridotti e più altezza: per schermi bassi (tablet in orizzontale). */
     compatta?: boolean;
+    /** Altezza fissa (non segue il contenuto): cambiando scheda pulsanti e campi non si spostano. */
+    altezzaFissa?: boolean;
     children: Snippet;
     azioni?: Snippet;
   }
 
-  let { titolo, onClose, larghezza = 'max-w-sm', compatta = false, children, azioni }: Props = $props();
+  let { titolo, onClose, larghezza = 'max-w-sm', compatta = false, altezzaFissa = false, children, azioni }: Props = $props();
 
   const titoloId = `modal-titolo-${Math.random().toString(36).slice(2, 9)}`;
   let cardEl: HTMLDivElement | undefined = $state();
@@ -47,14 +49,16 @@
   <div
     bind:this={cardEl}
     class={`club-card flex w-full ${larghezza} flex-col bg-white ${compatta ? 'px-5 py-3' : 'p-5'}`}
-    style={`max-height: ${compatta ? 96 : 88}vh;`}
+    style={altezzaFissa
+      ? `height: ${compatta ? '96vh' : 'min(88vh, 46rem)'};`
+      : `max-height: ${compatta ? 96 : 88}vh;`}
     role="dialog"
     aria-modal="true"
     aria-labelledby={titoloId}
   >
     <h3 id={titoloId} class={`${compatta ? 'mb-2' : 'mb-4'} text-xl font-black`}>{titolo}</h3>
 
-    <div class="min-h-0 space-y-3 overflow-y-auto pr-1">
+    <div class="min-h-0 space-y-3 overflow-y-auto pr-1" class:flex-1={altezzaFissa}>
       {@render children()}
     </div>
 
