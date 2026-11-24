@@ -114,7 +114,7 @@
       if (adesso !== giorno) {
         giorno = adesso;
         window.location.reload();
-      } else if (!prospetto) carica();
+      } else if (!prospetto) carica(true);
     };
     const timer = setInterval(controlla, 5 * 60 * 1000);
     const alRitorno = () => {
@@ -165,7 +165,7 @@
 
   let richiesta = 0;
 
-  async function carica() {
+  async function carica(silenzioso = false) {
     if (!staffId) return;
     const id = ++richiesta;
     const params = new URLSearchParams({ staff: staffId, dal: periodo.dal, al: periodo.al });
@@ -178,7 +178,7 @@
       if (!res.ok) throw new Error(result.error || 'Errore nel caricamento.');
       if (id === richiesta) dati = result as DatiPeriodo;
     } catch (err) {
-      if (id === richiesta) flashErrore(err instanceof Error ? err.message : 'Errore nel caricamento.');
+      if (id === richiesta && !silenzioso) flashErrore(err instanceof Error ? err.message : 'Errore nel caricamento.');
     } finally {
       if (id === richiesta) caricamento = false;
     }
