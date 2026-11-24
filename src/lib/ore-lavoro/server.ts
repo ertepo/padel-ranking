@@ -30,15 +30,22 @@ export function isOrario(value: unknown): value is string {
   return (h < 24 && min < 60 && min % 5 === 0) || (h === 24 && min === 0);
 }
 
+export const COLONNE_STAFF = 'id, nome, ruolo, colore, sono_io, attivo, note, affiancato_id';
+const COLONNE_STAFF_BASE = 'id, nome, ruolo, colore, sono_io, attivo, note';
+
 export async function caricaStaff(supabase: SupabaseClient): Promise<Staff[]> {
-  const { data, error } = await supabase
-    .from('staff')
-    .select('id, nome, ruolo, colore, sono_io, attivo, note')
-    .order('sono_io', { ascending: false })
-    .order('ruolo', { ascending: true })
-    .order('nome', { ascending: true });
+  const leggi = (colonne: string) =>
+    supabase
+      .from('staff')
+      .select(colonne)
+      .order('sono_io', { ascending: false })
+      .order('ruolo', { ascending: true })
+      .order('nome', { ascending: true });
+  let { data, error } = await leggi(COLONNE_STAFF);
+  // Senza la migrazione 20261127 la colonna affiancato_id non c'è ancora.
+  if (error && /affiancato_id/.test(error.message)) ({ data, error } = await leggi(COLONNE_STAFF_BASE));
   if (error) throw new Error(error.message);
-  return (data ?? []) as Staff[];
+  return (data ?? []) as unknown as Staff[];
 }
 
 /** Valida un periodo [dal, al] (date ISO, al >= dal, non troppo lungo). */

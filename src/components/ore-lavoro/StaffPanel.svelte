@@ -80,6 +80,18 @@
           <option value="maestro">Maestro</option>
           <option value="collaboratore">Collaboratore</option>
         </select>
+        {#if s.affiancato_id !== undefined}
+          <select
+            class="border-2 border-black px-2 py-1 text-sm font-bold"
+            value={s.affiancato_id ?? ''}
+            aria-label={`Persona affiancata a ${s.nome}`}
+            title="I turni della persona affiancata si possono vedere sempre nel calendario, senza tutti i colleghi"
+            onchange={(e) => aggiorna(s, { affiancato_id: (e.currentTarget as HTMLSelectElement).value || null })}
+          >
+            <option value="">insieme a: —</option>
+            {#each staff.filter((x) => x.id !== s.id) as x (x.id)}<option value={x.id}>insieme a: {x.nome}</option>{/each}
+          </select>
+        {/if}
         {#if !s.sono_io}
           <label class="flex items-center gap-1 text-sm font-bold">
             <input type="checkbox" checked={s.attivo} onchange={(e) => aggiorna(s, { attivo: (e.currentTarget as HTMLInputElement).checked })} />

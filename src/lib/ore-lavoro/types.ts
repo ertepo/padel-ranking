@@ -16,6 +16,8 @@ export interface Staff {
   sono_io: boolean;
   attivo: boolean;
   note: string | null;
+  /** Persona affiancata (es. il partner): i suoi turni si possono mostrare sempre. */
+  affiancato_id?: string | null;
 }
 
 export interface TurnoPrevisto {
@@ -125,4 +127,5 @@ export const COLORI = {
   assente: '#fde047',
   verifica: '#7dd3fc',
   collega: '#e2e8f0',
+  affiancato: '#c7d2fe',
 } as const;

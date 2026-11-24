@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { sottraiFasce, segmentiPeriodo } from '../src/lib/ore-lavoro/segmenti.ts';
+import { affiancatoDi, sottraiFasce, segmentiPeriodo } from '../src/lib/ore-lavoro/segmenti.ts';
 
 test('sottrazione di fasce', () => {
   assert.deepEqual(sottraiFasce([{ inizio: 960, fine: 1290 }], [{ inizio: 960, fine: 1080 }]), [{ inizio: 1080, fine: 1290 }]);
@@ -56,4 +56,18 @@ test('segmenti con i colleghi', () => {
     ['2026-11-05', 'collega', ALDO, 'tennis', 1020, 1200],
     ['2026-11-05', 'collega-assente', ALDO, 'tennis', 900, 1020],
   ]);
+});
+
+test('solo la persona affiancata tra i colleghi', () => {
+  const s = segmentiPeriodo(IO, previsti, eccezioni, (id) => id === BRUNO).filter((x) => x.tipo.startsWith('collega')).map(riga);
+  assert.deepEqual(s, [['2026-11-02', 'collega', BRUNO, 'atletica', 1020, 1080]]);
+});
+
+test('persona affiancata nei due sensi', () => {
+  const p = (id, affiancato_id = null) => ({ id, nome: id, ruolo: 'maestro', colore: '#000000', sono_io: false, attivo: true, note: null, affiancato_id });
+  const staff = [p(IO, BRUNO), p(BRUNO), p(ALDO)];
+  assert.equal(affiancatoDi(staff, IO)?.id, BRUNO);
+  assert.equal(affiancatoDi(staff, BRUNO)?.id, IO);
+  assert.equal(affiancatoDi(staff, ALDO), null);
+  assert.equal(affiancatoDi(staff, null), null);
 });

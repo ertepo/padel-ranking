@@ -14,7 +14,7 @@
     GIORNI_BREVI, addGiorni, addMesi, fmtDurata, fmtFascia, fmtGiornoMese, fmtMese, fmtSettimana, fmtSettimanaBreve, giorniSettimana, lunediDi,
     minutiToTime, oggiRoma, primoDelMese, ultimoDelMese,
   } from '../../lib/time-grid';
-  import { segmentiPeriodo, type Segmento } from '../../lib/ore-lavoro/segmenti';
+  import { affiancatoDi, segmentiPeriodo, type Segmento } from '../../lib/ore-lavoro/segmenti';
   import { ATTIVITA, CLUB, COLORI, type Club, type DatiPeriodo, type Eccezione, type Staff } from '../../lib/ore-lavoro/types';
 
   interface Props {
@@ -47,6 +47,8 @@
   let mese = $state(primoDelMese(settimanaIniziale));
   let club: Club | null = $state(clubIniziale);
   let conColleghi = $state(true);
+  /** Turni della persona affiancata (es. il partner), anche senza tutti i colleghi. */
+  let conAffiancato = $state(true);
   let dati: DatiPeriodo | null = $state(datiIniziali);
   let caricamento = $state(false);
   let errore = $state(erroreIniziale);
@@ -58,17 +60,36 @@
   let vistaMobile: 'agenda' | 'griglia' = $state('agenda');
   let stretto = $state(false);
 
+  // Le caselle "colleghi" e della persona affiancata restano come le si è lasciate (in questo browser).
+  const CHIAVE_COLLEGHI = 'ore-lavoro:colleghi';
+  const CHIAVE_AFFIANCATO = 'ore-lavoro:affiancato';
+  let preferenzeLette = $state(false);
+
   $effect(() => {
     try {
       if (localStorage.getItem(CHIAVE_VISTA_MOBILE) === 'griglia') vistaMobile = 'griglia';
+      if (localStorage.getItem(CHIAVE_COLLEGHI) === '0') conColleghi = false;
+      if (localStorage.getItem(CHIAVE_AFFIANCATO) === '0') conAffiancato = false;
     } catch {
       /* archiviazione non disponibile */
     }
+    preferenzeLette = true;
     const mq = window.matchMedia('(max-width: 767px)');
     const aggiorna = () => (stretto = mq.matches);
     aggiorna();
     mq.addEventListener('change', aggiorna);
     return () => mq.removeEventListener('change', aggiorna);
+  });
+
+  $effect(() => {
+    const valori = [conColleghi, conAffiancato];
+    if (!preferenzeLette) return;
+    try {
+      localStorage.setItem(CHIAVE_COLLEGHI, valori[0] ? '1' : '0');
+      localStorage.setItem(CHIAVE_AFFIANCATO, valori[1] ? '1' : '0');
+    } catch {
+      /* archiviazione non disponibile */
+    }
   });
 
   function scegliVistaMobile(v: 'agenda' | 'griglia') {
@@ -171,6 +192,13 @@
   const giorni = $derived(giorniSettimana(lunedi));
   const nomeDi = $derived(new Map(staff.map((s) => [s.id, s.nome])));
   const selezionato = $derived(staff.find((s) => s.id === staffId) ?? null);
+  const affiancato = $derived(affiancatoDi(staff, staffId));
+  // Quali colleghi mostrare: tutti, nessuno o solo la persona affiancata.
+  const filtroColleghi = $derived.by((): boolean | ((id: string) => boolean) => {
+    if (conColleghi) return true;
+    const a = conAffiancato ? affiancato : null;
+    return a ? (id: string) => id === a.id : false;
+  });
   // Dati validi solo se sono proprio della settimana, del maestro e del club
   // mostrati (durante un caricamento o dopo un errore non si mostrano quelli vecchi).
   const periodo = $derived(
@@ -237,7 +265,7 @@
 
   const blocchi: Blocco[] = $derived.by(() => {
     if (!correnti || !staffId || vista !== 'settimana') return [];
-    return segmentiPeriodo(staffId, correnti.previsti, correnti.eccezioni, conColleghi).map((s) => {
+    return segmentiPeriodo(staffId, correnti.previsti, correnti.eccezioni, filtroColleghi).map((s) => {
       const e = s.eccezione;
       const daVerificare = giornoOre.get(s.data)?.da_verificare ?? false;
       let titolo = etichettaAttivita(s);
@@ -254,7 +282,7 @@
         colore = COLORI.extra;
       } else if (s.tipo === 'collega') {
         titolo = `${nomeDi.get(s.staff_id) ?? '?'} · ${etichettaAttivita(s)}`;
-        colore = COLORI.collega;
+        colore = s.staff_id === affiancato?.id ? COLORI.affiancato : COLORI.collega;
         classe = 'wg-block-tratteggiato';
       } else if (s.tipo === 'collega-assente') {
         const chi = nomeDi.get(s.staff_id) ?? '?';
@@ -512,10 +540,29 @@
               <input type="checkbox" bind:checked={conColleghi} />
               colleghi
             </label>
+            {#if affiancato}
+              <label class="flex items-center gap-1 text-sm font-bold" title={`Mostra sempre i turni di ${affiancato.nome}`}>
+                <input type="checkbox" bind:checked={conAffiancato} disabled={conColleghi} />
+                {affiancato.nome}
+              </label>
+            {/if}
           {/if}
           {#if kiosk && !comeApp}
-            <button type="button" class="club-btn px-3 py-2 text-sm" data-schermo-intero onclick={alternaSchermoIntero}>
-              {schermoIntero ? 'Esci' : 'Schermo intero'}
+            <button
+              type="button"
+              class="club-btn px-2.5 py-2"
+              data-schermo-intero
+              aria-label={schermoIntero ? 'Esci dallo schermo intero' : 'Schermo intero'}
+              title={schermoIntero ? 'Esci dallo schermo intero' : 'Schermo intero'}
+              onclick={alternaSchermoIntero}
+            >
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="square" aria-hidden="true">
+                {#if schermoIntero}
+                  <path d="M9 3v6H3M15 3v6h6M9 21v-6H3M15 21v-6h6" />
+                {:else}
+                  <path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6" />
+                {/if}
+              </svg>
             </button>
           {/if}
         </div>
@@ -532,6 +579,12 @@
           <span class="inline-flex items-center gap-1 border-2 border-dashed border-black bg-white px-1.5 py-0.5 sm:px-2 sm:py-1">
             <span class="h-3 w-3 border border-dashed border-black" style={`background:${COLORI.collega}`}></span>
             Colleghi
+          </span>
+        {/if}
+        {#if affiancato && vista === 'settimana' && (conColleghi || conAffiancato)}
+          <span class="inline-flex items-center gap-1 border-2 border-dashed border-black bg-white px-1.5 py-0.5 sm:px-2 sm:py-1">
+            <span class="h-3 w-3 border border-dashed border-black" style={`background:${COLORI.affiancato}`}></span>
+            {affiancato.nome}
           </span>
         {/if}
       </div>

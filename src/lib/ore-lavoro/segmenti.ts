@@ -7,7 +7,7 @@
 //   collega-assente assenza di un collega non coperta da lui (scoperta o
 //                   coperta da un terzo)
 import { timeToMinuti, type Fascia } from '../time-grid.ts';
-import type { Attivita, Club, Eccezione, TurnoPrevisto } from './types';
+import type { Attivita, Club, Eccezione, Staff, TurnoPrevisto } from './types';
 
 export type TipoSegmento = 'lavorato' | 'assente' | 'extra' | 'collega' | 'collega-assente';
 
@@ -79,11 +79,19 @@ function turniMenoAssenze(
   return out;
 }
 
+/** La persona affiancata a staffId (es. il partner), in un senso o nell'altro. */
+export function affiancatoDi(staff: Staff[], staffId: string | null): Staff | null {
+  if (!staffId) return null;
+  const io = staff.find((s) => s.id === staffId);
+  return staff.find((s) => s.id !== staffId && (s.id === io?.affiancato_id || s.affiancato_id === staffId)) ?? null;
+}
+
 export function segmentiPeriodo(
   staffId: string,
   previsti: TurnoPrevisto[],
   eccezioni: Eccezione[],
-  conColleghi = true,
+  /** true: tutti i colleghi; false: nessuno; funzione: solo quelli per cui dà true. */
+  conColleghi: boolean | ((id: string) => boolean) = true,
 ): Segmento[] {
   const out: Segmento[] = [];
   const date = new Set([...previsti.map((p) => p.data), ...eccezioni.map((e) => e.data)]);
@@ -103,6 +111,7 @@ export function segmentiPeriodo(
     if (!conColleghi) continue;
     const colleghi = new Set(previsti.filter((p) => p.data === data && p.staff_id !== staffId).map((p) => p.staff_id));
     for (const e of delGiorno) if (e.assente_id && e.assente_id !== staffId) colleghi.add(e.assente_id);
+    if (typeof conColleghi === 'function') for (const c of colleghi) if (!conColleghi(c)) colleghi.delete(c);
 
     for (const c of colleghi) {
       const assenzeCollega = delGiorno.filter((e) => e.assente_id === c);
