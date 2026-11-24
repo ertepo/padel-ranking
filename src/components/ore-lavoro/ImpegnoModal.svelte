@@ -123,8 +123,8 @@
 
 {#snippet sinistra()}
   <div>
-    <label for="imp-titolo" class="mb-1 block text-xs font-black uppercase text-slate-600">Titolo</label>
-    <input id="imp-titolo" class="w-full border-2 border-black p-2 font-bold" maxlength="80" placeholder="Es. dentista, cena, palestra" bind:value={titolo} />
+    <span id="lbl-imp-titolo" class="mb-1 block text-xs font-black uppercase text-slate-600">Titolo</span>
+    <input id="imp-titolo" aria-labelledby="lbl-imp-titolo" class="w-full border-2 border-black p-2 font-bold" maxlength="80" placeholder="Es. dentista, cena, palestra" bind:value={titolo} />
   </div>
 
   {#if persone.length > 1}
@@ -158,31 +158,31 @@
   </div>
 
   <div>
-    <label for="imp-note" class="mb-1 block text-xs font-black uppercase text-slate-600">Note (facoltative)</label>
-    <textarea id="imp-note" rows="2" class="w-full border-2 border-black p-2 font-medium" bind:value={note}></textarea>
+    <span id="lbl-imp-note" class="mb-1 block text-xs font-black uppercase text-slate-600">Note (facoltative)</span>
+    <textarea id="imp-note" aria-labelledby="lbl-imp-note" rows="2" class="w-full border-2 border-black p-2 font-medium" bind:value={note}></textarea>
   </div>
 {/snippet}
 
 {#snippet destra()}
   <div class="grid grid-cols-2 gap-3">
     <div>
-      <label for="imp-dalle" class="mb-1 block text-xs font-black uppercase text-slate-600">Dalle</label>
-      <input id="imp-dalle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={oraInizio} required />
+      <span id="lbl-imp-dalle" class="mb-1 block text-xs font-black uppercase text-slate-600">Dalle</span>
+      <input id="imp-dalle" aria-labelledby="lbl-imp-dalle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={oraInizio} required />
     </div>
     <div>
-      <label for="imp-alle" class="mb-1 block text-xs font-black uppercase text-slate-600">Alle</label>
-      <input id="imp-alle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={oraFine} required />
+      <span id="lbl-imp-alle" class="mb-1 block text-xs font-black uppercase text-slate-600">Alle</span>
+      <input id="imp-alle" aria-labelledby="lbl-imp-alle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={oraFine} required />
     </div>
   </div>
 
   <div class="space-y-2">
     {#each date as d, i (i)}
       <div>
-        <label for={`imp-data-${i}`} class="mb-1 block text-xs font-black uppercase text-slate-600">
+        <span id={`lbl-imp-data-${i}`} class="mb-1 block text-xs font-black uppercase text-slate-600">
           {i === 0 ? 'Data' : `Ripetizione ${i}`}{d ? ` · ${giornoDi(d)}` : ''}
-        </label>
+        </span>
         <div class="flex gap-2">
-          <input id={`imp-data-${i}`} type="date" class="min-w-0 flex-1 border-2 border-black p-2 font-bold" bind:value={date[i]} required />
+          <input id={`imp-data-${i}`} aria-labelledby={`lbl-imp-data-${i}`} type="date" class="min-w-0 flex-1 border-2 border-black p-2 font-bold" bind:value={date[i]} required />
           {#if i > 0}
             <button type="button" class="border-2 border-black bg-white px-3 font-black" aria-label={`Togli la ripetizione ${i}`} onclick={() => togliData(i)}>✕</button>
           {/if}

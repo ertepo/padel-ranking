@@ -293,29 +293,29 @@
 {#snippet ricDestra()}
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <div class="col-span-2 sm:col-span-1">
-        <label for="ric-dal" class="mb-1 block text-xs font-black uppercase text-slate-600">Dal</label>
-        <input id="ric-dal" type="date" class="w-full border-2 border-black p-2 font-bold" bind:value={ricDal} required />
+        <span id="lbl-ric-dal" class="mb-1 block text-xs font-black uppercase text-slate-600">Dal</span>
+        <input id="ric-dal" aria-labelledby="lbl-ric-dal" type="date" class="w-full border-2 border-black p-2 font-bold" bind:value={ricDal} required />
       </div>
       <div>
-        <label for="ric-dalle" class="mb-1 block text-xs font-black uppercase text-slate-600">Dalle</label>
-        <input id="ric-dalle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={ricInizio} required />
+        <span id="lbl-ric-dalle" class="mb-1 block text-xs font-black uppercase text-slate-600">Dalle</span>
+        <input id="ric-dalle" aria-labelledby="lbl-ric-dalle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={ricInizio} required />
       </div>
       <div>
-        <label for="ric-alle" class="mb-1 block text-xs font-black uppercase text-slate-600">Alle</label>
-        <input id="ric-alle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={ricFine} required />
+        <span id="lbl-ric-alle" class="mb-1 block text-xs font-black uppercase text-slate-600">Alle</span>
+        <input id="ric-alle" aria-labelledby="lbl-ric-alle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={ricFine} required />
       </div>
     </div>
 
     <div class="grid grid-cols-2 gap-3">
       <div>
-        <label for="ric-club" class="mb-1 block text-xs font-black uppercase text-slate-600">Club</label>
-        <select id="ric-club" class="w-full border-2 border-black p-2 font-bold" bind:value={ricClub}>
+        <span id="lbl-ric-club" class="mb-1 block text-xs font-black uppercase text-slate-600">Club</span>
+        <select id="ric-club" aria-labelledby="lbl-ric-club" class="w-full border-2 border-black p-2 font-bold" bind:value={ricClub}>
           {#each Object.entries(CLUB) as [k, v] (k)}<option value={k}>{v}</option>{/each}
         </select>
       </div>
       <div>
-        <label for="ric-attivita" class="mb-1 block text-xs font-black uppercase text-slate-600">Attività</label>
-        <select id="ric-attivita" class="w-full border-2 border-black p-2 font-bold" bind:value={ricAttivita}>
+        <span id="lbl-ric-attivita" class="mb-1 block text-xs font-black uppercase text-slate-600">Attività</span>
+        <select id="ric-attivita" aria-labelledby="lbl-ric-attivita" class="w-full border-2 border-black p-2 font-bold" bind:value={ricAttivita}>
           {#each Object.entries(ATTIVITA) as [k, v] (k)}<option value={k}>{v}</option>{/each}
         </select>
       </div>
@@ -347,8 +347,8 @@
   {#if tipo !== 'nessuna'}
     <div class="grid grid-cols-2 gap-3">
       <div>
-        <label for="ecc-assente" class="mb-1 block text-xs font-black uppercase text-slate-600">Assente</label>
-        <select id="ecc-assente" class="w-full border-2 border-black p-2 font-bold" bind:value={assenteId}
+        <span id="lbl-ecc-assente" class="mb-1 block text-xs font-black uppercase text-slate-600">Assente</span>
+        <select id="ecc-assente" aria-labelledby="lbl-ecc-assente" class="w-full border-2 border-black p-2 font-bold" bind:value={assenteId}
           onchange={() => (tipo = tipoDi(assenteId, sostitutoId, tipo === 'privata'))}>
           <option value={null}>— nessuno —</option>
           <option value={persona.id}>{nome}</option>
@@ -356,8 +356,8 @@
         </select>
       </div>
       <div>
-        <label for="ecc-sostituto" class="mb-1 block text-xs font-black uppercase text-slate-600">Lavora al suo posto</label>
-        <select id="ecc-sostituto" class="w-full border-2 border-black p-2 font-bold" bind:value={sostitutoId}
+        <span id="lbl-ecc-sostituto" class="mb-1 block text-xs font-black uppercase text-slate-600">Lavora al suo posto</span>
+        <select id="ecc-sostituto" aria-labelledby="lbl-ecc-sostituto" class="w-full border-2 border-black p-2 font-bold" bind:value={sostitutoId}
           onchange={() => (tipo = tipoDi(assenteId, sostitutoId, tipo === 'privata'))}>
           <option value={null}>— nessuno —</option>
           <option value={persona.id}>{nome}</option>
@@ -372,16 +372,16 @@
   {#if tipo !== 'nessuna'}
     <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
       <div class="col-span-2 sm:col-span-1">
-        <label for="ecc-data" class="mb-1 block text-xs font-black uppercase text-slate-600">Data</label>
-        <input id="ecc-data" type="date" class="w-full border-2 border-black p-2 font-bold" bind:value={data} required />
+        <span id="lbl-ecc-data" class="mb-1 block text-xs font-black uppercase text-slate-600">Data</span>
+        <input id="ecc-data" aria-labelledby="lbl-ecc-data" type="date" class="w-full border-2 border-black p-2 font-bold" bind:value={data} required />
       </div>
       <div>
-        <label for="ecc-dalle" class="mb-1 block text-xs font-black uppercase text-slate-600">Dalle</label>
-        <input id="ecc-dalle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={oraInizio} required />
+        <span id="lbl-ecc-dalle" class="mb-1 block text-xs font-black uppercase text-slate-600">Dalle</span>
+        <input id="ecc-dalle" aria-labelledby="lbl-ecc-dalle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={oraInizio} required />
       </div>
       <div>
-        <label for="ecc-alle" class="mb-1 block text-xs font-black uppercase text-slate-600">Alle</label>
-        <input id="ecc-alle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={oraFine} required />
+        <span id="lbl-ecc-alle" class="mb-1 block text-xs font-black uppercase text-slate-600">Alle</span>
+        <input id="ecc-alle" aria-labelledby="lbl-ecc-alle" type="time" step="300" class="w-full border-2 border-black p-2 font-bold" bind:value={oraFine} required />
       </div>
     </div>
 
@@ -401,22 +401,22 @@
 
     <div class="grid grid-cols-2 gap-3">
       <div>
-        <label for="ecc-club" class="mb-1 block text-xs font-black uppercase text-slate-600">Club</label>
-        <select id="ecc-club" class="w-full border-2 border-black p-2 font-bold" bind:value={club}>
+        <span id="lbl-ecc-club" class="mb-1 block text-xs font-black uppercase text-slate-600">Club</span>
+        <select id="ecc-club" aria-labelledby="lbl-ecc-club" class="w-full border-2 border-black p-2 font-bold" bind:value={club}>
           {#each Object.entries(CLUB) as [k, v] (k)}<option value={k}>{v}</option>{/each}
         </select>
       </div>
       <div>
-        <label for="ecc-attivita" class="mb-1 block text-xs font-black uppercase text-slate-600">Attività</label>
-        <select id="ecc-attivita" class="w-full border-2 border-black p-2 font-bold" bind:value={attivita}>
+        <span id="lbl-ecc-attivita" class="mb-1 block text-xs font-black uppercase text-slate-600">Attività</span>
+        <select id="ecc-attivita" aria-labelledby="lbl-ecc-attivita" class="w-full border-2 border-black p-2 font-bold" bind:value={attivita}>
           {#each Object.entries(ATTIVITA) as [k, v] (k)}<option value={k}>{v}</option>{/each}
         </select>
       </div>
     </div>
 
     <div>
-      <label for="ecc-note" class="mb-1 block text-xs font-black uppercase text-slate-600">Note (facoltative)</label>
-      <textarea id="ecc-note" rows="2" class="w-full border-2 border-black p-2 font-medium" bind:value={note}></textarea>
+      <span id="lbl-ecc-note" class="mb-1 block text-xs font-black uppercase text-slate-600">Note (facoltative)</span>
+      <textarea id="ecc-note" aria-labelledby="lbl-ecc-note" rows="2" class="w-full border-2 border-black p-2 font-medium" bind:value={note}></textarea>
     </div>
   {/if}
 
