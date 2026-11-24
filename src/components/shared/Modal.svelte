@@ -41,7 +41,8 @@
 
 <!-- svelte-ignore a11y_click_events_have_key_events, a11y_no_static_element_interactions -->
 <div
-  class={`fixed inset-0 z-[9998] flex items-center justify-center bg-black/50 ${compatta ? 'p-2' : 'p-4'}`}
+  class={`fixed inset-0 z-[9998] flex items-center justify-center ${compatta ? 'p-2' : 'p-4'}`}
+  style="background: rgba(0, 0, 0, 0.5);"
   onclick={(e) => {
     if (e.target === e.currentTarget) onClose?.();
   }}
