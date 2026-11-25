@@ -1,8 +1,9 @@
 import type { APIRoute } from 'astro';
+import { randomUUID } from 'node:crypto';
 import { getSupabaseAdmin } from '../../../lib/supabaseAdmin';
 import { isAdminRequest, nonAutorizzato } from '../../../lib/adminAuth';
 import { isAttivita, isClub, isOrario, isUuid } from '../../../lib/ore-lavoro/server';
-import { isIsoDate } from '../../../lib/time-grid';
+import { isIsoDate, MAX_RIPETIZIONI } from '../../../lib/time-grid';
 
 export const prerender = false;
 
@@ -49,8 +50,15 @@ function riga(body: Body): string | Record<string, unknown> {
   if (body.privata === true && (assente !== null || sostituto === null)) return "Un'ora privata ha solo chi la fa, senza assente.";
   const privata = body.privata === undefined ? {} : { privata: body.privata };
 
+  // Parte di turno eliminata: un'assenza senza sostituto che non si disegna.
+  // Anche questa si manda solo se c'è (colonna della migrazione 20261130).
+  if (body.eliminata !== undefined && typeof body.eliminata !== 'boolean') return 'Valore non valido.';
+  if (body.eliminata === true && (assente === null || sostituto !== null || body.privata === true)) return 'Una parte eliminata ha solo chi era nel turno.';
+  const eliminata = body.eliminata === undefined ? {} : { eliminata: body.eliminata };
+
   return {
     ...privata,
+    ...eliminata,
     data: body.data,
     ora_inizio: body.ora_inizio,
     ora_fine: body.ora_fine,
@@ -69,6 +77,19 @@ export const POST: APIRoute = async ({ request, cookies }) => {
 
   const r = riga(body);
   if (typeof r === 'string') return errore(r);
+
+  // Con `date` la stessa eccezione si ripete su più giorni (stesso gruppo).
+  if (body.date !== undefined) {
+    const date = Array.isArray(body.date) ? [...new Set(body.date)] : [];
+    if (date.length === 0 || date.length > MAX_RIPETIZIONI || !date.every((d) => typeof d === 'string' && isIsoDate(d))) {
+      return errore('Date non valide.');
+    }
+    const gruppo = date.length > 1 ? { gruppo_id: randomUUID() } : {};
+    const righe = date.map((d) => ({ ...r, ...gruppo, data: d }));
+    const { data, error } = await getSupabaseAdmin().from('work_exceptions').insert(righe).select(COLONNE);
+    if (error || !data) return errore(error?.message || 'Errore nel salvataggio.');
+    return Response.json({ ok: true, eccezioni: data });
+  }
 
   const { data, error } = await getSupabaseAdmin().from('work_exceptions').insert(r).select(COLONNE).single();
   if (error || !data) return errore(error?.message || 'Errore nel salvataggio.');
@@ -98,7 +119,17 @@ export const DELETE: APIRoute = async ({ request, cookies }) => {
   const body = await leggiJson(request);
   if (!body || !isUuid(body.id)) return errore('Eccezione non specificata.');
 
-  const { error } = await getSupabaseAdmin().from('work_exceptions').delete().eq('id', body.id);
+  const supabase = getSupabaseAdmin();
+  // da_qui: questa e le ripetizioni successive dello stesso gruppo.
+  if (body.da_qui === true) {
+    const { data: ecc } = await supabase.from('work_exceptions').select('*').eq('id', body.id).single();
+    if (ecc?.gruppo_id) {
+      const { error } = await supabase.from('work_exceptions').delete().eq('gruppo_id', ecc.gruppo_id).gte('data', ecc.data);
+      if (error) return errore(error.message);
+      return Response.json({ ok: true });
+    }
+  }
+  const { error } = await supabase.from('work_exceptions').delete().eq('id', body.id);
   if (error) return errore(error.message);
   return Response.json({ ok: true });
 };

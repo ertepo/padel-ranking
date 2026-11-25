@@ -120,7 +120,8 @@ export function segmentiPeriodo(
     const mieAssenze = delGiorno.filter((e) => e.assente_id === staffId);
 
     out.push(...turniMenoAssenze(data, staffId, previsti, mieAssenze, 'lavorato'));
-    for (const e of mieAssenze) {
+    // Le parti di turno eliminate non si disegnano: restano solo come buco nel turno.
+    for (const e of mieAssenze.filter((x) => !x.eliminata)) {
       out.push({ id: e.id, data, tipo: 'assente', staff_id: staffId, club: e.club, attivita: e.attivita, eccezione: e, ...fasciaDi(e) });
     }
     for (const e of delGiorno.filter((x) => x.sostituto_id === staffId)) {
@@ -138,7 +139,7 @@ export function segmentiPeriodo(
     for (const c of colleghi) {
       const assenzeCollega = delGiorno.filter((e) => e.assente_id === c);
       out.push(...turniMenoAssenze(data, c, previsti, assenzeCollega, 'collega'));
-      for (const e of assenzeCollega.filter((x) => x.sostituto_id !== staffId)) {
+      for (const e of assenzeCollega.filter((x) => x.sostituto_id !== staffId && !x.eliminata)) {
         out.push({ id: e.id, data, tipo: 'collega-assente', staff_id: c, club: e.club, attivita: e.attivita, eccezione: e, ...fasciaDi(e) });
       }
       for (const e of extraColleghi.filter((x) => x.sostituto_id === c)) {

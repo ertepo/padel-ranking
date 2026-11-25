@@ -335,7 +335,8 @@
   }
 
   const blocchi: Blocco[] = $derived.by(() => {
-    if (!correnti || !staffId || vista !== 'settimana') return [];
+    // Anche nella vista mese: lì servono per le miniature dei giorni.
+    if (!correnti || !staffId) return [];
     return segmentiPeriodo(staffId, correnti.previsti, correnti.eccezioni, filtroColleghi, correnti.impegni ?? []).map((s) => {
       const e = s.eccezione;
       const daVerificare = giornoOre.get(s.data)?.da_verificare ?? false;
@@ -415,6 +416,7 @@
       attivita: e.attivita,
       note: e.note,
       privata: e.privata,
+      gruppo_id: e.gruppo_id ?? null,
     };
   }
 
@@ -669,17 +671,15 @@
               {#each Object.entries(CLUB) as [k, v] (k)}<option value={k}>{v}</option>{/each}
             </select>
           </label>
-          {#if vista === 'settimana'}
-            <label class="flex items-center gap-1 text-sm font-bold">
-              <input type="checkbox" bind:checked={conColleghi} />
-              colleghi
+          <label class="flex items-center gap-1 text-sm font-bold">
+            <input type="checkbox" bind:checked={conColleghi} />
+            colleghi
+          </label>
+          {#if affiancato}
+            <label class="flex items-center gap-1 text-sm font-bold" title={`Mostra sempre i turni di ${affiancato.nome}`}>
+              <input type="checkbox" bind:checked={conAffiancato} disabled={conColleghi} />
+              {affiancato.nome}
             </label>
-            {#if affiancato}
-              <label class="flex items-center gap-1 text-sm font-bold" title={`Mostra sempre i turni di ${affiancato.nome}`}>
-                <input type="checkbox" bind:checked={conAffiancato} disabled={conColleghi} />
-                {affiancato.nome}
-              </label>
-            {/if}
           {/if}
           {#if kiosk && !comeApp}
             <button
@@ -711,13 +711,13 @@
           </span>
         {/each}
         {/if}
-        {#if conColleghi && vista === 'settimana'}
+        {#if conColleghi}
           <span class="inline-flex items-center gap-1 border-2 border-dashed border-black bg-white px-1.5 py-0.5 sm:px-2 sm:py-1">
             <span class="h-3 w-3 border border-dashed border-black" style={`background:${COLORI.collega}`}></span>
             Colleghi
           </span>
         {/if}
-        {#if affiancato && vista === 'settimana' && (conColleghi || conAffiancato)}
+        {#if affiancato && (conColleghi || conAffiancato)}
           <span class="inline-flex items-center gap-1 border-2 border-black bg-white px-1.5 py-0.5 sm:px-2 sm:py-1">
             <span class="h-3 w-3 border border-black" style={`background:${coloreDi(affiancato)}`}></span>
             {affiancato.nome}
@@ -730,6 +730,7 @@
         <MonthGrid
           {mese}
           giorni={correnti?.giorni ?? []}
+          {blocchi}
           onGiorno={(data) => {
             lunedi = lunediDi(data);
             vista = 'settimana';

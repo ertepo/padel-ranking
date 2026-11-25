@@ -14,6 +14,8 @@
     note: string | null;
     /** Ora privata (pagata dal cliente, non conta nelle ore). */
     privata?: boolean;
+    /** Gruppo delle eccezioni create insieme da una ripetizione. */
+    gruppo_id?: string | null;
     /** Il turno dell'assente, per il pulsante "tutto il turno". */
     turno?: { inizio: number; fine: number; staff_id: string };
     /** Se true il modale propone anche "nessuna eccezione" (solo il segno del giorno). */
@@ -43,7 +45,8 @@
   // il segno "da verificare" del giorno del maestro mostrato.
   import type { Snippet } from 'svelte';
   import Modal from '../shared/Modal.svelte';
-  import { fmtData, fmtFascia, GIORNI, isoDow, minutiToTime, timeToMinuti } from '../../lib/time-grid';
+  import Ripetizione from './Ripetizione.svelte';
+  import { dateRipetute, fmtData, fmtFascia, GIORNI, isoDow, MAX_RIPETIZIONI, minutiToTime, timeToMinuti } from '../../lib/time-grid';
   import { ATTIVITA, CLUB, type Staff } from '../../lib/ore-lavoro/types';
   import { sottraiFasce } from '../../lib/ore-lavoro/segmenti';
 
@@ -86,6 +89,13 @@
   let note = $state(p.note ?? '');
   let verifica = $state(daVerificare);
   let salvando = $state(false);
+
+  // "Ripeti in questi giorni fino al…" (solo per un'eccezione nuova).
+  let ripeti = $state(false);
+  let ripGiorni: number[] = $state([isoDow(p.data)]);
+  let ripFino = $state('');
+  // Dopo "Elimina": scelta tra solo questo giorno e da qui in poi.
+  let chiediElimina: null | 'turno' | 'eccezione' = $state(null);
 
   // Orario ricorrente
   const ric = p.ricorrente;
@@ -157,10 +167,18 @@
       if (!assenteId && !sostitutoId) return onErrore('Indica chi è assente o chi lavora.');
       if (assenteId && assenteId === sostitutoId) return onErrore('Assente e sostituto devono essere persone diverse.');
     }
+    let date: string[] | null = null;
+    if (tipo !== 'nessuna' && !p.id && ripeti) {
+      date = dateRipetute(data, ripGiorni, ripFino);
+      if (!ripFino) return onErrore('Scegli fino a quando ripetere.');
+      if (date.length === 0) return onErrore('Nessuna data nella ripetizione: controlla i giorni e la data di fine.');
+      if (date.length > MAX_RIPETIZIONI) return onErrore(`Troppe date (massimo ${MAX_RIPETIZIONI}).`);
+    }
     salvando = true;
     try {
       if (tipo !== 'nessuna') {
         const riga = {
+          ...(date ? { date } : {}),
           id: p.id,
           data,
           ora_inizio: minutiToTime(inizio),
@@ -186,14 +204,14 @@
     }
   }
 
-  async function salvaOrario(togli = false) {
+  async function salvaOrario(togli = false, chiesto = false) {
     if (!ric) return;
     const inizio = timeToMinuti(ricInizio);
     const fine = timeToMinuti(ricFine);
     if (!togli && (Number.isNaN(inizio) || Number.isNaN(fine) || fine <= inizio)) {
       return onErrore("L'ora di fine deve venire dopo quella di inizio.");
     }
-    if (togli) {
+    if (togli && !chiesto) {
       const quale = ric.attuale ? ` ${fmtFascia(ric.attuale.inizio, ric.attuale.fine)}` : '';
       const domanda = `Togliere TUTTO il turno del ${GIORNI[giornoRic - 1].toLowerCase()}${quale} dall'orario di ${nomeDi(ric.staff_id)}, dal ${fmtData(ricDal)} in poi?`;
       if (!confirm(domanda)) return;
@@ -225,11 +243,11 @@
     }
   }
 
-  async function elimina() {
-    if (!p.id || !confirm("Eliminare questa eccezione? Il turno torna come da calendario.")) return;
+  async function elimina(daQui = false, chiesto = false) {
+    if (!p.id || (!chiesto && !confirm("Eliminare questa eccezione? Il turno torna come da calendario."))) return;
     salvando = true;
     try {
-      await chiama('/api/ore-lavoro/eccezioni', 'DELETE', { id: p.id });
+      await chiama('/api/ore-lavoro/eccezioni', 'DELETE', { id: p.id, ...(daQui ? { da_qui: true } : {}) });
       onSaved();
     } catch (err) {
       onErrore(err instanceof Error ? err.message : "Errore nell'eliminazione.");
@@ -237,6 +255,52 @@
       salvando = false;
     }
   }
+
+  // La fascia da eliminare: quella scelta nel modale (tutto il turno o una parte).
+  const fasciaElimina = $derived({ inizio: timeToMinuti(oraInizio), fine: timeToMinuti(oraFine) });
+
+  /**
+   * "Solo questo giorno" per un turno fisso: il turno resta nell'orario e quel
+   * giorno la fascia scelta sparisce dal calendario (eccezione "eliminata",
+   * che conta come assenza senza sostituto ma non si disegna).
+   */
+  async function togliSoloOggi() {
+    if (!ric) return;
+    const { inizio, fine } = fasciaElimina;
+    if (Number.isNaN(inizio) || Number.isNaN(fine) || fine <= inizio) return onErrore("L'ora di fine deve venire dopo quella di inizio.");
+    salvando = true;
+    try {
+      await chiama('/api/ore-lavoro/eccezioni', 'POST', {
+        data: p.data,
+        ora_inizio: minutiToTime(inizio),
+        ora_fine: minutiToTime(fine),
+        assente_id: ric.staff_id,
+        sostituto_id: null,
+        club: ricClub,
+        attivita: ricAttivita,
+        note: null,
+        eliminata: true,
+      });
+      onSaved();
+    } catch (err) {
+      onErrore(err instanceof Error ? err.message : "Errore nell'eliminazione.");
+    } finally {
+      salvando = false;
+    }
+  }
+
+  function soloQuesto() {
+    if (chiediElimina === 'turno') togliSoloOggi();
+    else elimina(false, true);
+  }
+
+  function daQuiInPoi() {
+    // Con una parte selezionata il turno si accorcia (o si divide); altrimenti esce dall'orario.
+    if (chiediElimina === 'turno') salvaOrario(!pezzi?.length, true);
+    else elimina(true, true);
+  }
+
+  const giornoBreve = `${GIORNI[isoDow(p.data) - 1].toLowerCase()} ${fmtData(p.data).slice(0, 5)}`;
 
   const titolo = p.id ? 'Modifica eccezione' : 'Nuova eccezione';
   const opzioniTipo: [Tipo, string][] = [
@@ -418,6 +482,10 @@
       <span id="lbl-ecc-note" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">Note (facoltative)</span>
       <textarea id="ecc-note" aria-labelledby="lbl-ecc-note" rows="2" class="w-full border-2 border-black p-2 font-medium" bind:value={note}></textarea>
     </div>
+
+    {#if !p.id}
+      <Ripetizione dal={data} bind:attiva={ripeti} bind:giorni={ripGiorni} bind:fino={ripFino} prefisso="ecc" />
+    {/if}
   {/if}
 
   <label class="flex items-center gap-2 border-t-2 border-black/20 pt-3 font-bold">
@@ -427,6 +495,25 @@
 {/snippet}
 
 <Modal titolo={ambito === 'ricorrente' ? 'Orario ricorrente' : titolo} {onClose} larghezza={largo ? 'max-w-4xl' : 'max-w-md'} compatta={largo} altezzaFissa>
+  {#if chiediElimina}
+    <div class="flex flex-col gap-3 border-l-4 border-black pl-3 font-bold leading-snug">
+      {#if chiediElimina === 'turno'}
+        <p>Elimini {fmtFascia(fasciaElimina.inizio, fasciaElimina.fine)} dal turno di {nomeDi(ric?.staff_id ?? null)}:</p>
+        <p><span class="font-black">Solo {giornoBreve}</span>: sparisce dal calendario solo quel giorno; le altre settimane restano.</p>
+        {#if pezzi?.length}
+          <p><span class="font-black">Da qui in poi</span>: dal {fmtData(p.data)} il turno diventa
+            {fmtFascia(pezzi[0].inizio, pezzi[0].fine)}{secondoPezzo ? ` e ${fmtFascia(secondoPezzo.inizio, secondoPezzo.fine)}` : ''}; i giorni prima restano.</p>
+        {:else}
+          <p><span class="font-black">Da qui in poi</span>: il turno esce dall'orario dal {fmtData(p.data)}; i giorni prima restano.</p>
+        {/if}
+        <p class="text-sm font-medium text-slate-600">Se invece eri assente, torna indietro e salva con "Sono assente".</p>
+      {:else}
+        <p>Questa eccezione fa parte di una ripetizione:</p>
+        <p><span class="font-black">Solo {giornoBreve}</span>: tolgo solo questa.</p>
+        <p><span class="font-black">Da qui in poi</span>: tolgo questa e quelle dei giorni dopo; quelle prima restano.</p>
+      {/if}
+    </div>
+  {:else}
   {#if onImpegno}
     <div class="grid grid-cols-2 border-2 border-black text-xs font-black uppercase">
       <button type="button" class="px-2 py-2"
@@ -452,8 +539,14 @@
   {:else}
     {@render colonne(giornoSinistra, giornoDestra)}
   {/if}
+  {/if}
 
   {#snippet azioni()}
+    {#if chiediElimina}
+      <button type="button" class="club-btn flex-1 py-3" onclick={() => (chiediElimina = null)}>Indietro</button>
+      <button type="button" class="club-btn-red flex-1 py-3 text-sm" disabled={salvando} onclick={soloQuesto}>Solo {giornoBreve}</button>
+      <button type="button" class="club-btn-red flex-1 py-3 text-sm" disabled={salvando} onclick={daQuiInPoi}>Da qui in poi</button>
+    {:else}
     <button type="button" class="club-btn flex-1 py-3" onclick={onClose}>Annulla</button>
     {#if ambito === 'ricorrente' && ric}
       {#if ric.slot_id}
@@ -464,11 +557,15 @@
       </button>
     {:else}
       {#if p.id}
-        <button type="button" class="club-btn-red flex-1 py-3" disabled={salvando} onclick={elimina}>Elimina</button>
+        <button type="button" class="club-btn-red flex-1 py-3" disabled={salvando}
+          onclick={() => (p.gruppo_id ? (chiediElimina = 'eccezione') : elimina())}>Elimina</button>
+      {:else if p.daTurno && ric?.slot_id}
+        <button type="button" class="club-btn-red flex-1 py-3" disabled={salvando} onclick={() => (chiediElimina = 'turno')}>Elimina</button>
       {/if}
       <button type="button" class="club-btn-yellow flex-1 py-3" disabled={salvando} onclick={salva}>
         {salvando ? 'Salvataggio…' : 'Salva'}
       </button>
+    {/if}
     {/if}
   {/snippet}
 </Modal>

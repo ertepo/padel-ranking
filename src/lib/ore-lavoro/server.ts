@@ -114,8 +114,9 @@ export async function caricaPeriodo(
     previsti: ((previsti.data ?? []) as TurnoPrevisto[]).map(({ data, ora_inizio, ora_fine, staff_id, club, attivita, slot_id }) => ({
       data, ora_inizio, ora_fine, staff_id, club, attivita, slot_id,
     })),
-    eccezioni: ((eccezioni.data ?? []) as Eccezione[]).map(({ id, data, ora_inizio, ora_fine, assente_id, sostituto_id, club, attivita, note, privata }) => ({
+    eccezioni: ((eccezioni.data ?? []) as Eccezione[]).map(({ id, data, ora_inizio, ora_fine, assente_id, sostituto_id, club, attivita, note, privata, gruppo_id, eliminata }) => ({
       id, data, ora_inizio, ora_fine, assente_id, sostituto_id, club, attivita, note, privata: Boolean(privata),
+      gruppo_id: gruppo_id ?? null, eliminata: Boolean(eliminata),
     })),
     giorni: ((giorni.data ?? []) as (GiornoOre & Record<string, unknown>)[]).map((g) => ({
       data: g.data,

@@ -98,3 +98,11 @@ test('impegni: i propri sempre, quelli altrui solo se la persona è mostrata', (
   ]);
   assert.equal(soloImpegni(segmentiPeriodo(IO, previsti, eccezioni, true, impegni)).length, 3);
 });
+
+test('una parte di turno eliminata non si disegna, né per me né per i colleghi', () => {
+  const tolta = { ...e('z', '2026-11-02', '19:00:00', '21:30:00', IO, null), eliminata: true };
+  const mie = segmentiPeriodo(IO, previsti, [tolta], false).map(riga);
+  assert.deepEqual(mie.filter((r) => r[0] === '2026-11-02'), [['2026-11-02', 'lavorato', IO, 'tennis', 960, 1140]]);
+  const viste = segmentiPeriodo(BRUNO, previsti, [tolta]).map(riga).filter((r) => r[2] === IO && r[0] === '2026-11-02');
+  assert.deepEqual(viste, [['2026-11-02', 'collega', IO, 'tennis', 960, 1140]]);
+});

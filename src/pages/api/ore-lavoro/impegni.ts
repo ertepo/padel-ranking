@@ -4,7 +4,7 @@ import { getSupabaseAdmin } from '../../../lib/supabaseAdmin';
 import { isAdminRequest, nonAutorizzato } from '../../../lib/adminAuth';
 import { isOrario, isUuid } from '../../../lib/ore-lavoro/server';
 import { isColoreImpegno } from '../../../lib/ore-lavoro/types';
-import { isIsoDate } from '../../../lib/time-grid';
+import { isIsoDate, MAX_RIPETIZIONI } from '../../../lib/time-grid';
 
 // Impegni personali: creazione su una o più date ("ripeti impegno"),
 // modifica di uno, eliminazione di uno o di tutte le sue ripetizioni.
@@ -12,7 +12,7 @@ import { isIsoDate } from '../../../lib/time-grid';
 export const prerender = false;
 
 const COLONNE = 'id, staff_id, data, ora_inizio, ora_fine, titolo, colore, note, gruppo_id';
-const MAX_DATE = 60;
+const MAX_DATE = MAX_RIPETIZIONI;
 
 type Body = Record<string, unknown>;
 
@@ -97,17 +97,20 @@ export const PATCH: APIRoute = async ({ request, cookies }) => {
   return Response.json({ ok: true, impegno: data });
 };
 
-// Eliminazione di un impegno o, con tutte = true, di tutte le sue ripetizioni.
+// Eliminazione di un impegno, di tutte le sue ripetizioni o di quelle da qui in poi.
 export const DELETE: APIRoute = async ({ request, cookies }) => {
   if (!isAdminRequest(request, cookies)) return nonAutorizzato();
   const body = await leggiJson(request);
   if (!body || !isUuid(body.id)) return errore('Impegno non specificato.');
 
   const supabase = getSupabaseAdmin();
-  if (body.tutte === true) {
-    const { data: imp } = await supabase.from('impegni').select('gruppo_id').eq('id', body.id).single();
+  // tutte: tutte le ripetizioni; da_qui: questa e quelle dopo.
+  if (body.tutte === true || body.da_qui === true) {
+    const { data: imp } = await supabase.from('impegni').select('gruppo_id, data').eq('id', body.id).single();
     if (imp?.gruppo_id) {
-      const { error } = await supabase.from('impegni').delete().eq('gruppo_id', imp.gruppo_id);
+      let q = supabase.from('impegni').delete().eq('gruppo_id', imp.gruppo_id);
+      if (body.tutte !== true) q = q.gte('data', imp.data);
+      const { error } = await q;
       if (error) return errore(error.message);
       return Response.json({ ok: true });
     }

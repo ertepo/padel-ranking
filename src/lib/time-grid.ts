@@ -229,3 +229,21 @@ export function assegnaCorsie<T extends Fascia & { colonna: number }>(
   }
   return out;
 }
+
+/** Massimo di date generate da una ripetizione (evita salvataggi enormi per errore). */
+export const MAX_RIPETIZIONI = 200;
+
+/**
+ * Le date da `dal` a `fino` (comprese) che cadono nei giorni della settimana
+ * scelti (1 = lunedì ... 7 = domenica). Si ferma a MAX_RIPETIZIONI + 1, così chi
+ * chiama può accorgersi che sono troppe.
+ */
+export function dateRipetute(dal: string, giorni: number[], fino: string): string[] {
+  if (!isIsoDate(dal) || !isIsoDate(fino) || fino < dal) return [];
+  const scelti = new Set(giorni);
+  const date: string[] = [];
+  for (let d = dal; d <= fino && date.length <= MAX_RIPETIZIONI; d = addGiorni(d, 1)) {
+    if (scelti.has(isoDow(d))) date.push(d);
+  }
+  return date;
+}

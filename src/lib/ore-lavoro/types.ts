@@ -81,6 +81,10 @@ export interface Eccezione {
   note: string | null;
   /** Ora privata: pagata dal cliente, non conta nelle ore (assente null). Manca prima della migrazione 20261129. */
   privata?: boolean;
+  /** Eccezioni create insieme da una ripetizione. Manca prima della migrazione 20261130. */
+  gruppo_id?: string | null;
+  /** Parte di turno eliminata: conta come assenza ma non si disegna. Manca prima della migrazione 20261130. */
+  eliminata?: boolean;
 }
 
 /** Un pagamento ricevuto dal datore di lavoro: le ore si contano da quel giorno. */

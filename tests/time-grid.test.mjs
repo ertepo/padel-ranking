@@ -78,3 +78,13 @@ test('corsie dei blocchi sovrapposti', () => {
   assert.deepEqual(corsie.get(c), { corsia: 0, corsie: 1 });
   assert.deepEqual(corsie.get(d), { corsia: 0, corsie: 1 });
 });
+
+test('dateRipetute', async () => {
+  const { dateRipetute, MAX_RIPETIZIONI } = await import('../src/lib/time-grid.ts');
+  // martedì 1 dicembre 2026 → martedì e giovedì fino al 10
+  assert.deepEqual(dateRipetute('2026-12-01', [2, 4], '2026-12-10'), ['2026-12-01', '2026-12-03', '2026-12-08', '2026-12-10']);
+  assert.deepEqual(dateRipetute('2026-12-01', [4], '2026-12-08'), ['2026-12-03']);
+  assert.deepEqual(dateRipetute('2026-12-01', [2], '2026-11-30'), []);
+  assert.deepEqual(dateRipetute('2026-12-01', [], '2026-12-30'), []);
+  assert.equal(dateRipetute('2026-01-01', [1, 2, 3, 4, 5, 6, 7], '2027-12-31').length, MAX_RIPETIZIONI + 1);
+});

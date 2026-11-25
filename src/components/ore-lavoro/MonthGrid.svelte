@@ -6,18 +6,59 @@
   //   fucsia   ore extra / sostituzioni fatte
   //   verde    lavorato da calendario
   // Lo sfondo prende il colore più importante del giorno; sotto, una riga per
-  // ogni stato presente. Clic su un giorno: si apre la sua settimana.
-  import { GIORNI_BREVI, addGiorni, fmtDurata, giorniSettimana, isoDow, lunediDi, oggiRoma, ultimoDelMese } from '../../lib/time-grid';
+  // ogni stato presente. In ogni giorno c'è una miniatura della giornata con
+  // i blocchi (gli stessi colori della settimana), così si vede quando si è
+  // lavorato. Clic su un giorno: si apre la sua settimana.
+  import {
+    GIORNI_BREVI, addGiorni, assegnaCorsie, fasciaVisibile, fmtDurata, fmtFascia, giorniSettimana, isoDow, lunediDi, oggiRoma, ultimoDelMese,
+  } from '../../lib/time-grid';
   import { COLORI, type GiornoOre } from '../../lib/ore-lavoro/types';
+
+  /** Un blocco della giornata, come nella settimana. */
+  interface BloccoMese {
+    id: string;
+    inizio: number;
+    fine: number;
+    colore: string;
+    classe?: string;
+    titolo?: string;
+    segmento: { data: string };
+  }
 
   interface Props {
     /** Primo giorno del mese mostrato (AAAA-MM-01). */
     mese: string;
     giorni: GiornoOre[];
+    blocchi?: BloccoMese[];
     onGiorno: (data: string) => void;
   }
 
-  let { mese, giorni, onGiorno }: Props = $props();
+  let { mese, giorni, blocchi = [], onGiorno }: Props = $props();
+
+  // Le ore della miniatura: dalla prima all'ultima occupata nel mese.
+  const delMese = $derived(blocchi.filter((b) => b.segmento.data.slice(0, 7) === mese.slice(0, 7)));
+  const fascia = $derived(fasciaVisibile(delMese, 6 * 60, 24 * 60, { inizio: 9 * 60, fine: 21 * 60 }));
+  const durata = $derived(fascia.fine - fascia.inizio);
+
+  // Blocchi per giorno, con le corsie per quelli sovrapposti.
+  const perGiorno = $derived.by(() => {
+    const giornoNum = new Map<string, number>();
+    const conColonna = delMese.map((b) => {
+      const d = b.segmento.data;
+      if (!giornoNum.has(d)) giornoNum.set(d, giornoNum.size);
+      return { ...b, colonna: giornoNum.get(d)! };
+    });
+    const corsie = assegnaCorsie(conColonna);
+    const out = new Map<string, { b: (typeof conColonna)[number]; corsia: number; corsie: number }[]>();
+    for (const b of conColonna) {
+      const lista = out.get(b.segmento.data) ?? [];
+      lista.push({ b, ...(corsie.get(b) ?? { corsia: 0, corsie: 1 }) });
+      out.set(b.segmento.data, lista);
+    }
+    return out;
+  });
+
+  const pct = (min: number) => `${(((Math.min(Math.max(min, fascia.inizio), fascia.fine) - fascia.inizio) / durata) * 100).toFixed(2)}%`;
 
   const oggi = oggiRoma();
   const perData = $derived(new Map(giorni.map((g) => [g.data, g])));
@@ -73,9 +114,24 @@
         onclick={() => onGiorno(data)}
         title="Apri la settimana"
       >
-        <span class="mg-num">{Number(data.slice(8, 10))}</span>
+        <span class="mg-testa">
+          <span class="mg-num">{Number(data.slice(8, 10))}</span>
+          {#if g && !fuori && (g.minuti_previsti || g.minuti_lavorati)}
+            <span class="mg-ore">{fmtDurata(g.minuti_lavorati)}</span>
+          {/if}
+        </span>
+        {#if !fuori}
+          <span class="mg-mini" aria-hidden="true">
+            {#each perGiorno.get(data) ?? [] as { b, corsia, corsie } (b.id)}
+              <span
+                class={`mg-blocco ${b.classe ?? ''}`}
+                style={`top:${pct(b.inizio)};height:calc(${pct(fascia.inizio + Math.min(b.fine, fascia.fine) - Math.max(b.inizio, fascia.inizio))});left:${(corsia / corsie) * 100}%;width:${100 / corsie}%;background:${b.colore}`}
+                title={`${fmtFascia(b.inizio, b.fine)}${b.titolo ? ` · ${b.titolo}` : ''}`}
+              ></span>
+            {/each}
+          </span>
+        {/if}
         {#if g && !fuori && (g.minuti_previsti || g.minuti_lavorati)}
-          <span class="mg-ore">{fmtDurata(g.minuti_lavorati)}</span>
           <span class="mg-pallini" aria-hidden="true">
             {#if g.da_verificare}<span style={`background:${COLORI.verifica}`}></span>{/if}
             {#if g.minuti_assenza > 0}<span style={`background:${COLORI.assente}`}></span>{/if}
@@ -165,16 +221,44 @@
     padding: 0 0.3rem;
   }
 
+  .mg-testa {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.2rem;
+  }
+
   .mg-num {
-    align-self: flex-start;
     font-size: 0.75rem;
     font-weight: 900;
   }
 
   .mg-ore {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     font-weight: 900;
     line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* Miniatura della giornata: dall'alto (prima ora) al basso (ultima ora). */
+  .mg-mini {
+    position: relative;
+    display: block;
+    height: 3.25rem;
+    background: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(0, 0, 0, 0.35);
+  }
+
+  .mg-blocco {
+    position: absolute;
+    min-height: 2px;
+    border: 1px solid black;
+    box-sizing: border-box;
+  }
+
+  .mg-blocco.wg-block-tratteggiato {
+    border-style: dashed;
+    opacity: 0.75;
   }
 
   .mg-righe {
@@ -202,7 +286,19 @@
     }
 
     .mg-ore {
-      font-size: 0.72rem;
+      font-size: 0.62rem;
+    }
+
+    .mg-num {
+      font-size: 0.62rem;
+    }
+
+    .mg-testa {
+      flex-wrap: wrap;
+    }
+
+    .mg-mini {
+      height: 2.4rem;
     }
 
     .mg-righe {

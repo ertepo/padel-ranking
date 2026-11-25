@@ -20,7 +20,8 @@
   // ("ripeti impegno"), orari e note. Non entra nel conteggio delle ore.
   import type { Snippet } from 'svelte';
   import Modal from '../shared/Modal.svelte';
-  import { addGiorni, fmtData, GIORNI, isoDow, minutiToTime, timeToMinuti } from '../../lib/time-grid';
+  import Ripetizione from './Ripetizione.svelte';
+  import { addGiorni, dateRipetute, fmtData, GIORNI, isoDow, MAX_RIPETIZIONI, minutiToTime, timeToMinuti } from '../../lib/time-grid';
   import { COLORI_IMPEGNO, type Staff } from '../../lib/ore-lavoro/types';
 
   interface Props {
@@ -47,13 +48,18 @@
   let oraInizio = $state(minutiToTime(p.inizio));
   let oraFine = $state(minutiToTime(p.fine));
   let salvando = $state(false);
+  // "Ripeti in questi giorni fino al…": si somma alle date scritte a mano.
+  let ripeti = $state(false);
+  let ripGiorni: number[] = $state([isoDow(p.data)]);
+  let ripFino = $state('');
+  let chiediElimina = $state(false);
 
   const NOMI_COLORI: Record<ColoreImpegno, string> = {
     rosso: 'Rosso', arancio: 'Arancio', giallo: 'Giallo', verde: 'Verde', acqua: 'Acqua', azzurro: 'Azzurro', viola: 'Viola', rosa: 'Rosa',
   };
 
   /** Una data in più: di norma la settimana dopo l'ultima. */
-  function ripeti() {
+  function aggiungiData() {
     const ultima = date[date.length - 1];
     date = [...date, ultima ? addGiorni(ultima, 7) : p.data];
   }
@@ -76,14 +82,24 @@
     if (!titolo.trim()) return onErrore('Scrivi un titolo.');
     if (date.some((d) => !d)) return onErrore('Manca una data.');
     if (timeToMinuti(oraFine) <= timeToMinuti(oraInizio)) return onErrore("L'ora di fine deve venire dopo quella di inizio.");
+    let tutte = date;
+    if (ripeti) {
+      if (!ripFino) return onErrore('Scegli fino a quando ripetere.');
+      const generate = dateRipetute(date[0], ripGiorni, ripFino);
+      if (generate.length === 0) return onErrore('Nessuna data nella ripetizione: controlla i giorni e la data di fine.');
+      // La prima resta quella dell'impegno (anche se il suo giorno non è spuntato).
+      tutte = [...new Set([date[0], ...date.slice(1), ...generate])];
+      tutte = [tutte[0], ...tutte.slice(1).sort()];
+    }
+    if (tutte.length > MAX_RIPETIZIONI) return onErrore(`Troppe date (massimo ${MAX_RIPETIZIONI}).`);
     const campi = { staff_id: staffId, ora_inizio: oraInizio, ora_fine: oraFine, titolo, colore, note: note.trim() || null };
     salvando = true;
     try {
       if (p.id) {
-        await chiama('PATCH', { id: p.id, data: date[0], ...campi });
-        if (date.length > 1) await chiama('POST', { ...campi, date: date.slice(1), ripeti_di: p.id });
+        await chiama('PATCH', { id: p.id, data: tutte[0], ...campi });
+        if (tutte.length > 1) await chiama('POST', { ...campi, date: tutte.slice(1), ripeti_di: p.id });
       } else {
-        await chiama('POST', { ...campi, date });
+        await chiama('POST', { ...campi, date: tutte });
       }
       onSaved();
     } catch (err) {
@@ -93,11 +109,11 @@
     }
   }
 
-  async function elimina(tutte = false) {
+  async function elimina(quali: 'questo' | 'da_qui' | 'tutte' = 'questo') {
     if (!p.id) return;
     salvando = true;
     try {
-      await chiama('DELETE', { id: p.id, tutte });
+      await chiama('DELETE', { id: p.id, ...(quali === 'tutte' ? { tutte: true } : quali === 'da_qui' ? { da_qui: true } : {}) });
       onSaved();
     } catch (err) {
       onErrore(err instanceof Error ? err.message : "Errore nell'eliminazione.");
@@ -189,11 +205,21 @@
         </div>
       </div>
     {/each}
-    <button type="button" class="self-start text-sm font-black uppercase underline" onclick={ripeti}>+ ripeti impegno</button>
+    <button type="button" class="self-start text-sm font-black uppercase underline" onclick={aggiungiData}>+ ripeti impegno</button>
   </div>
+
+  <Ripetizione dal={date[0] ?? p.data} bind:attiva={ripeti} bind:giorni={ripGiorni} bind:fino={ripFino} prefisso="imp" />
 {/snippet}
 
 <Modal titolo={p.id ? 'Impegno' : 'Nuovo impegno'} {onClose} larghezza={largo ? 'max-w-4xl' : 'max-w-md'} compatta={largo} altezzaFissa>
+  {#if chiediElimina}
+    <div class="flex flex-col gap-3 border-l-4 border-black pl-3 font-bold leading-snug">
+      <p>"{p.titolo}" si ripete:</p>
+      <p><span class="font-black">Solo {giornoDi(p.data)}</span>: tolgo solo questo.</p>
+      <p><span class="font-black">Da qui in poi</span>: tolgo questo e quelli dei giorni dopo; quelli prima restano.</p>
+      <p><span class="font-black">Tutte</span>: tolgo tutte le ripetizioni, anche quelle passate.</p>
+    </div>
+  {:else}
   {#if onTennis}
     <div class="grid grid-cols-2 border-2 border-black text-xs font-black uppercase">
       <button type="button" class="bg-black px-2 py-2 text-white">Impegno</button>
@@ -203,18 +229,24 @@
   {/if}
 
   {@render colonne(sinistra, destra)}
+  {/if}
 
   {#snippet azioni()}
-    <button type="button" class="club-btn flex-1 py-3" onclick={onClose}>Annulla</button>
-    {#if p.id}
-      <button type="button" class="club-btn-red flex-1 py-3" disabled={salvando} onclick={() => elimina(false)}>Elimina</button>
-      {#if p.gruppo_id}
-        <button type="button" class="club-btn-red flex-1 py-3 text-sm" disabled={salvando} onclick={() => elimina(true)}>Elimina tutte le ripetizioni</button>
+    {#if chiediElimina}
+      <button type="button" class="club-btn flex-1 py-3" onclick={() => (chiediElimina = false)}>Indietro</button>
+      <button type="button" class="club-btn-red flex-1 py-3 text-sm" disabled={salvando} onclick={() => elimina('questo')}>Solo questo</button>
+      <button type="button" class="club-btn-red flex-1 py-3 text-sm" disabled={salvando} onclick={() => elimina('da_qui')}>Da qui in poi</button>
+      <button type="button" class="club-btn-red flex-1 py-3 text-sm" disabled={salvando} onclick={() => elimina('tutte')}>Tutte</button>
+    {:else}
+      <button type="button" class="club-btn flex-1 py-3" onclick={onClose}>Annulla</button>
+      {#if p.id}
+        <button type="button" class="club-btn-red flex-1 py-3" disabled={salvando}
+          onclick={() => (p.gruppo_id ? (chiediElimina = true) : elimina())}>Elimina</button>
       {/if}
+      <button type="button" class="club-btn-yellow flex-1 py-3" disabled={salvando} onclick={salva}>
+        {salvando ? 'Salvataggio…' : 'Salva'}
+      </button>
     {/if}
-    <button type="button" class="club-btn-yellow flex-1 py-3" disabled={salvando} onclick={salva}>
-      {salvando ? 'Salvataggio…' : 'Salva'}
-    </button>
   {/snippet}
 </Modal>
 
