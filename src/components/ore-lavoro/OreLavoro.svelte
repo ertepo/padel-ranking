@@ -227,6 +227,29 @@
   // --- Pagamenti del datore di lavoro ------------------------------------------
 
   let dataPagamento = $state(oggiRoma());
+
+  // Compenso orario (fisse ed extra): resta salvato in questo browser, di base 12 €.
+  const CHIAVE_TARIFFA = 'ore-lavoro:tariffa';
+  let tariffa = $state(12);
+
+  $effect(() => {
+    try {
+      const t = Number(localStorage.getItem(CHIAVE_TARIFFA));
+      if (t > 0) tariffa = t;
+    } catch {
+      /* archiviazione non disponibile */
+    }
+  });
+
+  function salvaTariffa() {
+    try {
+      if (tariffa > 0) localStorage.setItem(CHIAVE_TARIFFA, String(tariffa));
+    } catch {
+      /* archiviazione non disponibile */
+    }
+  }
+
+  const euro = new Intl.NumberFormat('it-IT', { style: 'currency', currency: 'EUR' });
   let salvandoPagamento = $state(false);
 
   async function chiamaPagamenti(method: 'POST' | 'DELETE', body: Record<string, unknown>) {
@@ -801,6 +824,18 @@
             <div class="ol-riga text-sm text-slate-600"><dt>Previste</dt><span class="ol-dots"></span><dd>{fmtDurata(dp.minuti_previsti)}</dd></div>
             <div class="ol-riga text-sm text-slate-600"><dt>Assenze</dt><span class="ol-dots"></span><dd>{fmtDurata(dp.minuti_assenza)}</dd></div>
           </dl>
+
+          <div class="mt-4 flex items-end gap-3 border-t-2 border-black pt-3">
+            <div class="w-28">
+              <label for="ol-tariffa" class="mb-1.5 block text-xs font-black uppercase leading-tight text-slate-600">€ all'ora</label>
+              <input id="ol-tariffa" type="number" min="0" step="0.5" inputmode="decimal" class="w-full border-2 border-black p-2 font-bold"
+                bind:value={tariffa} onchange={salvaTariffa} />
+            </div>
+            <div class="flex-1 text-right">
+              <p class="text-xs font-black uppercase text-slate-600">Totale da ricevere</p>
+              <p class="text-2xl font-black">{euro.format(((dp.minuti_lavorati / 60) * (Number(tariffa) || 0)))}</p>
+            </div>
+          </div>
 
           <div class="mt-4 flex flex-wrap items-end gap-2 border-t-2 border-black pt-3">
             <div class="min-w-0 flex-1">
