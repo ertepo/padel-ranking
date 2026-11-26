@@ -55,12 +55,16 @@
     ridimensionabile?: (blocco: T) => boolean;
     /** Nasconde i giorni senza blocchi (come le ore esterne), con un link per mostrarli. */
     nascondiGiorniVuoti?: boolean;
+    /** Colonne mostrate anche se vuote quando si nascondono i giorni vuoti (es. lun-ven). */
+    sempreVisibili?: number[];
     /** Versione compatta per schermi stretti: testi più piccoli. */
     stretta?: boolean;
     /** Al tocco si seleziona subito trascinando, senza pressione lunga (pagine che non scorrono, come il kiosk). */
     toccoDiretto?: boolean;
     /** Righe più basse (fino a un minimo) perché la griglia stia nell'altezza dello schermo. */
     adattaAltezza?: boolean;
+    /** Fasce orarie con lo sfondo un po' più scuro (es. pranzo e cena). */
+    fasceScure?: Fascia[];
     blocco?: Snippet<[T]>;
     gridEl?: HTMLDivElement;
   }
@@ -82,7 +86,9 @@
     onResize,
     ridimensionabile,
     nascondiGiorniVuoti = false,
+    sempreVisibili = [],
     stretta = false,
+    fasceScure = [],
     toccoDiretto = false,
     adattaAltezza = false,
     blocco,
@@ -94,7 +100,7 @@
 
   // Colonne mostrate (con il loro indice originale) e posizione nella griglia.
   const tutte = $derived(colonne.map((c, i) => ({ c, i })));
-  const usate = $derived(new Set(blocchi.map((b) => b.colonna)));
+  const usate = $derived(new Set([...blocchi.map((b) => b.colonna), ...sempreVisibili]));
   const giorniNascosti = $derived(nascondiGiorniVuoti ? tutte.filter(({ i }) => !usate.has(i)).length : 0);
   const colonneMostrate = $derived(
     !nascondiGiorniVuoti || mostraTuttiGiorni || giorniNascosti === tutte.length ? tutte : tutte.filter(({ i }) => usate.has(i)),
@@ -374,6 +380,7 @@
           class="wg-cell"
           class:wg-cell-hour={m % 60 === 0}
           class:wg-cell-oggi={c.evidenziata}
+          class:wg-cell-scura={fasceScure.some((f) => m >= f.inizio && m < f.fine)}
           class:wg-cell-cliccabile={cliccabile}
           style={`grid-column:${gc(i)}; grid-row:${riga(m)}`}
           onpointerdown={(e) => giuSuCella(e, i, m)}
@@ -520,6 +527,14 @@
 
   .wg-cell-oggi {
     background: rgba(255, 204, 0, 0.08);
+  }
+
+  .wg-cell-scura {
+    background: rgba(0, 0, 0, 0.07);
+  }
+
+  .wg-cell-scura.wg-cell-oggi {
+    background: rgba(120, 95, 0, 0.12);
   }
 
   .wg-cell-cliccabile {

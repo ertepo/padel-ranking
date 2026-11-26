@@ -326,6 +326,11 @@
     history.replaceState(null, '', url);
   });
 
+  // Pranzo e cena: sfondo un po' più scuro nella settimana.
+  // Da lunedì a venerdì i giorni si vedono sempre; sabato e domenica solo se hanno ore.
+  const FERIALI = [0, 1, 2, 3, 4];
+  const FASCE_PASTI = [{ inizio: 14 * 60, fine: 15 * 60 }, { inizio: 20 * 60, fine: 21 * 60 }];
+
   // --- Blocchi ----------------------------------------------------------------
 
   type Blocco = BloccoGriglia & { segmento: Segmento; sottotitolo?: string };
@@ -787,7 +792,9 @@
       <WeekGrid
         {colonne}
         {blocchi}
+        fasceScure={FASCE_PASTI}
         nascondiGiorniVuoti
+        sempreVisibili={FERIALI}
         toccoDiretto={kiosk}
         adattaAltezza={kiosk}
         stretta={stretto}
