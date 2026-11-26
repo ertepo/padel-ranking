@@ -1,64 +1,25 @@
 <script lang="ts">
-  // Vista mensile compatta: un riquadro per giorno con le ore lavorate e i
-  // colori dello stato (dai minuti calcolati in SQL):
-  //   azzurro  da verificare
-  //   giallo   assente (sostituito o no), con il nome del sostituto
-  //   fucsia   ore extra / sostituzioni fatte
-  //   verde    lavorato da calendario
-  // Lo sfondo prende il colore più importante del giorno; sotto, una riga per
-  // ogni stato presente. In ogni giorno c'è una miniatura della giornata con
-  // i blocchi (gli stessi colori della settimana), così si vede quando si è
-  // lavorato. Clic su un giorno: si apre la sua settimana.
-  import {
-    GIORNI_BREVI, addGiorni, assegnaCorsie, fasciaVisibile, fmtDurata, fmtFascia, giorniSettimana, isoDow, lunediDi, oggiRoma, ultimoDelMese,
-  } from '../../lib/time-grid';
-  import { COLORI, type GiornoOre } from '../../lib/ore-lavoro/types';
-
-  /** Un blocco della giornata, come nella settimana. */
-  interface BloccoMese {
-    id: string;
-    inizio: number;
-    fine: number;
-    colore: string;
-    classe?: string;
-    titolo?: string;
-    segmento: { data: string };
-  }
+  // Vista mensile compatta: un riquadro per giorno. In alto il numero del
+  // giorno e (a destra) le ore lavorate; sotto, a sinistra, una colonna di
+  // bollini per tipo, uno per ora fatta (mezzo per la mezz'ora):
+  //   verde lavorato · azzurro da verificare · fucsia extra/sostituzioni · arancio private
+  // e a destra le note del giorno ("sostituzione Ludo 4h", "no atletica",
+  // "assente 2h"). Su telefono le note sono elencate sotto il calendario.
+  // Clic su un giorno: si apre la sua settimana.
+  import { GIORNI_BREVI, addGiorni, fmtDurata, giorniSettimana, isoDow, lunediDi, oggiRoma, ultimoDelMese } from '../../lib/time-grid';
+  import type { GiornoOre } from '../../lib/ore-lavoro/types';
+  import type { RiassuntoGiorno } from '../../lib/ore-lavoro/mese';
 
   interface Props {
     /** Primo giorno del mese mostrato (AAAA-MM-01). */
     mese: string;
     giorni: GiornoOre[];
-    blocchi?: BloccoMese[];
+    /** Bollini e note di ogni giorno. */
+    riassunti: Map<string, RiassuntoGiorno>;
     onGiorno: (data: string) => void;
   }
 
-  let { mese, giorni, blocchi = [], onGiorno }: Props = $props();
-
-  // Le ore della miniatura: dalla prima all'ultima occupata nel mese.
-  const delMese = $derived(blocchi.filter((b) => b.segmento.data.slice(0, 7) === mese.slice(0, 7)));
-  const fascia = $derived(fasciaVisibile(delMese, 6 * 60, 24 * 60, { inizio: 9 * 60, fine: 21 * 60 }));
-  const durata = $derived(fascia.fine - fascia.inizio);
-
-  // Blocchi per giorno, con le corsie per quelli sovrapposti.
-  const perGiorno = $derived.by(() => {
-    const giornoNum = new Map<string, number>();
-    const conColonna = delMese.map((b) => {
-      const d = b.segmento.data;
-      if (!giornoNum.has(d)) giornoNum.set(d, giornoNum.size);
-      return { ...b, colonna: giornoNum.get(d)! };
-    });
-    const corsie = assegnaCorsie(conColonna);
-    const out = new Map<string, { b: (typeof conColonna)[number]; corsia: number; corsie: number }[]>();
-    for (const b of conColonna) {
-      const lista = out.get(b.segmento.data) ?? [];
-      lista.push({ b, ...(corsie.get(b) ?? { corsia: 0, corsie: 1 }) });
-      out.set(b.segmento.data, lista);
-    }
-    return out;
-  });
-
-  const pct = (min: number) => `${(((Math.min(Math.max(min, fascia.inizio), fascia.fine) - fascia.inizio) / durata) * 100).toFixed(2)}%`;
+  let { mese, giorni, riassunti, onGiorno }: Props = $props();
 
   const oggi = oggiRoma();
   const perData = $derived(new Map(giorni.map((g) => [g.data, g])));
@@ -71,27 +32,26 @@
     return out;
   });
 
-  function coloreDi(g: GiornoOre | undefined): string | null {
-    if (!g) return null;
-    if (g.da_verificare) return COLORI.verifica;
-    if (g.minuti_assenza > 0) return COLORI.assente;
-    if (g.minuti_sostituzioni > 0) return COLORI.extra;
-    if (g.minuti_previsti > 0) return COLORI.lavorato;
-    return null;
-  }
+  const delMese = (data: string) => data.slice(0, 7) === mese.slice(0, 7);
 
-  const particolari = $derived(
-    giorni.filter((g) => g.data.slice(0, 7) === mese.slice(0, 7) && (g.da_verificare || g.minuti_assenza > 0 || g.minuti_sostituzioni > 0)),
+  const conNote = $derived(
+    [...riassunti.entries()].filter(([d, r]) => delMese(d) && r.note.length > 0).sort(([a], [b]) => a.localeCompare(b)),
   );
 
-  function sostituti(g: GiornoOre): string {
-    const nomi = [...new Set(g.sostituito_da.filter((s) => s.sostituto).map((s) => s.sostituto))];
-    return nomi.join(', ');
-  }
-
-  function sostituiti(g: GiornoOre): string {
-    const nomi = [...new Set(g.sostituzioni.map((s) => s.assente ?? 'extra'))];
-    return nomi.join(', ');
+  /**
+   * Le colonne di bollini di un tipo (true = mezzaluna): al massimo 5 bollini
+   * interi per colonna, più l'eventuale mezzaluna finale (5,5); dal sesto si
+   * va a capo in una nuova colonna.
+   */
+  function colonneDi(mezzi: number): boolean[][] {
+    const interi = Math.floor(mezzi / 2);
+    const colonne: boolean[][] = [];
+    for (let i = 0; i < interi; i += 5) colonne.push(Array(Math.min(5, interi - i)).fill(false));
+    if (mezzi % 2) {
+      if (colonne.length) colonne[colonne.length - 1].push(true);
+      else colonne.push([true]);
+    }
+    return colonne;
   }
 </script>
 
@@ -103,14 +63,13 @@
   {#each settimane as settimana (settimana[0])}
     {#each settimana as data (data)}
       {@const g = perData.get(data)}
-      {@const fuori = data.slice(0, 7) !== mese.slice(0, 7)}
-      {@const colore = fuori ? null : coloreDi(g)}
+      {@const fuori = !delMese(data)}
+      {@const r = fuori ? undefined : riassunti.get(data)}
       <button
         type="button"
         class="mg-day"
         class:mg-fuori={fuori}
         class:mg-oggi={data === oggi}
-        style={colore ? `background: color-mix(in oklab, ${colore} 55%, white)` : ''}
         onclick={() => onGiorno(data)}
         title="Apri la settimana"
       >
@@ -120,36 +79,24 @@
             <span class="mg-ore">{fmtDurata(g.minuti_lavorati)}</span>
           {/if}
         </span>
-        {#if !fuori}
-          <span class="mg-mini" aria-hidden="true">
-            {#each perGiorno.get(data) ?? [] as { b, corsia, corsie } (b.id)}
-              <span
-                class={`mg-blocco ${b.classe ?? ''}`}
-                style={`top:${pct(b.inizio)};height:calc(${pct(fascia.inizio + Math.min(b.fine, fascia.fine) - Math.max(b.inizio, fascia.inizio))});left:${(corsia / corsie) * 100}%;width:${100 / corsie}%;background:${b.colore}`}
-                title={`${fmtFascia(b.inizio, b.fine)}${b.titolo ? ` · ${b.titolo}` : ''}`}
-              ></span>
-            {/each}
-          </span>
-        {/if}
-        {#if g && !fuori && (g.minuti_previsti || g.minuti_lavorati)}
-          <span class="mg-pallini" aria-hidden="true">
-            {#if g.da_verificare}<span style={`background:${COLORI.verifica}`}></span>{/if}
-            {#if g.minuti_assenza > 0}<span style={`background:${COLORI.assente}`}></span>{/if}
-            {#if g.minuti_sostituzioni > 0}<span style={`background:${COLORI.extra}`}></span>{/if}
-          </span>
-          <span class="mg-righe">
-            {#if g.da_verificare}
-              <span class="mg-chip" style={`background:${COLORI.verifica}`}>da verificare</span>
-            {/if}
-            {#if g.minuti_sostituito > 0}
-              <span class="mg-chip" style={`background:${COLORI.assente}`}>→ {sostituti(g)} {fmtDurata(g.minuti_sostituito)}</span>
-            {/if}
-            {#if g.minuti_assente_senza_sostituto > 0}
-              <span class="mg-chip" style={`background:${COLORI.assente}`}>assente {fmtDurata(g.minuti_assente_senza_sostituto)}</span>
-            {/if}
-            {#if g.minuti_sostituzioni > 0}
-              <span class="mg-chip" style={`background:${COLORI.extra}`}>+{fmtDurata(g.minuti_sostituzioni)} {sostituiti(g)}</span>
-            {/if}
+        {#if r}
+          <span class="mg-corpo">
+            <span class="mg-bollini" aria-hidden="true">
+              {#each r.bollini as b, i (i)}
+                {#each colonneDi(b.mezzi) as colonna, k (k)}
+                  <span class="mg-colonna">
+                    {#each colonna as mezzo, j (j)}
+                      <span class="mg-bollino" class:mg-mezzo={mezzo} style={`background:${b.colore}`}></span>
+                    {/each}
+                  </span>
+                {/each}
+              {/each}
+            </span>
+            <span class="mg-note">
+              {#each r.note as n, i (i)}
+                <span class="mg-nota" style={`border-left-color:${n.colore}`}>{n.testo}</span>
+              {/each}
+            </span>
           </span>
         {/if}
       </button>
@@ -157,17 +104,16 @@
   {/each}
 </div>
 
-<!-- Su telefono le etichette non entrano nei riquadri: i giorni particolari sono elencati qui. -->
-{#if particolari.length}
-  <ul class="mt-3 space-y-1 md:hidden">
-    {#each particolari as g (g.data)}
+<!-- Su telefono le note non entrano nei riquadri: i giorni con note sono elencati qui. -->
+{#if conNote.length}
+  <ul class="mt-3 flex flex-col gap-1 md:hidden">
+    {#each conNote as [data, r] (data)}
       <li>
-        <button type="button" class="flex w-full flex-wrap items-center gap-1 border-2 border-black bg-white px-2 py-1.5 text-left text-sm font-bold" onclick={() => onGiorno(g.data)}>
-          <span class="mr-1 font-black">{GIORNI_BREVI[isoDow(g.data) - 1]} {Number(g.data.slice(8, 10))}</span>
-          {#if g.da_verificare}<span class="mg-chip" style={`background:${COLORI.verifica}`}>da verificare</span>{/if}
-          {#if g.minuti_sostituito > 0}<span class="mg-chip" style={`background:${COLORI.assente}`}>→ {sostituti(g)} {fmtDurata(g.minuti_sostituito)}</span>{/if}
-          {#if g.minuti_assente_senza_sostituto > 0}<span class="mg-chip" style={`background:${COLORI.assente}`}>assente {fmtDurata(g.minuti_assente_senza_sostituto)}</span>{/if}
-          {#if g.minuti_sostituzioni > 0}<span class="mg-chip" style={`background:${COLORI.extra}`}>+{fmtDurata(g.minuti_sostituzioni)} {sostituiti(g)}</span>{/if}
+        <button type="button" class="flex w-full flex-wrap items-center gap-1 border-2 border-black bg-white px-2 py-1.5 text-left text-sm font-bold" onclick={() => onGiorno(data)}>
+          <span class="mr-1 font-black">{GIORNI_BREVI[isoDow(data) - 1]} {Number(data.slice(8, 10))}</span>
+          {#each r.note as n, i (i)}
+            <span class="mg-chip" style={`background:${n.colore}`}>{n.testo}</span>
+          {/each}
         </button>
       </li>
     {/each}
@@ -196,7 +142,8 @@
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    gap: 0.15rem;
+    gap: 0.3rem;
+    min-width: 0;
     min-height: 5.5rem;
     padding: 0.3rem 0.35rem;
     border-right: 1px solid rgba(0, 0, 0, 0.25);
@@ -240,55 +187,75 @@
     white-space: nowrap;
   }
 
-  /* Miniatura della giornata: dall'alto (prima ora) al basso (ultima ora). */
-  .mg-mini {
-    position: relative;
-    display: block;
-    height: 3.25rem;
-    background: rgba(255, 255, 255, 0.7);
-    border: 1px solid rgba(0, 0, 0, 0.35);
+  .mg-corpo {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.35rem;
+    min-width: 0;
   }
 
-  .mg-blocco {
-    position: absolute;
-    min-height: 2px;
-    border: 1px solid black;
-    box-sizing: border-box;
+  /* Bollini: una colonna per tipo, un bollino per ora dall'alto in basso;
+     la mezz'ora è una mezzaluna in fondo alla colonna. */
+  .mg-bollini {
+    display: flex;
+    align-items: flex-start;
+    gap: 2px;
+    flex-shrink: 0;
   }
 
-  .mg-blocco.wg-block-tratteggiato {
-    border-style: dashed;
-    opacity: 0.75;
-  }
-
-  .mg-righe {
+  .mg-colonna {
     display: flex;
     flex-direction: column;
-    gap: 0.1rem;
-  }
-
-  .mg-pallini {
-    display: none;
     gap: 2px;
   }
 
-  .mg-pallini span {
+  .mg-bollino {
     width: 0.5rem;
     height: 0.5rem;
     border: 1px solid black;
     border-radius: 999px;
+    box-sizing: border-box;
+  }
+
+  .mg-bollino.mg-mezzo {
+    height: 0.25rem;
+    border-bottom: none;
+    border-radius: 999px 999px 0 0;
+  }
+
+  .mg-note {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+    min-width: 0;
+    flex: 1;
+  }
+
+  .mg-nota {
+    border-left: 4px solid;
+    padding-left: 0.25rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    line-height: 1.2;
+    overflow-wrap: anywhere;
+  }
+
+  .mg-chip {
+    border: 1px solid black;
+    padding: 0 0.25rem;
+    font-size: 0.7rem;
+    font-weight: 800;
+    line-height: 1.35;
   }
 
   @media (max-width: 767px) {
     .mg-day {
       min-height: 3.6rem;
       padding: 0.2rem;
+      gap: 0.2rem;
     }
 
-    .mg-ore {
-      font-size: 0.62rem;
-    }
-
+    .mg-ore,
     .mg-num {
       font-size: 0.62rem;
     }
@@ -297,32 +264,14 @@
       flex-wrap: wrap;
     }
 
-    .mg-mini {
-      height: 2.4rem;
-    }
-
-    .mg-righe {
+    .mg-note {
       display: none;
     }
 
-    .mg-pallini {
-      display: flex;
-    }
 
     .mg-head {
       font-size: 0.65rem;
       padding: 0.3rem 0;
     }
-  }
-
-  .mg-chip {
-    border: 1px solid black;
-    padding: 0 0.25rem;
-    font-size: 0.6rem;
-    font-weight: 800;
-    line-height: 1.35;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
   }
 </style>

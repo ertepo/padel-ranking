@@ -16,6 +16,7 @@
     minutiToTime, oggiRoma, primoDelMese, timeToMinuti, ultimoDelMese,
   } from '../../lib/time-grid';
   import { affiancatoDi, segmentiPeriodo, type Segmento } from '../../lib/ore-lavoro/segmenti';
+  import { riassuntoGiorno, type RiassuntoGiorno } from '../../lib/ore-lavoro/mese';
   import {
     ATTIVITA, CLUB, COLORI, COLORI_IMPEGNO, coloreDi, type Club, type DatiPeriodo, type Eccezione, type Impegno, type Staff,
   } from '../../lib/ore-lavoro/types';
@@ -389,6 +390,24 @@
     });
   });
 
+  // Vista mese: bollini delle ore e note di ogni giorno.
+  const riassuntiMese = $derived.by(() => {
+    const out = new Map<string, RiassuntoGiorno>();
+    if (vista !== 'mese' || !correnti || !staffId) return out;
+    const perData = new Map<string, Segmento[]>();
+    for (const b of blocchi) {
+      const lista = perData.get(b.segmento.data) ?? [];
+      lista.push(b.segmento);
+      perData.set(b.segmento.data, lista);
+    }
+    const nome = (id: string | null | undefined) => (id ? (nomeDi.get(id) ?? '?') : '?');
+    for (const [data, segmenti] of perData) {
+      const previstiGiorno = correnti.previsti.filter((p) => p.data === data);
+      out.set(data, riassuntoGiorno(staffId, segmenti, previstiGiorno, nome, giornoOre.get(data)?.da_verificare ?? false));
+    }
+    return out;
+  });
+
   const colonne = $derived(
     giorni.map((g, i) => {
       const ore = giornoOre.get(g);
@@ -730,7 +749,7 @@
         <MonthGrid
           {mese}
           giorni={correnti?.giorni ?? []}
-          {blocchi}
+          riassunti={riassuntiMese}
           onGiorno={(data) => {
             lunedi = lunediDi(data);
             vista = 'settimana';
